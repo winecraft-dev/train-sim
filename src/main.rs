@@ -1,9 +1,13 @@
-use bevy::prelude::*;
+use bevy::{
+    color::palettes::css::{GREEN, SEA_GREEN},
+    prelude::*,
+};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
+        .add_systems(Update, rotate)
         .run();
 }
 
@@ -25,7 +29,8 @@ impl TrackGenerator {
         meshes: &mut ResMut<Assets<Mesh>>,
         materials: &mut ResMut<Assets<ColorMaterial>>,
     ) -> impl Bundle {
-        let track = meshes.add(Segment2d::new(self.a, self.b));
+        // take both ends and move them so a is 0, 0.
+        let track = meshes.add(Segment2d::new(Vec2::new(0.0, 0.0), self.b - self.a));
 
         (
             Track,
@@ -45,9 +50,26 @@ fn setup(
 
     let tracks = [
         TrackGenerator::ends(Vec2::new(0.0, 0.0), Vec2::new(30.0, 30.0)),
+        TrackGenerator::ends(Vec2::new(-10.0, 10.0), Vec2::new(10.0, -10.0)),
         TrackGenerator::ends(Vec2::new(-30.0, 0.0), Vec2::new(30.0, 30.0)),
     ];
     for track in tracks {
         commands.spawn(track.generate(&mut meshes, &mut materials));
+    }
+
+    let center = meshes.add(Circle::new(3.0));
+    commands.spawn((
+        Mesh2d(center),
+        MeshMaterial2d(materials.add(Color::Srgba(GREEN))),
+    ));
+
+    let test_line = Segment2d::new(Vec2::new(-30.0, 0.0), Vec2::new(30.0, 30.0));
+    let mesh: Mesh = test_line.into();
+    println!("{:?}", mesh);
+}
+
+fn rotate(mut tracks: Query<&mut Transform, With<Track>>) {
+    for mut transform in &mut tracks {
+        transform.rotate_z(0.01);
     }
 }
