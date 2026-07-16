@@ -1,7 +1,6 @@
 use bevy::{
     asset::RenderAssetUsages,
-    color::palettes::css::{GREEN, RED, SEA_GREEN},
-    math::VectorSpace,
+    color::palettes::css::{GREEN, RED},
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
 };
@@ -14,7 +13,7 @@ fn main() {
         .run();
 }
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct Track {
     a: Vec2,
     b: Vec2,
@@ -32,19 +31,35 @@ pub struct TrackBuilder {
     indices: Vec<u32>,
 }
 
+const TRACK_WIDTH: f32 = 5.0;
 impl TrackBuilder {
     fn add_track(&mut self, track: &Track) {
-        self.positions.push(track.a);
-        let a = self.positions.len();
-        self.positions.push(track.b);
-        let b = self.positions.len();
+        let delta = track.a - track.b;
+        let scaled = delta.normalize() * (TRACK_WIDTH / 2.0);
+        let rotated = Vec2::new(scaled.y, -scaled.x);
+        println!("{:?} {} {}", track, &scaled, &rotated);
 
-        self.indices.push(a as u32);
-        self.indices.push(b as u32);
+        let l_track_pos_a = track.a + rotated;
+        let l_track_pos_b = track.b + rotated;
+        let r_track_pos_a = track.a - rotated;
+        let r_track_pos_b = track.b - rotated;
+
+        self.positions.push(l_track_pos_a);
+        let la = self.positions.len() - 1;
+        self.positions.push(l_track_pos_b);
+        let lb = self.positions.len() - 1;
+        self.positions.push(r_track_pos_a);
+        let ra = self.positions.len() - 1;
+        self.positions.push(r_track_pos_b);
+        let rb = self.positions.len() - 1;
+
+        self.indices.push(la as u32);
+        self.indices.push(lb as u32);
+        self.indices.push(ra as u32);
+        self.indices.push(rb as u32);
     }
 }
 
-const TRACK_WIDTH: f32 = 5.0;
 impl MeshBuilder for TrackBuilder {
     fn build(&self) -> Mesh {
         let positions: Vec<Vec3> = self.positions.iter().map(|p| p.extend(0.0)).collect();
@@ -60,8 +75,8 @@ fn setup(mut commands: Commands) {
     commands.spawn((Camera2d, Camera::default()));
 
     let tracks = [
-        Track::new(Vec2::new(0.0, 10.0), Vec2::new(-10.0, -10.0)),
-        Track::new(Vec2::new(30.0, 0.0), Vec2::new(-30.0, 30.0)),
+        Track::new(Vec2::new(0.0, 0.0), Vec2::new(30.0, 30.0)),
+        Track::new(Vec2::new(-300.0, 0.0), Vec2::new(0.0, 0.0)),
     ];
 
     for track in tracks {
@@ -75,9 +90,10 @@ fn gen_track_mesh(
     mut materials: ResMut<Assets<ColorMaterial>>,
     tracks: Query<&Track>,
 ) {
-    let center = meshes.add(Circle::new(3.0));
+    let center = meshes.add(Circle::new(2.0));
     commands.spawn((
         Mesh2d(center),
+        Transform::from_translation(Vec3::new(-1.0, 1.0, 0.0)),
         MeshMaterial2d(materials.add(Color::Srgba(GREEN))),
     ));
 
