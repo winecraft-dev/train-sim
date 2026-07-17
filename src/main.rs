@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use bevy::{
     asset::RenderAssetUsages,
     color::palettes::css::{GREEN, RED},
+    math::VectorSpace,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
 };
@@ -13,15 +16,31 @@ fn main() {
         .run();
 }
 
+#[derive(Debug)]
+pub enum TrackType {
+    Straight,
+    Curved,
+}
+
 #[derive(Debug, Component)]
 pub struct Track {
-    a: Vec2,
-    b: Vec2,
+    positions: (Vec2, Vec2),
+    track_type: TrackType,
 }
 
 impl Track {
-    fn new(a: Vec2, b: Vec2) -> Self {
-        Self { a, b }
+    fn straight(positions: (Vec2, Vec2)) -> Self {
+        Self {
+            positions,
+            track_type: TrackType::Straight,
+        }
+    }
+
+    fn curved(positions: (Vec2, Vec2)) -> Self {
+        Self {
+            positions,
+            track_type: TrackType::Curved,
+        }
     }
 }
 
@@ -29,20 +48,30 @@ impl Track {
 pub struct TrackBuilder {
     positions: Vec<Vec2>,
     indices: Vec<u32>,
+    straight_directions: HashMap<Vec2, Vec2>, // maps each straight track's 2 positions with a direction
+    curved_positions: Vec<(Vec2, Vec2)>,
 }
 
 const TRACK_WIDTH: f32 = 5.0;
 impl TrackBuilder {
     fn add_track(&mut self, track: &Track) {
-        let delta = track.a - track.b;
-        let scaled = delta.normalize() * (TRACK_WIDTH / 2.0);
-        let rotated = Vec2::new(scaled.y, -scaled.x);
-        println!("{:?} {} {}", track, &scaled, &rotated);
+        match track.track_type {
+            TrackType::Straight => self.add_straight_track(track.positions),
+            TrackType::Curved => self.add_curved_track(track.positions),
+        }
+    }
 
-        let l_track_pos_a = track.a + rotated;
-        let l_track_pos_b = track.b + rotated;
-        let r_track_pos_a = track.a - rotated;
-        let r_track_pos_b = track.b - rotated;
+    fn add_straight_track(&mut self, positions: (Vec2, Vec2)) {
+        let delta = positions.0 - positions.1;
+        let scaled = delta.normalize() * (TRACK_WIDTH / 2.0);
+        let rotated = Vec2::new(scaled.y, -scaled.x); // rotate by pi/2
+
+        self.straight_directions[Vec2::ZERO] = Vec2::ZERO;
+
+        let l_track_pos_a = positions.0 + rotated;
+        let l_track_pos_b = positions.0 + rotated;
+        let r_track_pos_a = positions.1 - rotated;
+        let r_track_pos_b = positions.1 - rotated;
 
         self.positions.push(l_track_pos_a);
         let la = self.positions.len() - 1;
@@ -58,6 +87,8 @@ impl TrackBuilder {
         self.indices.push(ra as u32);
         self.indices.push(rb as u32);
     }
+
+    fn add_curved_track(&mut self, positions: (Vec2, Vec2)) {} // the curved track needs to know information about the approaching tracks...
 }
 
 impl MeshBuilder for TrackBuilder {
@@ -75,8 +106,9 @@ fn setup(mut commands: Commands) {
     commands.spawn((Camera2d, Camera::default()));
 
     let tracks = [
-        Track::new(Vec2::new(0.0, 0.0), Vec2::new(30.0, 30.0)),
-        Track::new(Vec2::new(-300.0, 0.0), Vec2::new(0.0, 0.0)),
+        Track::straight((Vec2::new(0.0, 0.0), Vec2::new(30.0, 30.0))),
+        Track::curved((Vec2::new(30.0, 30.0), Vec2::new(60.0, 30.0))),
+        Track::straight((Vec2::new(-300.0, 0.0), Vec2::new(0.0, 0.0))),
     ];
 
     for track in tracks {
