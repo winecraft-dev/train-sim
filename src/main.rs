@@ -13,17 +13,18 @@ fn main() {
         .run();
 }
 
+// could become like a switch... with multiple adjacent tracks (max 3)
+// we could toggle its config to switch from track to track. Switches
+// are unidirectional
 #[derive(Debug, Component)]
 pub struct TrackNode {
     position: Vec2,
-    adjacent_tracks: Vec<Entity>,
 }
 
 impl TrackNode {
-    fn new(position: Vec2) -> Self {
+    fn new(x: f32, y: f32) -> Self {
         Self {
-            position,
-            adjacent_tracks: Vec::new(),
+            position: Vec2::new(x, y),
         }
     }
 }
@@ -35,23 +36,35 @@ pub enum TrackType {
 }
 
 #[derive(Debug, Component)]
-pub struct TrackSegment {
+pub struct StraightTrackSegment {
     nodes: (Entity, Entity),
-    track_type: TrackType,
 }
 
-impl TrackSegment {
-    fn straight(nodes: (Entity, Entity)) -> Self {
-        TrackSegment {
-            nodes,
-            track_type: TrackType::Straight,
-        }
+impl StraightTrackSegment {
+    fn new(nodes: (Entity, Entity)) -> Self {
+        Self { nodes }
     }
+}
 
-    fn curved(nodes: (Entity, Entity)) -> Self {
-        TrackSegment {
+// We should precompute radius before constructing CurvedTrackSegment.
+// When we setup track creation, we can create a system for generating
+// a radius from two nodes using the triangle method. Radius is tied
+// to a lot of things, like drawing and train behavior, so it's worth
+// precomputing
+#[derive(Debug, Component)]
+pub struct CurvedTrackSegment {
+    nodes: (Entity, Entity),
+    center: Entity, // can derive radius from positions of center and a node
+
+    radius: Option<f32>,
+}
+
+impl CurvedTrackSegment {
+    fn new(nodes: (Entity, Entity), center: Entity) -> Self {
+        Self {
             nodes,
-            track_type: TrackType::Curved,
+            center,
+            radius: None,
         }
     }
 }
@@ -59,14 +72,22 @@ impl TrackSegment {
 fn setup(mut commands: Commands) {
     commands.spawn((Camera2d, Camera::default()));
 
-    let node_a = commands.spawn(TrackNode::new(Vec2::new(0.0, 0.0))).id();
-    let node_b = commands.spawn(TrackNode::new(Vec2::new(30.0, 30.0))).id();
-    let node_c = commands.spawn(TrackNode::new(Vec2::new(60.0, 30.0))).id();
-    let node_d = commands.spawn(TrackNode::new(Vec2::new(60.0, 100.0))).id();
+    let node_x = commands.spawn(TrackNode::new(-450.0, -600.0)).id();
+    let node_y = commands.spawn(TrackNode::new(-450.0, -150.0)).id();
+    let center_z = commands.spawn(TrackNode::new(-300.0, -150.0)).id();
+    let node_z = commands.spawn(TrackNode::new(-300.0, 0.0)).id();
+    let node_a = commands.spawn(TrackNode::new(0.0, 0.0)).id();
+    let node_b = commands.spawn(TrackNode::new(300.0, 0.0)).id();
+    let center_a = commands.spawn(TrackNode::new(300.0, 150.0)).id(); // center
+    let node_c = commands.spawn(TrackNode::new(450.0, 150.0)).id();
+    let node_d = commands.spawn(TrackNode::new(450.0, 600.0)).id();
 
-    commands.spawn(TrackSegment::straight((node_a, node_b)));
-    commands.spawn(TrackSegment::curved((node_b, node_c)));
-    commands.spawn(TrackSegment::straight((node_c, node_d)));
+    commands.spawn(StraightTrackSegment::new((node_x, node_y)));
+    commands.spawn(CurvedTrackSegment::new((node_y, node_z), center_z));
+    commands.spawn(StraightTrackSegment::new((node_z, node_a)));
+    commands.spawn(StraightTrackSegment::new((node_a, node_b)));
+    commands.spawn(CurvedTrackSegment::new((node_b, node_c), center_a));
+    commands.spawn(StraightTrackSegment::new((node_c, node_d)));
 }
 
 fn gen_track_mesh(
@@ -74,7 +95,8 @@ fn gen_track_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     nodes: Query<(Entity, &TrackNode)>,
-    segments: Query<&TrackSegment>,
+    straight_segments: Query<&StraightTrackSegment>,
+    curved_segments: Query<&CurvedTrackSegment>,
 ) {
     let center = meshes.add(Circle::new(2.0));
     commands.spawn((
@@ -87,14 +109,15 @@ fn gen_track_mesh(
     for (entity, node) in nodes {
         track_builder.add_node(entity, node);
     }
-    for segment in segments {
-        track_builder.add_segment(segment);
+    for segment in straight_segments {
+        track_builder.add_straight_track(segment);
+    }
+    for segment in curved_segments {
+        track_builder.add_curved_track(segment);
     }
 
     let track_mesh = track_builder.build();
     let track_id = meshes.add(track_mesh.clone());
-
-    println!("{:?}", track_mesh);
 
     commands.spawn((
         Mesh2d(track_id),
