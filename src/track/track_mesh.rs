@@ -1,4 +1,4 @@
-use std::{collections::HashMap, f32::consts::PI};
+use std::collections::HashMap;
 
 use crate::{CurvedTrackSegment, StraightTrackSegment, TrackNode};
 
@@ -8,22 +8,20 @@ use bevy::{
     prelude::*,
 };
 
-pub struct TrackBuilder {
+pub struct TrackMeshBuilder {
     curve_resolution: u32,
-    track_width: f32,
-
+    // track_width: f32,
     nodes: HashMap<Entity, Vec2>,
 
     positions: Vec<Vec2>, // outputs
     indices: Vec<usize>,
 }
 
-impl Default for TrackBuilder {
+impl Default for TrackMeshBuilder {
     fn default() -> Self {
         Self {
             curve_resolution: 10,
-            track_width: 5.0,
-
+            // track_width: 5.0,
             nodes: Default::default(),
 
             positions: Default::default(),
@@ -37,16 +35,16 @@ impl Default for TrackBuilder {
 // guaranteed, we should process curveds after all segments come in.
 
 //
-impl TrackBuilder {
-    pub const fn curve_resolution(mut self, r: u32) -> Self {
+impl TrackMeshBuilder {
+    pub const fn _curve_resolution(mut self, r: u32) -> Self {
         self.curve_resolution = r;
         self
     }
 
-    pub const fn track_width(mut self, width: f32) -> Self {
-        self.track_width = width;
-        self
-    }
+    // pub const fn track_width(mut self, width: f32) -> Self {
+    //     self.track_width = width;
+    //     self
+    // }
 
     pub fn add_node(&mut self, entity: Entity, node: &TrackNode) {
         self.nodes.insert(entity, node.position);
@@ -56,28 +54,10 @@ impl TrackBuilder {
         let a = self.nodes.get(&track.nodes.0).unwrap();
         let b = self.nodes.get(&track.nodes.1).unwrap();
 
-        let delta = a - b;
-        let scaled = delta.normalize() * (self.track_width / 2.0);
-        let rotated = Vec2::new(scaled.y, -scaled.x); // rotate by pi/2
-
-        let l_track_pos_a = a + rotated;
-        let l_track_pos_b = b + rotated;
-        let r_track_pos_a = a - rotated;
-        let r_track_pos_b = b - rotated;
-
-        self.positions.push(l_track_pos_a);
-        let la = self.positions.len() - 1;
-        self.positions.push(l_track_pos_b);
-        let lb = self.positions.len() - 1;
-        self.positions.push(r_track_pos_a);
-        let ra = self.positions.len() - 1;
-        self.positions.push(r_track_pos_b);
-        let rb = self.positions.len() - 1;
-
-        self.indices.push(la);
-        self.indices.push(lb);
-        self.indices.push(ra);
-        self.indices.push(rb);
+        self.positions.push(*a);
+        self.indices.push(self.positions.len() - 1);
+        self.positions.push(*b);
+        self.indices.push(self.positions.len() - 1);
     }
 
     pub fn add_curved_track(&mut self, track: &CurvedTrackSegment) {
@@ -101,26 +81,20 @@ impl TrackBuilder {
             let y = sin * radius;
             let position = Vec2::new(x, y) + center;
             self.positions.push(position);
-
-            println!("{} {}", position, self.positions.len() - 1);
         }
 
         for i in 0..steps - 1 {
-            let a = start_index + i;
-            let b = start_index + i + 1;
-            println!("a: {} b: {}", a, b);
             self.indices.push(start_index + i);
             self.indices.push(start_index + i + 1);
         }
     }
 }
 
-impl MeshBuilder for TrackBuilder {
+impl MeshBuilder for TrackMeshBuilder {
     fn build(&self) -> Mesh {
         let positions: Vec<Vec3> = self.positions.iter().map(|p| p.extend(0.0)).collect();
         let indices = self.indices.iter().map(|i| *i as u32).collect();
 
-        println!("{:?}", positions);
         Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default())
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
             .with_inserted_indices(Indices::U32(indices))
