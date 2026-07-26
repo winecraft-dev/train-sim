@@ -1,12 +1,16 @@
+mod browsing;
 mod track;
 
 use bevy::prelude::*;
 use track::*;
 
+use crate::browsing::BrowsingPlugin;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
+        .add_plugins(BrowsingPlugin)
         .add_systems(Startup, setup)
         .run();
 }
