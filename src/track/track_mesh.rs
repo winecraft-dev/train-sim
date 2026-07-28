@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{CurvedTrackSegment, StraightTrackSegment, TrackNode};
+use crate::TrackNode;
 
 use bevy::{
     asset::RenderAssetUsages,
@@ -50,9 +50,9 @@ impl TrackMeshBuilder {
         self.nodes.insert(entity, node.position);
     }
 
-    pub fn add_straight_track(&mut self, track: &StraightTrackSegment) {
-        let a = self.nodes.get(&track.nodes.0).unwrap();
-        let b = self.nodes.get(&track.nodes.1).unwrap();
+    pub fn add_straight_track(&mut self, nodes: (Entity, Entity)) {
+        let a = self.nodes.get(&nodes.0).unwrap();
+        let b = self.nodes.get(&nodes.1).unwrap();
 
         self.positions.push(*a);
         self.indices.push(self.positions.len() - 1);
@@ -60,15 +60,17 @@ impl TrackMeshBuilder {
         self.indices.push(self.positions.len() - 1);
     }
 
-    pub fn add_curved_track(&mut self, track: &CurvedTrackSegment) {
-        let a = self.nodes.get(&track.nodes.0).unwrap();
-        let b = self.nodes.get(&track.nodes.1).unwrap();
-        let center = self.nodes.get(&track.center).unwrap();
+    pub fn add_curved_track(
+        &mut self,
+        nodes: (Entity, Entity),
+        center: Entity,
+        angle: f32,
+        radius: f32,
+    ) {
+        let a = self.nodes.get(&nodes.0).unwrap();
+        let center = self.nodes.get(&center).unwrap();
 
         let angle_a = (a - center).to_angle();
-        let angle_b = (b - center).to_angle();
-        let angle = angle_b - angle_a;
-        let radius = (a - center).length();
 
         let steps = self.curve_resolution as usize; // (((angle / 2.0 / PI) * self.resolution as f32) as usize).min(1);
         let step = angle / (steps as f32 - 1.0);

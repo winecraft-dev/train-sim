@@ -10,8 +10,8 @@ pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(generate_track_mesh)
-            .add_observer(calculate_track_data);
+        app.add_observer(calculate_track_data)
+            .add_observer(generate_track_mesh);
     }
 }
 
@@ -31,55 +31,81 @@ impl TrackNode {
     }
 }
 
+#[derive(Debug)]
+pub enum TrackVariant {
+    Straight,
+    Curved {
+        center: Entity,
+        angle: Option<f32>,
+        radius: Option<f32>,
+    },
+}
+
 #[derive(Debug, Component)]
-pub struct StraightTrackSegment {
+pub struct TrackSegment {
     nodes: (Entity, Entity),
+    variant: TrackVariant,
+
+    length: Option<f32>,
 }
 
-impl StraightTrackSegment {
-    pub fn new(nodes: (Entity, Entity)) -> Self {
-        Self { nodes }
-    }
-}
-
-// We should precompute radius before constructing CurvedTrackSegment.
-// When we setup track creation, we can create a system for generating
-// a radius from two nodes using the triangle method. Radius is tied
-// to a lot of things, like drawing and train behavior, so it's worth
-// precomputing
-#[derive(Debug, Component)]
-pub struct CurvedTrackSegment {
-    nodes: (Entity, Entity),
-    center: Entity, // can derive radius from positions of center and a node
-
-    radius: Option<f32>,
-}
-
-impl CurvedTrackSegment {
-    pub fn new(nodes: (Entity, Entity), center: Entity) -> Self {
+impl TrackSegment {
+    pub fn straight(nodes: (Entity, Entity)) -> Self {
         Self {
             nodes,
-            center,
-            radius: None,
+            variant: TrackVariant::Straight,
+
+            length: None,
         }
     }
 
-    fn calculate_radius(&mut self, nodes: &Query<&TrackNode>) {
-        let a = nodes.get(self.nodes.0).unwrap().position;
-        let center = nodes.get(self.center).unwrap().position;
-        let radius = (a - center).length();
+    pub fn curved(nodes: (Entity, Entity), center: Entity) -> Self {
+        Self {
+            nodes,
+            variant: TrackVariant::Curved {
+                center,
+                angle: Option::None,
+                radius: Option::None,
+            },
 
-        self.radius = Some(radius);
+            length: None,
+        }
+    }
+
+    fn calculate_length(&mut self, nodes: &Query<&TrackNode>) {
+        let a = nodes.get(self.nodes.0).unwrap().position;
+        let b = nodes.get(self.nodes.1).unwrap().position;
+
+        let length = match &mut self.variant {
+            TrackVariant::Straight => (a - b).length(),
+            TrackVariant::Curved {
+                center,
+                angle,
+                radius,
+            } => {
+                let center = nodes.get(*center).unwrap().position;
+                let angle_a = (a - center).to_angle();
+                let angle_b = (b - center).to_angle();
+                let calc_angle = angle_b - angle_a;
+                let calc_radius = (a - center).length();
+
+                *angle = Some(calc_angle);
+                *radius = Some(calc_radius);
+
+                calc_angle * calc_radius
+            }
+        };
+        self.length = Some(length);
     }
 }
 
 pub fn calculate_track_data(
     _track_updated: On<TrackUpdate>,
     nodes: Query<&TrackNode>,
-    curved_segments: Query<&mut CurvedTrackSegment>,
+    segments: Query<&mut TrackSegment>,
 ) {
-    for mut segment in curved_segments {
-        segment.calculate_radius(&nodes);
+    for mut segment in segments {
+        segment.calculate_length(&nodes);
     }
 }
 
@@ -89,25 +115,26 @@ pub fn generate_track_mesh(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     nodes: Query<(Entity, &TrackNode)>,
-    straight_segments: Query<&StraightTrackSegment>,
-    curved_segments: Query<&CurvedTrackSegment>,
+    segments: Query<&TrackSegment>,
 ) {
-    let center = meshes.add(Circle::new(2.0));
-    commands.spawn((
-        Mesh2d(center),
-        Transform::from_translation(Vec3::new(-1.0, 1.0, 0.0)),
-        MeshMaterial2d(materials.add(Color::Srgba(GREEN))),
-    ));
-
     let mut track_builder = TrackMeshBuilder::default();
     for (entity, node) in nodes {
         track_builder.add_node(entity, node);
     }
-    for segment in straight_segments {
-        track_builder.add_straight_track(segment);
-    }
-    for segment in curved_segments {
-        track_builder.add_curved_track(segment);
+    for segment in segments {
+        match segment.variant {
+            TrackVariant::Straight => track_builder.add_straight_track(segment.nodes),
+            TrackVariant::Curved {
+                center,
+                angle,
+                radius,
+            } => track_builder.add_curved_track(
+                segment.nodes,
+                center,
+                angle.unwrap(),
+                radius.unwrap(),
+            ),
+        }
     }
 
     let track_mesh = track_builder.build();
