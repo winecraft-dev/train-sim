@@ -16,32 +16,36 @@ pub struct Train {
     traversing: Option<Traversing>,
 }
 
+// Progress ALWAYS refers to the distance from A along the route A->B.
+// It will always be positive unless there is a track overrun
 #[derive(Debug)]
 struct Traversing {
-    track: Entity,
+    track: Entity, // TrackSegment
     progress: f32,
 }
 
 impl Train {
     pub fn on_track(track: Entity) -> Self {
         Self {
-            speed: 0.1,
+            speed: 0.5,
             traversing: Some(Traversing {
                 track,
                 progress: 0.0,
             }),
         }
     }
-}
 
-// speed is a scalar value that does go negative... I guess that
-// means that there's a direction to it. Since TrackSegments
-// are given Nodes in arbitrary order, it is not feasible to maintain
-// a positive/negative ordering from track to track. Therefore, the
-// sign of the speed only applies to the current Traversing TrackSegment.
-// Positive means node A->B, Negative means B->A
-fn choose_direction(a: Vec2, b: Vec2, progress: f32) -> Vec2 {
-    if progress >= 0.0 { a } else { b }
+    pub fn with_progress(mut self, progress: f32) -> Self {
+        if let Some(traversing) = self.traversing.as_mut() {
+            traversing.progress = progress;
+        }
+        self
+    }
+
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.speed = speed;
+        self
+    }
 }
 
 fn apply_train_speeds(trains: Query<&mut Train>) {
@@ -50,7 +54,6 @@ fn apply_train_speeds(trains: Query<&mut Train>) {
         if let Some(traversing) = &mut train.traversing {
             traversing.progress += speed;
         }
-
         // determine if the train begins traversing onto the next track
     }
 }
@@ -79,18 +82,28 @@ fn project_train_position(nodes: Query<&TrackNode>, segment: &TrackSegment, prog
     match segment.variant {
         TrackVariant::Straight => {
             let unit = (b - a).normalize();
-            let start = choose_direction(a, b, progress);
 
-            let projected = start + unit * progress;
-
-            println!("{} {} {} {}", progress, unit, start, projected);
-
+            let projected = a + unit * progress;
             projected
         }
         TrackVariant::Curved {
             center,
             angle: _,
             radius,
-        } => todo!(),
+        } => {
+            let center = nodes.get(center).unwrap().position;
+            let angle_a = (a - center).to_angle();
+
+            let track_radius = radius.unwrap();
+            let track_length = segment.length.unwrap();
+
+            let theta = angle_a + progress / track_length;
+            let (sin, cos) = ops::sin_cos(theta);
+            let x = cos * track_radius;
+            let y = sin * track_radius;
+            let position = Vec2::new(x, y) + center;
+
+            position
+        }
     }
 }
