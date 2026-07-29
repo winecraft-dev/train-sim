@@ -1,7 +1,4 @@
-use bevy::{
-    color::palettes::css::{GREEN, RED},
-    prelude::*,
-};
+use bevy::{color::palettes::css::RED, prelude::*};
 use track_mesh::TrackMeshBuilder;
 
 mod track_mesh;
@@ -20,7 +17,7 @@ pub struct TrackUpdate;
 
 #[derive(Debug, Component)]
 pub struct TrackNode {
-    position: Vec2,
+    pub position: Vec2,
 }
 
 impl TrackNode {
@@ -43,10 +40,10 @@ pub enum TrackVariant {
 
 #[derive(Debug, Component)]
 pub struct TrackSegment {
-    nodes: (Entity, Entity),
-    variant: TrackVariant,
+    pub nodes: (Entity, Entity),
+    pub variant: TrackVariant,
 
-    length: Option<f32>,
+    pub length: Option<f32>,
 }
 
 impl TrackSegment {

@@ -42,22 +42,36 @@ fn setup(
 
     commands.spawn(TrackSegment::straight((node_x, node_y)));
     commands.spawn(TrackSegment::curved((node_y, node_z), center_z));
-    let start_track = commands
-        .spawn(TrackSegment::straight((node_z, node_a)))
+    commands.spawn(TrackSegment::straight((node_z, node_a)));
+    let start_track_a = commands
+        .spawn(TrackSegment::straight((node_a, node_b)))
         .id();
-    commands.spawn(TrackSegment::straight((node_a, node_b)));
     commands.spawn(TrackSegment::curved((node_b, node_c), center_a));
-    commands.spawn(TrackSegment::straight((node_c, node_d)));
+    let start_track_b = commands
+        .spawn(TrackSegment::straight((node_c, node_d)))
+        .id();
+    let start_track_c = commands
+        .spawn(TrackSegment::straight((node_d, node_x)))
+        .id();
 
     commands.trigger(TrackUpdate);
+
+    let trains = [
+        Train::on_track(start_track_a),
+        Train::on_track(start_track_b),
+        Train::on_track(start_track_c),
+    ];
 
     // spawn train
     let circle = meshes.add(Circle::new(3.0));
     let blue = materials.add(Color::Srgba(BLUE));
-    commands.spawn((
-        Train::on_track(start_track),
-        Mesh2d(circle),
-        MeshMaterial2d(blue),
-        Transform::from_xyz(100.0, 0.0, 0.0),
-    ));
+
+    for train in trains {
+        commands.spawn((
+            train,
+            Mesh2d(circle.clone()),
+            MeshMaterial2d(blue.clone()),
+            Transform::from_xyz(100.0, 0.0, 0.0),
+        ));
+    }
 }
