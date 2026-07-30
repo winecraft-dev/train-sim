@@ -18,13 +18,22 @@ pub struct TrackUpdate;
 #[derive(Debug, Component)]
 pub struct TrackNode {
     pub position: Vec2,
+
+    // subject to change once we allow for track switches
+    neighbors: (Option<Entity>, Option<Entity>),
 }
 
 impl TrackNode {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             position: Vec2::new(x, y),
+            neighbors: (None, None),
         }
+    }
+
+    pub fn next_track(inlet: Entity) -> Option<Entity> {
+        // compute the outlet track based on the inlet.
+        None
     }
 }
 
@@ -94,6 +103,15 @@ impl TrackSegment {
         };
         self.length = Some(length);
     }
+}
+
+pub fn compute_node_neighbors(
+    _track_updated: On<TrackUpdate>,
+    nodes: Query<&mut TrackNode>,
+    segments: Query<&TrackSegment>,
+) {
+    // arbitrarily assign neighbors to TrackNodes based on the
+    // TrackSegments we see come in
 }
 
 pub fn calculate_track_data(

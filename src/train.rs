@@ -96,9 +96,13 @@ fn apply_train_speeds(trains: Query<&mut Train>, segments: Query<&TrackSegment>)
 
         // check if progress goes beyond the [0,length]
 
-        if traversing.progress < 0.0 || traversing.progress > 1.0 {
-            train.speed = 0.0;
+        if traversing.progress >= 0.0 && traversing.progress <= 1.0 {
+            continue;
         }
+
+        train.speed = 0.0;
+
+        // now we find the next track...
     }
 }
 
