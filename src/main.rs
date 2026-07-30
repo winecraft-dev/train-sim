@@ -39,35 +39,42 @@ fn setup(
     let node_c = commands.spawn(TrackNode::new(450.0, 150.0)).id();
     let node_d = commands.spawn(TrackNode::new(450.0, 600.0)).id();
 
-    commands.spawn(TrackSegment::straight((node_x, node_y)));
-    let start_track_z = commands
+    let straight_track_a = commands
+        .spawn(TrackSegment::straight((node_x, node_y)))
+        .id();
+    let curved_track_a = commands
         .spawn(TrackSegment::curved((node_y, node_z), center_z))
         .id();
-    let start_track_a = commands
+    let straight_track_b = commands
         .spawn(TrackSegment::straight((node_z, node_b)))
         .id();
-    let start_track_b = commands
+    let curved_track_b = commands
         .spawn(TrackSegment::curved((node_b, node_c), center_a))
         .id();
-    let start_track_c = commands
+    let straight_track_c = commands
         .spawn(TrackSegment::straight((node_c, node_d)))
         .id();
-    let start_track_d = commands
+    let straight_track_d = commands
         .spawn(TrackSegment::straight((node_d, node_x)))
+        .id();
+
+    let node_m = commands.spawn(TrackNode::new(0.0, 100.0)).id();
+    let node_n = commands.spawn(TrackNode::new(0.0, -10.0)).id();
+    let center_m = commands.spawn(TrackNode::new(30.0, 0.0)).id();
+    let curved_track_c = commands
+        .spawn(TrackSegment::curved((node_n, node_m), center_m))
         .id();
 
     commands.trigger(TrackUpdate);
 
     let trains = [
-        Train::on_track(start_track_z)
-            .with_progress(100.0)
-            .with_speed(0.3),
-        Train::on_track(start_track_a)
-            .with_progress(100.0)
-            .with_speed(-0.3),
-        Train::on_track(start_track_b).with_speed(0.3),
-        Train::on_track(start_track_c).with_speed(0.3),
-        Train::on_track(start_track_d).with_speed(0.3),
+        Train::on_track(straight_track_a).with_speed(0.3),
+        Train::on_track(straight_track_b).with_speed(0.3),
+        Train::on_track(straight_track_c).with_speed(0.3),
+        Train::on_track(straight_track_d).with_speed(0.3),
+        Train::on_track(curved_track_a).with_speed(0.3),
+        Train::on_track(curved_track_b).with_speed(0.3),
+        Train::on_track(curved_track_c).with_speed(0.3),
     ];
 
     // spawn train

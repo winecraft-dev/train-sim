@@ -89,7 +89,7 @@ impl TrackSegment {
                 *angle = Some(calc_angle);
                 *radius = Some(calc_radius);
 
-                calc_angle * calc_radius
+                (calc_angle * calc_radius).abs()
             }
         };
         self.length = Some(length);

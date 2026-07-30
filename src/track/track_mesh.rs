@@ -20,7 +20,7 @@ pub struct TrackMeshBuilder {
 impl Default for TrackMeshBuilder {
     fn default() -> Self {
         Self {
-            curve_resolution: 10,
+            curve_resolution: 32,
             // track_width: 5.0,
             nodes: Default::default(),
 
