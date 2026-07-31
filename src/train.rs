@@ -45,6 +45,18 @@ impl Traversing {
         let length = segment.length.unwrap();
         self.progress * length
     }
+
+    fn overflow_distance(&self, segment: &TrackSegment) -> Option<f32> {
+        let length = segment.length.unwrap();
+        if self.progress < 0.0 {
+            let overflow_progress = self.progress;
+            return Some(overflow_progress * length);
+        } else if self.progress > 1.0 {
+            let overflow_progress = 1.0 - self.progress;
+            return Some(overflow_progress * length);
+        }
+        None
+    }
 }
 
 // Direction is the modifier applied to speed based on the way the "front"
@@ -83,7 +95,11 @@ impl Train {
     }
 }
 
-fn apply_train_speeds(trains: Query<&mut Train>, segments: Query<&TrackSegment>) {
+fn apply_train_speeds(
+    trains: Query<&mut Train>,
+    segments: Query<&TrackSegment>,
+    nodes: Query<&TrackNode>,
+) {
     for mut train in trains {
         let speed = train.speed;
         let traversing = match &mut train.traversing {
@@ -94,15 +110,34 @@ fn apply_train_speeds(trains: Query<&mut Train>, segments: Query<&TrackSegment>)
         let segment = segments.get(traversing.track).unwrap();
         traversing.apply_speed(segment, speed);
 
-        // check if progress goes beyond the [0,length]
+        let overflow_distance = match traversing.overflow_distance(segment) {
+            Some(od) => od,
+            None => continue,
+        };
+        let e_exit_node = if overflow_distance > 0.0 {
+            match traversing.direction {
+                Direction::ForwardAB => segment.nodes.1,
+                Direction::BackwardBA => segment.nodes.0,
+            }
+        } else {
+            match traversing.direction {
+                Direction::ForwardAB => segment.nodes.0,
+                Direction::BackwardBA => segment.nodes.1,
+            }
+        };
 
-        if traversing.progress >= 0.0 && traversing.progress <= 1.0 {
-            continue;
-        }
+        let exit_node = nodes.get(e_exit_node).unwrap();
+        let e_next_segment = match exit_node.next_track(traversing.track) {
+            Some(segment) => segment,
+            None => {
+                train.speed = 0.0; // stop the train, we're done
+                continue;
+            }
+        };
 
-        train.speed = 0.0;
-
-        // now we find the next track...
+        traversing.track = e_next_segment;
+        traversing.direction = Direction::ForwardAB;
+        traversing.progress = 0.0;
     }
 }
 

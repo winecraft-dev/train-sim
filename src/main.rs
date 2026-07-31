@@ -65,7 +65,7 @@ fn setup(
         .spawn(TrackSegment::curved((node_n, node_m), center_m))
         .id();
 
-    commands.trigger(TrackUpdate);
+    commands.trigger(TrackUpdated);
 
     let trains = [
         Train::on_track(straight_track_a).with_speed(0.3),

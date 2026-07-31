@@ -7,13 +7,17 @@ pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(calculate_track_data)
+        app.add_observer(compute_node_neighbors)
+            .add_observer(calculate_track_data)
             .add_observer(generate_track_mesh);
     }
 }
 
 #[derive(Event)]
-pub struct TrackUpdate;
+pub struct TrackUpdated;
+
+#[derive(Event)]
+pub struct TrackDataCalculated;
 
 #[derive(Debug, Component)]
 pub struct TrackNode {
@@ -31,8 +35,17 @@ impl TrackNode {
         }
     }
 
-    pub fn next_track(inlet: Entity) -> Option<Entity> {
+    pub fn next_track(&self, current: Entity) -> Option<Entity> {
         // compute the outlet track based on the inlet.
+        if let Some(inlet) = self.neighbors.0 {
+            if let Some(outlet) = self.neighbors.1 {
+                if current == inlet {
+                    return Some(outlet);
+                } else if current == outlet {
+                    return Some(inlet);
+                }
+            }
+        }
         None
     }
 }
@@ -106,26 +119,41 @@ impl TrackSegment {
 }
 
 pub fn compute_node_neighbors(
-    _track_updated: On<TrackUpdate>,
-    nodes: Query<&mut TrackNode>,
-    segments: Query<&TrackSegment>,
+    _track_updated: On<TrackUpdated>,
+    mut nodes: Query<&mut TrackNode>,
+    segments: Query<(Entity, &TrackSegment)>,
 ) {
-    // arbitrarily assign neighbors to TrackNodes based on the
-    // TrackSegments we see come in
+    for (entity, segment) in segments {
+        let a = segment.nodes.0;
+        let b = segment.nodes.1;
+        let segment_nodes = nodes.get_many_mut([a, b]).unwrap();
+        for mut s_node in segment_nodes {
+            match s_node.neighbors.0 {
+                Some(_) => match s_node.neighbors.1 {
+                    Some(_) => println!("Neighbor {} is unused for node!", entity),
+                    None => s_node.neighbors.1 = Some(entity),
+                },
+                None => s_node.neighbors.0 = Some(entity),
+            };
+        }
+    }
 }
 
 pub fn calculate_track_data(
-    _track_updated: On<TrackUpdate>,
+    _track_updated: On<TrackUpdated>,
+    mut commands: Commands,
     nodes: Query<&TrackNode>,
     segments: Query<&mut TrackSegment>,
 ) {
     for mut segment in segments {
         segment.calculate_length(&nodes);
     }
+
+    commands.trigger(TrackDataCalculated);
 }
 
 pub fn generate_track_mesh(
-    _track_updated: On<TrackUpdate>,
+    _track_updated: On<TrackDataCalculated>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
