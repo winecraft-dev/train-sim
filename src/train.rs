@@ -46,16 +46,26 @@ impl Traversing {
         self.progress * length
     }
 
-    fn overflow_distance(&self, segment: &TrackSegment) -> Option<f32> {
+    fn exited(&self, segment: &TrackSegment) -> Option<(Entity, f32)> {
         let length = segment.length.unwrap();
         if self.progress < 0.0 {
             let overflow_progress = self.progress;
-            return Some(overflow_progress * length);
+            let node_a = segment.nodes.0;
+            return Some((node_a, overflow_progress * length));
         } else if self.progress > 1.0 {
-            let overflow_progress = 1.0 - self.progress;
-            return Some(overflow_progress * length);
+            let overflow_progress = self.progress - 1.0;
+            let node_b = segment.nodes.1;
+            return Some((node_b, overflow_progress * length));
         }
         None
+    }
+
+    fn trim_progress(&mut self) {
+        if self.progress < 0.0 {
+            self.progress = 0.0;
+        } else if self.progress > 1.0 {
+            self.progress = 1.0;
+        }
     }
 }
 
@@ -68,9 +78,9 @@ enum Direction {
 }
 
 impl Train {
-    pub fn on_track(track: Entity) -> Self {
+    pub fn forward(track: Entity) -> Self {
         Self {
-            speed: 0.5,
+            speed: 0.0,
             traversing: Some(Traversing {
                 track,
                 progress: 0.0,
@@ -79,19 +89,24 @@ impl Train {
         }
     }
 
-    pub fn with_progress(mut self, progress: f32) -> Self {
-        if progress < 0.0 || progress > 1.0 {
-            return self;
+    pub fn backward(track: Entity) -> Self {
+        Self {
+            speed: 0.0,
+            traversing: Some(Traversing {
+                track,
+                progress: 1.0,
+                direction: Direction::BackwardBA,
+            }),
         }
-        if let Some(traversing) = self.traversing.as_mut() {
-            traversing.progress = progress;
-        }
-        self
     }
 
     pub fn with_speed(mut self, speed: f32) -> Self {
         self.speed = speed;
         self
+    }
+
+    pub fn set_speed(&mut self, speed: f32) {
+        self.speed = speed;
     }
 }
 
@@ -110,30 +125,31 @@ fn apply_train_speeds(
         let segment = segments.get(traversing.track).unwrap();
         traversing.apply_speed(segment, speed);
 
-        let overflow_distance = match traversing.overflow_distance(segment) {
-            Some(od) => od,
+        let (e_exit_node, overflow_distance) = match traversing.exited(segment) {
+            Some(exit) => exit,
             None => continue,
         };
-        let e_exit_node = if overflow_distance > 0.0 {
-            match traversing.direction {
-                Direction::ForwardAB => segment.nodes.1,
-                Direction::BackwardBA => segment.nodes.0,
-            }
-        } else {
-            match traversing.direction {
-                Direction::ForwardAB => segment.nodes.0,
-                Direction::BackwardBA => segment.nodes.1,
-            }
-        };
+
+        println!(
+            "od: {} segment: {:?} exit_node[{}]",
+            overflow_distance, segment, e_exit_node
+        );
 
         let exit_node = nodes.get(e_exit_node).unwrap();
+        println!("exit_node[{}]: {:?}", e_exit_node, exit_node);
         let e_next_segment = match exit_node.next_track(traversing.track) {
             Some(segment) => segment,
             None => {
-                train.speed = 0.0; // stop the train, we're done
+                traversing.trim_progress();
+                train.set_speed(0.0);
                 continue;
             }
         };
+
+        println!(
+            "exit_node[{}]: {:?}, next_segment[{}]",
+            e_exit_node, exit_node, e_next_segment
+        );
 
         traversing.track = e_next_segment;
         traversing.direction = Direction::ForwardAB;

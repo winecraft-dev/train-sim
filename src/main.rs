@@ -19,10 +19,6 @@ fn main() {
         .run();
 }
 
-// could become like a switch... with multiple adjacent tracks (max 3)
-// we could toggle its config to switch from track to track. Switches
-// are unidirectional
-
 fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -54,27 +50,15 @@ fn setup(
     let straight_track_c = commands
         .spawn(TrackSegment::straight((node_c, node_d)))
         .id();
-    let straight_track_d = commands
-        .spawn(TrackSegment::straight((node_d, node_x)))
-        .id();
-
-    let node_m = commands.spawn(TrackNode::new(0.0, 100.0)).id();
-    let node_n = commands.spawn(TrackNode::new(0.0, -10.0)).id();
-    let center_m = commands.spawn(TrackNode::new(30.0, 0.0)).id();
-    let curved_track_c = commands
-        .spawn(TrackSegment::curved((node_n, node_m), center_m))
-        .id();
 
     commands.trigger(TrackUpdated);
 
     let trains = [
-        Train::on_track(straight_track_a).with_speed(0.3),
-        Train::on_track(straight_track_b).with_speed(0.3),
-        Train::on_track(straight_track_c).with_speed(0.3),
-        Train::on_track(straight_track_d).with_speed(0.3),
-        Train::on_track(curved_track_a).with_speed(0.3),
-        Train::on_track(curved_track_b).with_speed(0.3),
-        Train::on_track(curved_track_c).with_speed(0.3),
+        // Train::forward(straight_track_a).with_speed(1.6),
+        // Train::on_track(straight_track_b).with_speed(0.3),
+        Train::backward(straight_track_c).with_speed(1.6),
+        // Train::on_track(curved_track_a).with_speed(0.3),
+        // Train::on_track(curved_track_b).with_speed(0.3),
     ];
 
     // spawn train
