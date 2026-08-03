@@ -54,16 +54,11 @@ fn setup(
     commands.trigger(TrackUpdated);
 
     let trains = [
-        // Train::forward(straight_track_a).with_speed(1.6),
-        // Train::on_track(straight_track_b).with_speed(0.3),
-        Train::default()
-            .on_track(straight_track_c, Direction::Backward)
-            .with_speed(5.0),
-        Train::default()
-            .on_track(straight_track_a, Direction::Forward)
-            .with_speed(5.0),
-        // Train::on_track(curved_track_a).with_speed(0.3),
-        // Train::on_track(curved_track_b).with_speed(0.3),
+        Train::on_track(straight_track_a, Direction::Backward).with_speed(1.0),
+        Train::on_track(straight_track_b, Direction::Backward).with_speed(1.0),
+        Train::on_track(straight_track_c, Direction::Backward).with_speed(1.0),
+        Train::on_track(curved_track_a, Direction::Forward).with_speed(1.0),
+        Train::on_track(curved_track_b, Direction::Forward).with_speed(1.0),
     ];
 
     // spawn train

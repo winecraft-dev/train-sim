@@ -95,17 +95,20 @@ pub enum Direction {
 }
 
 impl Train {
-    pub fn on_track(mut self, track: Entity, direction: Direction) -> Self {
+    pub fn on_track(track: Entity, direction: Direction) -> Self {
         let progress = match direction {
             Direction::Forward => 0.0,
             Direction::Backward => 1.0,
         };
-        self.traversing = Some(Traversing {
+        let traversing = Traversing {
             track,
             progress: progress,
             direction,
-        });
-        self
+        };
+        Self {
+            traversing: Some(traversing),
+            ..default()
+        }
     }
 
     pub fn with_speed(mut self, speed: f32) -> Self {
