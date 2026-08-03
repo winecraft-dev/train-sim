@@ -116,6 +116,10 @@ impl TrackSegment {
         };
         self.length = Some(length);
     }
+
+    pub fn length(&self) -> f32 {
+        self.length.unwrap()
+    }
 }
 
 pub fn compute_node_neighbors(

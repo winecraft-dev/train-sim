@@ -10,7 +10,7 @@ impl Plugin for TrainPlugin {
     }
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, Default)]
 pub struct Train {
     // speed always refers to the speed in relation to the "front" of the train.
     // Right now, there is no front since the train is graphically a circle.
@@ -30,24 +30,19 @@ struct Traversing {
 impl Traversing {
     fn apply_speed(&mut self, segment: &TrackSegment, speed: f32) {
         let speed = match self.direction {
-            Direction::BackwardBA => -speed,
-            Direction::ForwardAB => speed,
+            Direction::Backward => -speed,
+            Direction::Forward => speed,
         };
 
-        let length = segment.length.unwrap();
+        let length = segment.length();
         let mut distance = self.progress * length;
         distance += speed;
 
         self.progress = distance / length;
     }
 
-    fn distance(&self, segment: &TrackSegment) -> f32 {
-        let length = segment.length.unwrap();
-        self.progress * length
-    }
-
     fn exited(&self, segment: &TrackSegment) -> Option<(Entity, f32)> {
-        let length = segment.length.unwrap();
+        let length = segment.length();
         if self.progress < 0.0 {
             let overflow_progress = self.progress;
             let node_a = segment.nodes.0;
@@ -67,37 +62,50 @@ impl Traversing {
             self.progress = 1.0;
         }
     }
+
+    fn traverse_next(
+        &mut self,
+        next_segment: Entity,
+        origin_node: Entity,
+        segments: Query<&TrackSegment>,
+        overflow_distance: f32,
+    ) {
+        self.track = next_segment;
+
+        let next_segment = segments.get(next_segment).unwrap();
+        let overflow_progress = overflow_distance / next_segment.length();
+        if next_segment.nodes.0 == origin_node {
+            // A side, Forwards
+            self.direction = Direction::Forward;
+            self.progress = overflow_progress;
+        } else {
+            // B side, Backwards
+            self.direction = Direction::Backward;
+            self.progress = 1.0 + overflow_progress;
+        }
+    }
 }
 
 // Direction is the modifier applied to speed based on the way the "front"
 // of the train enters the current TrackSegment. If the
 #[derive(Debug)]
-enum Direction {
-    ForwardAB,
-    BackwardBA,
+pub enum Direction {
+    Forward,  // A->B
+    Backward, // B->A
 }
 
 impl Train {
-    pub fn forward(track: Entity) -> Self {
-        Self {
-            speed: 0.0,
-            traversing: Some(Traversing {
-                track,
-                progress: 0.0,
-                direction: Direction::ForwardAB,
-            }),
-        }
-    }
-
-    pub fn backward(track: Entity) -> Self {
-        Self {
-            speed: 0.0,
-            traversing: Some(Traversing {
-                track,
-                progress: 1.0,
-                direction: Direction::BackwardBA,
-            }),
-        }
+    pub fn on_track(mut self, track: Entity, direction: Direction) -> Self {
+        let progress = match direction {
+            Direction::Forward => 0.0,
+            Direction::Backward => 1.0,
+        };
+        self.traversing = Some(Traversing {
+            track,
+            progress: progress,
+            direction,
+        });
+        self
     }
 
     pub fn with_speed(mut self, speed: f32) -> Self {
@@ -130,13 +138,7 @@ fn apply_train_speeds(
             None => continue,
         };
 
-        println!(
-            "od: {} segment: {:?} exit_node[{}]",
-            overflow_distance, segment, e_exit_node
-        );
-
         let exit_node = nodes.get(e_exit_node).unwrap();
-        println!("exit_node[{}]: {:?}", e_exit_node, exit_node);
         let e_next_segment = match exit_node.next_track(traversing.track) {
             Some(segment) => segment,
             None => {
@@ -146,14 +148,7 @@ fn apply_train_speeds(
             }
         };
 
-        println!(
-            "exit_node[{}]: {:?}, next_segment[{}]",
-            e_exit_node, exit_node, e_next_segment
-        );
-
-        traversing.track = e_next_segment;
-        traversing.direction = Direction::ForwardAB;
-        traversing.progress = 0.0;
+        traversing.traverse_next(e_next_segment, e_exit_node, segments, overflow_distance);
     }
 }
 
