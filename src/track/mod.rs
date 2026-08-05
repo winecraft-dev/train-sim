@@ -24,21 +24,21 @@ pub struct TrackNode {
     pub position: Vec2,
 
     // subject to change once we allow for track switches
-    neighbors: (Option<Entity>, Option<Entity>),
+    ports: (Option<Entity>, Option<Entity>),
 }
 
 impl TrackNode {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             position: Vec2::new(x, y),
-            neighbors: (None, None),
+            ports: (None, None),
         }
     }
 
     pub fn next_track(&self, current: Entity) -> Option<Entity> {
         // compute the outlet track based on the inlet.
-        if let Some(inlet) = self.neighbors.0 {
-            if let Some(outlet) = self.neighbors.1 {
+        if let Some(inlet) = self.ports.0 {
+            if let Some(outlet) = self.ports.1 {
                 if current == inlet {
                     return Some(outlet);
                 } else if current == outlet {
@@ -132,12 +132,12 @@ pub fn compute_node_neighbors(
         let b = segment.nodes.1;
         let segment_nodes = nodes.get_many_mut([a, b]).unwrap();
         for mut s_node in segment_nodes {
-            match s_node.neighbors.0 {
-                Some(_) => match s_node.neighbors.1 {
+            match s_node.ports.0 {
+                Some(_) => match s_node.ports.1 {
                     Some(_) => println!("Neighbor {} is unused for node!", entity),
-                    None => s_node.neighbors.1 = Some(entity),
+                    None => s_node.ports.1 = Some(entity),
                 },
-                None => s_node.neighbors.0 = Some(entity),
+                None => s_node.ports.0 = Some(entity),
             };
         }
     }

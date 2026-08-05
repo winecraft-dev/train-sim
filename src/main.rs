@@ -1,13 +1,14 @@
 mod browsing;
+mod switch;
 mod track;
 mod train;
 
 use bevy::{color::palettes::css::BLUE, prelude::*};
-use track::*;
 
 use browsing::BrowsingPlugin;
-
-use crate::train::{Direction, Train, TrainPlugin};
+use switch::SwitchPlugin;
+use track::*;
+use train::{Direction, Train, TrainPlugin};
 
 fn main() {
     App::new()
@@ -15,6 +16,7 @@ fn main() {
         .add_plugins(TrackPlugin)
         .add_plugins(BrowsingPlugin)
         .add_plugins(TrainPlugin)
+        .add_plugins(SwitchPlugin)
         .add_systems(Startup, setup)
         .run();
 }
