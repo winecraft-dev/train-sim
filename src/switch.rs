@@ -49,4 +49,9 @@ impl TrackSwitch {
     }
 }
 
-pub fn spawn_switches(_neighbors_computed: On<NodeNeighborsComputed>, mut commands: Commands) {}
+pub fn spawn_switches(
+    _neighbors_computed: On<NodeNeighborsComputed>,
+    mut commands: Commands,
+    nodes: Query<(Entity, &TrackNode)>,
+) {
+}
