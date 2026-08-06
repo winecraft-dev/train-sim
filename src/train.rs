@@ -1,12 +1,23 @@
 use bevy::prelude::*;
 
-use crate::track::{TrackNode, TrackSegment, TrackVariant};
+use crate::{
+    switch::TrackSwitch,
+    track::{TrackNode, TrackSegment, TrackVariant},
+};
 
 pub struct TrainPlugin;
 
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (apply_train_speeds, calculate_train_positions));
+        app.add_systems(
+            Update,
+            (
+                apply_train_speeds,
+                switch_overflow_trains,
+                calculate_train_positions,
+            )
+                .chain(),
+        );
     }
 }
 
@@ -121,11 +132,7 @@ impl Train {
     }
 }
 
-fn apply_train_speeds(
-    trains: Query<&mut Train>,
-    segments: Query<&TrackSegment>,
-    nodes: Query<&TrackNode>,
-) {
+fn apply_train_speeds(trains: Query<&mut Train>, segments: Query<&TrackSegment>) {
     for mut train in trains {
         let speed = train.speed;
         let traversing = match &mut train.traversing {
@@ -135,14 +142,29 @@ fn apply_train_speeds(
 
         let segment = segments.get(traversing.track).unwrap();
         traversing.apply_speed(segment, speed);
+    }
+}
 
-        let (e_exit_node, overflow_distance) = match traversing.exited(segment) {
+fn switch_overflow_trains(
+    trains: Query<&mut Train>,
+    segments: Query<&TrackSegment>,
+    switches: Query<&TrackSwitch>,
+) {
+    for mut train in trains {
+        let traversing = match &mut train.traversing {
+            None => continue,
+            Some(traversing) => traversing,
+        };
+
+        let e_current = traversing.track;
+        let current = segments.get(e_current).unwrap();
+        let (e_switch, overflow_distance) = match traversing.exited(current) {
             Some(exit) => exit,
             None => continue,
         };
 
-        let exit_node = nodes.get(e_exit_node).unwrap();
-        let e_next_segment = match exit_node.next_track(traversing.track) {
+        let switch = switches.get(e_switch).unwrap();
+        let e_next = match switch.next_segment(e_current) {
             Some(segment) => segment,
             None => {
                 traversing.trim_progress();
@@ -151,7 +173,7 @@ fn apply_train_speeds(
             }
         };
 
-        traversing.traverse_next(e_next_segment, e_exit_node, segments, overflow_distance);
+        traversing.traverse_next(e_next, e_switch, segments, overflow_distance);
     }
 }
 

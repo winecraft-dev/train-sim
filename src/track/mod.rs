@@ -1,4 +1,6 @@
-use bevy::{color::palettes::css::RED, prelude::*};
+use bevy::{
+    color::palettes::css::RED, ecs::relationship::RelationshipSourceCollection, prelude::*,
+};
 use track_mesh::TrackMeshBuilder;
 
 mod track_mesh;
@@ -19,34 +21,22 @@ pub struct TrackUpdated;
 #[derive(Event)]
 pub struct TrackDataCalculated;
 
+#[derive(Event)]
+pub struct NodeNeighborsComputed;
+
 #[derive(Debug, Component)]
 pub struct TrackNode {
     pub position: Vec2,
 
-    // subject to change once we allow for track switches
-    ports: (Option<Entity>, Option<Entity>),
+    neighbors: Vec<Entity>, // neighboring segments
 }
 
 impl TrackNode {
     pub fn new(x: f32, y: f32) -> Self {
         Self {
             position: Vec2::new(x, y),
-            ports: (None, None),
+            neighbors: Vec::new(),
         }
-    }
-
-    pub fn next_track(&self, current: Entity) -> Option<Entity> {
-        // compute the outlet track based on the inlet.
-        if let Some(inlet) = self.ports.0 {
-            if let Some(outlet) = self.ports.1 {
-                if current == inlet {
-                    return Some(outlet);
-                } else if current == outlet {
-                    return Some(inlet);
-                }
-            }
-        }
-        None
     }
 }
 
@@ -124,6 +114,7 @@ impl TrackSegment {
 
 pub fn compute_node_neighbors(
     _track_updated: On<TrackUpdated>,
+    mut commands: Commands,
     mut nodes: Query<&mut TrackNode>,
     segments: Query<(Entity, &TrackSegment)>,
 ) {
@@ -132,15 +123,10 @@ pub fn compute_node_neighbors(
         let b = segment.nodes.1;
         let segment_nodes = nodes.get_many_mut([a, b]).unwrap();
         for mut s_node in segment_nodes {
-            match s_node.ports.0 {
-                Some(_) => match s_node.ports.1 {
-                    Some(_) => println!("Neighbor {} is unused for node!", entity),
-                    None => s_node.ports.1 = Some(entity),
-                },
-                None => s_node.ports.0 = Some(entity),
-            };
+            s_node.neighbors.add(entity);
         }
     }
+    commands.trigger(NodeNeighborsComputed);
 }
 
 pub fn calculate_track_data(
