@@ -56,6 +56,7 @@ pub struct TrackSegment {
     pub variant: TrackVariant,
 
     pub length: Option<f32>,
+    pub node_angles: Option<(f32, f32)>,
 }
 
 impl TrackSegment {
@@ -65,6 +66,7 @@ impl TrackSegment {
             variant: TrackVariant::Straight,
 
             length: None,
+            node_angles: None,
         }
     }
 
@@ -107,8 +109,27 @@ impl TrackSegment {
         self.length = Some(length);
     }
 
+    fn calculate_node_angles(&mut self, nodes: &Query<&TrackNode>) {
+        let a = nodes.get(self.nodes.0).unwrap().position;
+        let b = nodes.get(self.nodes.1).unwrap().position;
+
+        // we must precompute the segment's Node Angles
+        todo!();
+    }
+
     pub fn length(&self) -> f32 {
         self.length.unwrap()
+    }
+
+    pub fn angle_from(&self, from: Entity) -> Option<f32> {
+        let node_angles = self.node_angles.unwrap();
+        if self.nodes.0 == from {
+            Some(node_angles.0)
+        } else if self.nodes.1 == from {
+            Some(node_angles.1)
+        } else {
+            None
+        }
     }
 }
 
@@ -137,6 +158,7 @@ pub fn calculate_track_data(
 ) {
     for mut segment in segments {
         segment.calculate_length(&nodes);
+        segment.calculate_node_angles(&nodes);
     }
 
     commands.trigger(TrackDataCalculated);
