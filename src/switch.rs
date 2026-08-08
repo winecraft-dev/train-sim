@@ -10,7 +10,7 @@ impl Plugin for SwitchPlugin {
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Debug, Component)]
 pub enum TrackSwitch {
     #[default]
     None,
@@ -31,10 +31,23 @@ pub enum TrackSwitch {
 
 impl TrackSwitch {
     pub fn next_segment(&self, inlet: Entity) -> Option<Entity> {
+        println!("Switch {:?} finding adjacent segment for [{}]", self, inlet);
         match self {
-            TrackSwitch::None => todo!(),
-            TrackSwitch::Terminus(entity) => todo!(),
-            TrackSwitch::Track(entity, entity1) => todo!(),
+            TrackSwitch::None => None,
+            TrackSwitch::Terminus(_) => None,
+            TrackSwitch::Track(a, b) => {
+                if *a == inlet {
+                    Some(*b)
+                } else if *b == inlet {
+                    Some(*a)
+                } else {
+                    println!(
+                        "No match found for Inlet[{}] from a[{}] or b[{}]",
+                        inlet, a, b
+                    );
+                    None // should be impossible
+                }
+            }
             TrackSwitch::Switch {
                 control,
                 inlet,
@@ -54,4 +67,23 @@ pub fn spawn_switches(
     mut commands: Commands,
     nodes: Query<(Entity, &TrackNode)>,
 ) {
+    for (e_node, node) in nodes {
+        match node.neighbors.len() {
+            0 => println!("Node[{}] with no neighbors!", e_node),
+            1 => {
+                let e_terminating_track = node.neighbors.get(0).unwrap();
+                let terminus = TrackSwitch::Terminus(*e_terminating_track);
+
+                commands.entity(e_node).insert(terminus);
+            }
+            2 => {
+                let e_segment_a = node.neighbors.get(0).unwrap();
+                let e_segment_b = node.neighbors.get(1).unwrap();
+                let track = TrackSwitch::Track(*e_segment_a, *e_segment_b);
+
+                commands.entity(e_node).insert(track);
+            }
+            x => println!("Node[{}] with length {} not handled", e_node, x),
+        }
+    }
 }

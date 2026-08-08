@@ -28,7 +28,7 @@ pub struct NodeNeighborsComputed;
 pub struct TrackNode {
     pub position: Vec2,
 
-    neighbors: Vec<Entity>, // neighboring segments
+    pub neighbors: Vec<Entity>, // neighboring segments
 }
 
 impl TrackNode {
