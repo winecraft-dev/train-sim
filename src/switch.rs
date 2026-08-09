@@ -68,6 +68,9 @@ pub fn spawn_switches(
     nodes: Query<(Entity, &TrackNode)>,
     segments: Query<&TrackSegment>,
 ) {
+    for segment in segments {
+        println!("Segments: {:?}", segment);
+    }
     for (e_origin, origin) in nodes {
         match origin.neighbors.len() {
             0 => println!("Node[{}] with no neighbors!", e_origin),

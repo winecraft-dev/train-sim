@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::{
     color::palettes::css::RED, ecs::relationship::RelationshipSourceCollection, prelude::*,
 };
@@ -80,6 +82,7 @@ impl TrackSegment {
             },
 
             length: None,
+            node_angles: None,
         }
     }
 
@@ -114,7 +117,29 @@ impl TrackSegment {
         let b = nodes.get(self.nodes.1).unwrap().position;
 
         // we must precompute the segment's Node Angles
-        todo!();
+        let node_angles = match self.variant {
+            TrackVariant::Straight => {
+                let a_angle = (b - a).to_angle();
+                let b_angle = (a - b).to_angle();
+                (a_angle, b_angle)
+            }
+            TrackVariant::Curved {
+                center,
+                angle: _,
+                radius: _,
+            } => {
+                let center = nodes.get(center).unwrap().position;
+
+                let a_angle = (a - center).to_angle();
+                let b_angle = (b - center).to_angle();
+
+                let rot_a = a_angle + PI / 2.0;
+                let rot_b = b_angle + PI / 2.0;
+
+                (rot_a, rot_b)
+            }
+        };
+        self.node_angles = Some(node_angles);
     }
 
     pub fn length(&self) -> f32 {
