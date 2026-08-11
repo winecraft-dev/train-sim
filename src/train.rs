@@ -207,16 +207,18 @@ fn project_train_position(
         }
         TrackVariant::Curved {
             center,
-            angle: _,
+            angle,
             radius,
         } => {
             let center = nodes.get(center).unwrap().position;
-            let angle_a = (a - center).to_angle();
-            let angle_b = (b - center).to_angle();
+            let start_angle = (a - center).to_angle();
 
+            let angle = angle.unwrap();
             let track_radius = radius.unwrap();
 
-            let theta = angle_a.lerp(angle_b, traversing.progress);
+            let delta_angle = 0.0.lerp(angle, traversing.progress);
+            let theta = start_angle + delta_angle;
+
             let (sin, cos) = ops::sin_cos(theta);
             let x = cos * track_radius;
             let y = sin * track_radius;

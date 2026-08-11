@@ -74,7 +74,10 @@ fn setup(
 
     commands.trigger(TrackUpdated);
 
-    let trains = [Train::on_track(straight_track_a, Direction::Forward)];
+    let trains = [
+        Train::on_track(straight_track_c, Direction::Forward).with_speed(1.0),
+        Train::on_track(straight_track_a, Direction::Forward).with_speed(5.0),
+    ];
 
     // spawn train
     let circle = meshes.add(Circle::new(3.0));
