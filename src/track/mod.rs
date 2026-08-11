@@ -100,7 +100,8 @@ impl TrackSegment {
                 let center = nodes.get(*center).unwrap().position;
                 let angle_a = (a - center).to_angle();
                 let angle_b = (b - center).to_angle();
-                let calc_angle = angle_b - angle_a;
+
+                let calc_angle = ((angle_b - angle_a + PI) % (2.0 * PI)) - PI;
                 let calc_radius = (a - center).length();
 
                 *angle = Some(calc_angle);
