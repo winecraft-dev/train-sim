@@ -18,7 +18,8 @@ pub enum TrackSwitch {
     #[default]
     None,
 
-    Terminus(Entity),
+    #[allow(dead_code)]
+    Terminus(Entity), // use this TrackSegment later down the line...
     Track(Entity, Entity),
     Switch {
         control: usize,
@@ -127,15 +128,16 @@ fn split_ends(
 
     for e_neighbor in origin.neighbors.iter() {
         let segment = segments.get(e_neighbor).unwrap();
-        let angle_from = segment.angle_from(e_origin).unwrap();
+        let out_angle = segment.angle_from(e_origin).unwrap().clamp(-PI, PI);
+        let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 
         match end {
             None => {
-                end = Some(angle_from);
+                end = Some(out_angle);
                 groups.0.add(e_neighbor);
             }
             Some(end_angle) => {
-                let diff = angle_from - end_angle;
+                let diff = out_angle - end_angle;
                 if diff > PI / -2.0 && diff < PI / 2.0 {
                     groups.0.add(e_neighbor);
                 } else {
@@ -167,7 +169,6 @@ fn bump_switches(switches: Query<&mut TrackSwitch>, key_input: Res<ButtonInput<K
                 } => *control = (*control + 1) % 3,
                 _ => continue,
             };
-            println!("Switch changed: {:?}", switch);
         }
     }
 }

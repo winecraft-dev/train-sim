@@ -136,11 +136,11 @@ impl TrackSegment {
                 let mut b_angle = (b - center).to_angle();
 
                 if delta_angle < 0.0 {
-                    a_angle += PI / 2.0;
-                    b_angle -= PI / 2.0;
-                } else {
                     a_angle -= PI / 2.0;
                     b_angle += PI / 2.0;
+                } else {
+                    a_angle += PI / 2.0;
+                    b_angle -= PI / 2.0;
                 }
 
                 (a_angle, b_angle)
