@@ -126,18 +126,24 @@ impl TrackSegment {
             }
             TrackVariant::Curved {
                 center,
-                angle: _,
+                angle,
                 radius: _,
             } => {
                 let center = nodes.get(center).unwrap().position;
+                let delta_angle = angle.unwrap();
 
-                let a_angle = (a - center).to_angle();
-                let b_angle = (b - center).to_angle();
+                let mut a_angle = (a - center).to_angle();
+                let mut b_angle = (b - center).to_angle();
 
-                let rot_a = a_angle + PI / 2.0;
-                let rot_b = b_angle + PI / 2.0;
+                if delta_angle < 0.0 {
+                    a_angle += PI / 2.0;
+                    b_angle -= PI / 2.0;
+                } else {
+                    a_angle -= PI / 2.0;
+                    b_angle += PI / 2.0;
+                }
 
-                (rot_a, rot_b)
+                (a_angle, b_angle)
             }
         };
         self.node_angles = Some(node_angles);
