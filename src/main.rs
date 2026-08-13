@@ -4,7 +4,7 @@ mod switch;
 mod track;
 mod train;
 
-use bevy::{color::palettes::css::BLUE, prelude::*};
+use bevy::prelude::*;
 
 use mouse::BrowsingPlugin;
 use switch::SwitchPlugin;
@@ -25,11 +25,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut commands: Commands,
-) {
+fn setup(mut commands: Commands) {
     commands.spawn((Camera2d, Camera::default()));
 
     let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
