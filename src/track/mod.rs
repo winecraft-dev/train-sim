@@ -1,19 +1,13 @@
 use std::f32::consts::PI;
 
-use bevy::{
-    color::palettes::css::RED, ecs::relationship::RelationshipSourceCollection, prelude::*,
-};
-use track_mesh::TrackMeshBuilder;
-
-mod track_mesh;
+use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(compute_node_neighbors)
-            .add_observer(calculate_track_data)
-            .add_observer(generate_track_mesh);
+            .add_observer(calculate_track_data);
     }
 }
 
@@ -28,17 +22,17 @@ pub struct NodeNeighborsComputed;
 
 #[derive(Debug, Component)]
 pub struct TrackNode {
-    pub position: Vec2,
-
     pub neighbors: Vec<Entity>, // neighboring segments
 }
 
 impl TrackNode {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self {
-            position: Vec2::new(x, y),
-            neighbors: Vec::new(),
-        }
+    pub fn bundle(x: f32, y: f32) -> impl Bundle {
+        (
+            Self {
+                neighbors: Vec::new(),
+            },
+            Transform::from_xyz(x, y, 0.0),
+        )
     }
 }
 
@@ -86,9 +80,9 @@ impl TrackSegment {
         }
     }
 
-    fn calculate_length(&mut self, nodes: &Query<&TrackNode>) {
-        let a = nodes.get(self.nodes.0).unwrap().position;
-        let b = nodes.get(self.nodes.1).unwrap().position;
+    fn calculate_length(&mut self, nodes: Query<&Transform, With<TrackNode>>) {
+        let a = nodes.get(self.nodes.0).unwrap().translation.xy();
+        let b = nodes.get(self.nodes.1).unwrap().translation.xy();
 
         let length = match &mut self.variant {
             TrackVariant::Straight => (a - b).length(),
@@ -97,7 +91,7 @@ impl TrackSegment {
                 angle,
                 radius,
             } => {
-                let center = nodes.get(*center).unwrap().position;
+                let center = nodes.get(*center).unwrap().translation.xy();
                 let angle_a = (a - center).to_angle();
                 let angle_b = (b - center).to_angle();
 
@@ -113,9 +107,9 @@ impl TrackSegment {
         self.length = Some(length);
     }
 
-    fn calculate_node_angles(&mut self, nodes: &Query<&TrackNode>) {
-        let a = nodes.get(self.nodes.0).unwrap().position;
-        let b = nodes.get(self.nodes.1).unwrap().position;
+    fn calculate_node_angles(&mut self, nodes: Query<&Transform, With<TrackNode>>) {
+        let a = nodes.get(self.nodes.0).unwrap().translation.xy();
+        let b = nodes.get(self.nodes.1).unwrap().translation.xy();
 
         // we must precompute the segment's Node Angles
         let node_angles = match self.variant {
@@ -129,7 +123,7 @@ impl TrackSegment {
                 angle,
                 radius: _,
             } => {
-                let center = nodes.get(center).unwrap().position;
+                let center = nodes.get(center).unwrap().translation.xy();
                 let delta_angle = angle.unwrap();
 
                 let mut a_angle = (a - center).to_angle();
@@ -163,6 +157,16 @@ impl TrackSegment {
             None
         }
     }
+
+    pub fn opposite(&self, from: Entity) -> Option<Entity> {
+        if self.nodes.0 == from {
+            Some(self.nodes.1)
+        } else if self.nodes.1 == from {
+            Some(self.nodes.0)
+        } else {
+            None
+        }
+    }
 }
 
 pub fn compute_node_neighbors(
@@ -185,51 +189,13 @@ pub fn compute_node_neighbors(
 pub fn calculate_track_data(
     _track_updated: On<TrackUpdated>,
     mut commands: Commands,
-    nodes: Query<&TrackNode>,
+    nodes: Query<&Transform, With<TrackNode>>,
     segments: Query<&mut TrackSegment>,
 ) {
     for mut segment in segments {
-        segment.calculate_length(&nodes);
-        segment.calculate_node_angles(&nodes);
+        segment.calculate_length(nodes);
+        segment.calculate_node_angles(nodes);
     }
 
     commands.trigger(TrackDataCalculated);
-}
-
-pub fn generate_track_mesh(
-    _track_updated: On<TrackDataCalculated>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    nodes: Query<(Entity, &TrackNode)>,
-    segments: Query<&TrackSegment>,
-) {
-    let mut track_builder = TrackMeshBuilder::default();
-    for (entity, node) in nodes {
-        track_builder.add_node(entity, node);
-    }
-    for segment in segments {
-        match segment.variant {
-            TrackVariant::Straight => track_builder.add_straight_track(segment.nodes),
-            TrackVariant::Curved {
-                center,
-                angle,
-                radius,
-            } => track_builder.add_curved_track(
-                segment.nodes,
-                center,
-                angle.unwrap(),
-                radius.unwrap(),
-            ),
-        }
-    }
-
-    let track_mesh = track_builder.build();
-    let track_id = meshes.add(track_mesh.clone());
-
-    commands.spawn((
-        Mesh2d(track_id),
-        Transform::from_translation(Vec3::ZERO),
-        MeshMaterial2d(materials.add(Color::Srgba(RED))),
-    ));
 }

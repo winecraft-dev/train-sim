@@ -36,15 +36,11 @@ pub enum TrackSwitch {
 impl TrackSwitch {
     pub fn next_segment(&self, current: Entity) -> Option<Entity> {
         match *self {
-            TrackSwitch::None => None,
-            TrackSwitch::Terminus(_) => None,
             TrackSwitch::Track(a, b) => {
                 if a == current {
-                    Some(b)
+                    return Some(b);
                 } else if b == current {
-                    Some(a)
-                } else {
-                    None
+                    return Some(a);
                 }
             }
             TrackSwitch::Switch {
@@ -53,9 +49,9 @@ impl TrackSwitch {
                 outlet,
             } => {
                 if inlet == current {
-                    Some(outlet[control])
+                    return Some(outlet[control]);
                 } else {
-                    Some(inlet)
+                    return Some(inlet);
                 }
             }
             TrackSwitch::ThreewayTurnout {
@@ -64,12 +60,14 @@ impl TrackSwitch {
                 outlet,
             } => {
                 if inlet == current {
-                    Some(outlet[control])
+                    return Some(outlet[control]);
                 } else {
-                    Some(inlet)
+                    return Some(inlet);
                 }
             }
-        }
+            _ => {}
+        };
+        None
     }
 }
 
@@ -96,20 +94,20 @@ pub fn spawn_switches(
                 commands.entity(e_origin).insert(track);
             }
             3 => {
-                let (inlet, outlet) = split_ends(e_origin, origin, segments);
+                let (inlet, outlet) = split_ports::<2>(e_origin, origin, segments);
                 let switch = TrackSwitch::Switch {
                     control: 0,
                     inlet,
-                    outlet: *outlet.as_array().unwrap(),
+                    outlet: outlet,
                 };
                 commands.entity(e_origin).insert(switch);
             }
             4 => {
-                let (inlet, outlet) = split_ends(e_origin, origin, segments);
+                let (inlet, outlet) = split_ports::<3>(e_origin, origin, segments);
                 let turnout = TrackSwitch::ThreewayTurnout {
                     control: 0,
                     inlet,
-                    outlet: *outlet.as_array().unwrap(),
+                    outlet: outlet,
                 };
                 commands.entity(e_origin).insert(turnout);
             }
@@ -118,11 +116,11 @@ pub fn spawn_switches(
     }
 }
 
-fn split_ends(
+fn split_ports<const OUTLET_N: usize>(
     e_origin: Entity,
     origin: &TrackNode,
     segments: Query<&TrackSegment>,
-) -> (Entity, Vec<Entity>) {
+) -> (Entity, [Entity; OUTLET_N]) {
     let mut end: Option<f32> = None;
     let mut groups: (Vec<Entity>, Vec<Entity>) = (Vec::default(), Vec::default());
 
@@ -147,9 +145,9 @@ fn split_ends(
         }
     }
     if groups.0.len() == 1 {
-        (*groups.0.first().unwrap(), groups.1)
+        (*groups.0.first().unwrap(), *groups.1.as_array().unwrap())
     } else {
-        (*groups.1.first().unwrap(), groups.0)
+        (*groups.1.first().unwrap(), *groups.0.as_array().unwrap())
     }
 }
 

@@ -179,7 +179,7 @@ fn switch_overflow_trains(
 
 fn calculate_train_positions(
     trains: Query<(&mut Transform, &Train)>,
-    nodes: Query<&TrackNode>,
+    nodes: Query<&Transform, (With<TrackNode>, Without<Train>)>,
     segments: Query<&TrackSegment>,
 ) {
     for (mut transform, train) in trains {
@@ -195,10 +195,10 @@ fn calculate_train_positions(
 fn project_train_position(
     traversing: &Traversing,
     segment: &TrackSegment,
-    nodes: Query<&TrackNode>,
+    nodes: Query<&Transform, (With<TrackNode>, Without<Train>)>,
 ) -> Vec2 {
-    let a = nodes.get(segment.nodes.0).unwrap().position;
-    let b = nodes.get(segment.nodes.1).unwrap().position;
+    let a = nodes.get(segment.nodes.0).unwrap().translation.xy();
+    let b = nodes.get(segment.nodes.1).unwrap().translation.xy();
 
     match segment.variant {
         TrackVariant::Straight => {
@@ -210,7 +210,7 @@ fn project_train_position(
             angle,
             radius,
         } => {
-            let center = nodes.get(center).unwrap().position;
+            let center = nodes.get(center).unwrap().translation.xy();
             let start_angle = (a - center).to_angle();
 
             let angle = angle.unwrap();

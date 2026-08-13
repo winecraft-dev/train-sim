@@ -1,0 +1,89 @@
+use bevy::{color::palettes::css, prelude::*};
+
+use crate::{
+    switch::TrackSwitch,
+    track::{TrackNode, TrackSegment, TrackVariant},
+    train::Train,
+};
+
+pub struct DebugRenderPlugin;
+
+impl Plugin for DebugRenderPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (render_tracks, render_switches, render_trains).chain(),
+        );
+    }
+}
+
+fn render_tracks(
+    mut gizmos: Gizmos,
+    nodes: Query<&Transform, With<TrackNode>>,
+    segments: Query<&TrackSegment>,
+) {
+    for segment in segments {
+        let a = nodes.get(segment.nodes.0).unwrap().translation;
+        let b = nodes.get(segment.nodes.1).unwrap().translation;
+        match segment.variant {
+            TrackVariant::Straight => {
+                gizmos.line_2d(a.xy(), b.xy(), css::RED);
+            }
+            TrackVariant::Curved {
+                center,
+                angle: _,
+                radius: _,
+            } => {
+                let center = nodes.get(center).unwrap().translation;
+                gizmos.short_arc_2d_between(center.xy(), a.xy(), b.xy(), css::RED);
+            }
+        };
+    }
+}
+
+fn render_trains(mut gizmos: Gizmos, trains: Query<&Transform, With<Train>>) {
+    for transform in trains {
+        let position = transform.translation.xy();
+        gizmos.circle_2d(position, 5.0, css::BLUE);
+    }
+}
+
+fn render_switches(
+    mut gizmos: Gizmos,
+    segments: Query<&TrackSegment>,
+    switches: Query<(Entity, &Transform, &TrackSwitch)>,
+    nodes: Query<&Transform, With<TrackNode>>,
+) {
+    for (e_switch, transform, switch) in switches {
+        let position = transform.translation.xy();
+        match switch {
+            TrackSwitch::Switch {
+                control,
+                inlet: _,
+                outlet,
+            } => {
+                // repeated block of code :3
+                let active = outlet[*control];
+                let active_segment = segments.get(active).unwrap();
+                let select_node = active_segment.opposite(e_switch).unwrap();
+                let select_pos = nodes.get(select_node).unwrap().translation.xy();
+                let direction = (select_pos - position).normalize() * 35.0;
+                gizmos.arrow_2d(position, position + direction, css::WHITE);
+            }
+            TrackSwitch::ThreewayTurnout {
+                control,
+                inlet: _,
+                outlet,
+            } => {
+                let active = outlet[*control];
+                let active_segment = segments.get(active).unwrap();
+                let select_node = active_segment.opposite(e_switch).unwrap();
+                let select_pos = nodes.get(select_node).unwrap().translation.xy();
+                let direction = (select_pos - position).normalize() * 35.0;
+                gizmos.arrow_2d(position, position + direction, css::WHITE);
+            }
+            _ => {}
+        };
+        gizmos.circle_2d(position, 3.0, css::GREEN);
+    }
+}

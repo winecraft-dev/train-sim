@@ -1,14 +1,17 @@
-mod browsing;
+mod mouse;
+mod render;
 mod switch;
 mod track;
 mod train;
 
 use bevy::{color::palettes::css::BLUE, prelude::*};
 
-use browsing::BrowsingPlugin;
+use mouse::BrowsingPlugin;
 use switch::SwitchPlugin;
 use track::*;
 use train::{Direction, Train, TrainPlugin};
+
+use render::debug::DebugRenderPlugin;
 
 fn main() {
     App::new()
@@ -17,6 +20,7 @@ fn main() {
         .add_plugins(BrowsingPlugin)
         .add_plugins(TrainPlugin)
         .add_plugins(SwitchPlugin)
+        .add_plugins(DebugRenderPlugin)
         .add_systems(Startup, setup)
         .run();
 }
@@ -28,21 +32,21 @@ fn setup(
 ) {
     commands.spawn((Camera2d, Camera::default()));
 
-    let center_a = commands.spawn(TrackNode::new(-300.0, 50.0)).id();
-    let node_a = commands.spawn(TrackNode::new(-300.0, 0.0)).id();
-    let node_b = commands.spawn(TrackNode::new(-350.0, 50.0)).id();
-    let node_c = commands.spawn(TrackNode::new(-350.0, 300.0)).id();
-    let center_b = commands.spawn(TrackNode::new(-300.0, 300.0)).id();
-    let node_d = commands.spawn(TrackNode::new(-300.0, 350.0)).id();
-    let node_e = commands.spawn(TrackNode::new(-50.0, 350.0)).id();
-    let center_c = commands.spawn(TrackNode::new(-50.0, 300.0)).id();
-    let node_f = commands.spawn(TrackNode::new(0.0, 300.0)).id();
-    let node_g = commands.spawn(TrackNode::new(0.0, 50.0)).id();
-    let center_d = commands.spawn(TrackNode::new(-50.0, 50.0)).id();
-    let node_h = commands.spawn(TrackNode::new(-50.0, 0.0)).id();
-    let node_far_a = commands.spawn(TrackNode::new(300.0, 0.0)).id();
-    let center_far = commands.spawn(TrackNode::new(-50.0, -50.0)).id();
-    let node_far_b = commands.spawn(TrackNode::new(0.0, -50.0)).id();
+    let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
+    let node_a = commands.spawn(TrackNode::bundle(-300.0, 0.0)).id();
+    let node_b = commands.spawn(TrackNode::bundle(-350.0, 50.0)).id();
+    let node_c = commands.spawn(TrackNode::bundle(-350.0, 300.0)).id();
+    let center_b = commands.spawn(TrackNode::bundle(-300.0, 300.0)).id();
+    let node_d = commands.spawn(TrackNode::bundle(-300.0, 350.0)).id();
+    let node_e = commands.spawn(TrackNode::bundle(-50.0, 350.0)).id();
+    let center_c = commands.spawn(TrackNode::bundle(-50.0, 300.0)).id();
+    let node_f = commands.spawn(TrackNode::bundle(0.0, 300.0)).id();
+    let node_g = commands.spawn(TrackNode::bundle(0.0, 50.0)).id();
+    let center_d = commands.spawn(TrackNode::bundle(-50.0, 50.0)).id();
+    let node_h = commands.spawn(TrackNode::bundle(-50.0, 0.0)).id();
+    let node_far_a = commands.spawn(TrackNode::bundle(300.0, 0.0)).id();
+    let center_far = commands.spawn(TrackNode::bundle(-50.0, -50.0)).id();
+    let node_far_b = commands.spawn(TrackNode::bundle(0.0, -50.0)).id();
 
     let tracks = [
         commands
@@ -80,14 +84,9 @@ fn setup(
     commands.trigger(TrackUpdated);
 
     // spawn train
-    let circle = meshes.add(Circle::new(3.0));
-    let blue = materials.add(Color::Srgba(BLUE));
-
     for track in tracks {
         commands.spawn((
             Train::on_track(track, Direction::Backward).with_speed(1.0),
-            Mesh2d(circle.clone()),
-            MeshMaterial2d(blue.clone()),
             Transform::from_xyz(100.0, 0.0, 0.0),
         ));
     }
