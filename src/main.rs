@@ -1,4 +1,4 @@
-mod mouse;
+mod control;
 mod render;
 mod switch;
 mod track;
@@ -6,20 +6,20 @@ mod train;
 
 use bevy::prelude::*;
 
-use mouse::BrowsingPlugin;
+use control::ClickTarget;
+use control::ControlPlugin;
+use render::debug::DebugRenderPlugin;
 use switch::SwitchPlugin;
 use track::*;
 use train::{Direction, Train, TrainPlugin};
-
-use render::debug::DebugRenderPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
-        .add_plugins(BrowsingPlugin)
         .add_plugins(TrainPlugin)
         .add_plugins(SwitchPlugin)
+        .add_plugins(ControlPlugin)
         .add_plugins(DebugRenderPlugin)
         .add_systems(Startup, setup)
         .run();
@@ -82,6 +82,7 @@ fn setup(mut commands: Commands) {
     // spawn train
     for track in tracks {
         commands.spawn((
+            ClickTarget,
             Train::on_track(track, Direction::Backward).with_speed(1.0),
             Transform::from_xyz(100.0, 0.0, 0.0),
         ));

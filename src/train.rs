@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
+    control::TargetClicked,
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
 };
@@ -17,7 +18,8 @@ impl Plugin for TrainPlugin {
                 calculate_train_positions,
             )
                 .chain(),
-        );
+        )
+        .add_observer(train_clicked);
     }
 }
 
@@ -226,5 +228,12 @@ fn project_train_position(
 
             position
         }
+    }
+}
+
+fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {
+    let e_train = clicked.event().0;
+    if let Ok(mut train) = trains.get_mut(e_train) {
+        train.speed *= -1.0;
     }
 }

@@ -5,9 +5,16 @@ pub struct BrowsingPlugin;
 impl Plugin for BrowsingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_browsing)
-            .add_systems(Update, (start_drag, handle_drag));
+            .add_systems(Update, handle_drag)
+            .add_observer(drag_started)
+            .add_observer(drag_ended);
     }
 }
+
+#[derive(Event)]
+pub struct DragStarted;
+#[derive(Event)]
+pub struct DragEnded;
 
 #[derive(Resource)]
 pub enum DragState {
@@ -19,19 +26,12 @@ fn init_browsing(mut commands: Commands) {
     commands.insert_resource(DragState::Standby);
 }
 
-fn start_drag(mut drag_state: ResMut<DragState>, click_input: Res<ButtonInput<MouseButton>>) {
-    match *drag_state {
-        DragState::Standby => {
-            if click_input.just_pressed(MouseButton::Left) {
-                *drag_state = DragState::Dragging;
-            }
-        }
-        DragState::Dragging => {
-            if click_input.just_released(MouseButton::Left) {
-                *drag_state = DragState::Standby;
-            }
-        }
-    }
+fn drag_started(_started: On<DragStarted>, mut drag_state: ResMut<DragState>) {
+    *drag_state = DragState::Dragging;
+}
+
+fn drag_ended(_ended: On<DragEnded>, mut drag_state: ResMut<DragState>) {
+    *drag_state = DragState::Standby;
 }
 
 fn handle_drag(

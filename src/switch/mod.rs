@@ -1,15 +1,18 @@
 use std::f32::consts::PI;
 
-use bevy::{ecs::relationship::RelationshipSourceCollection, input::keyboard::Key, prelude::*};
+use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
-use crate::track::{NodeNeighborsComputed, TrackNode, TrackSegment};
+use crate::{
+    control::{ClickTarget, TargetClicked},
+    track::{NodeNeighborsComputed, TrackNode, TrackSegment},
+};
 
 pub struct SwitchPlugin;
 
 impl Plugin for SwitchPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(spawn_switches)
-            .add_systems(Update, bump_switches);
+            .add_observer(switch_clicked);
     }
 }
 
@@ -78,41 +81,39 @@ pub fn spawn_switches(
     segments: Query<&TrackSegment>,
 ) {
     for (e_origin, origin) in nodes {
-        match origin.neighbors.len() {
-            0 => println!("Node[{}] with no neighbors!", e_origin),
+        let switch = match origin.neighbors.len() {
+            0 => {
+                println!("Node[{}] with no neighbors!", e_origin);
+                continue;
+            }
             1 => {
                 let e_terminating_track = origin.neighbors.get(0).unwrap();
-                let terminus = TrackSwitch::Terminus(*e_terminating_track);
-
-                commands.entity(e_origin).insert(terminus);
+                TrackSwitch::Terminus(*e_terminating_track)
             }
             2 => {
                 let e_segment_a = origin.neighbors.get(0).unwrap();
                 let e_segment_b = origin.neighbors.get(1).unwrap();
-                let track = TrackSwitch::Track(*e_segment_a, *e_segment_b);
-
-                commands.entity(e_origin).insert(track);
+                TrackSwitch::Track(*e_segment_a, *e_segment_b)
             }
             3 => {
                 let (inlet, outlet) = split_ports::<2>(e_origin, origin, segments);
-                let switch = TrackSwitch::Switch {
+                TrackSwitch::Switch {
                     control: 0,
                     inlet,
                     outlet: outlet,
-                };
-                commands.entity(e_origin).insert(switch);
+                }
             }
             4 => {
                 let (inlet, outlet) = split_ports::<3>(e_origin, origin, segments);
-                let turnout = TrackSwitch::ThreewayTurnout {
+                TrackSwitch::ThreewayTurnout {
                     control: 0,
                     inlet,
                     outlet: outlet,
-                };
-                commands.entity(e_origin).insert(turnout);
+                }
             }
             _ => unreachable!(),
-        }
+        };
+        commands.entity(e_origin).insert((switch, ClickTarget));
     }
 }
 
@@ -151,22 +152,21 @@ fn split_ports<const OUTLET_N: usize>(
     }
 }
 
-fn bump_switches(switches: Query<&mut TrackSwitch>, key_input: Res<ButtonInput<Key>>) {
-    if key_input.just_pressed(Key::Space) {
-        for mut switch in switches {
-            match &mut *switch {
-                TrackSwitch::Switch {
-                    control,
-                    inlet: _,
-                    outlet: _,
-                } => *control = (*control + 1) % 2,
-                TrackSwitch::ThreewayTurnout {
-                    control,
-                    inlet: _,
-                    outlet: _,
-                } => *control = (*control + 1) % 3,
-                _ => continue,
-            };
+fn switch_clicked(clicked: On<TargetClicked>, mut switches: Query<&mut TrackSwitch>) {
+    let e_switch = clicked.event().0;
+    if let Ok(mut switch) = switches.get_mut(e_switch) {
+        match &mut *switch {
+            TrackSwitch::Switch {
+                control,
+                inlet: _,
+                outlet: _,
+            } => *control = (*control + 1) % 2,
+            TrackSwitch::ThreewayTurnout {
+                control,
+                inlet: _,
+                outlet: _,
+            } => *control = (*control + 1) % 3,
+            _ => {}
         }
     }
 }
