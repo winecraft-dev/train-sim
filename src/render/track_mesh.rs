@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::TrackNode;
-
 use bevy::{
     asset::RenderAssetUsages,
     mesh::{Indices, PrimitiveTopology},
@@ -46,8 +44,8 @@ impl TrackMeshBuilder {
     //     self
     // }
 
-    pub fn add_node(&mut self, entity: Entity, node: &TrackNode) {
-        self.nodes.insert(entity, node.position);
+    pub fn add_node(&mut self, entity: Entity, position: Vec2) {
+        self.nodes.insert(entity, position);
     }
 
     pub fn add_straight_track(&mut self, nodes: (Entity, Entity)) {

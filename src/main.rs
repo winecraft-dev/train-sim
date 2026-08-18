@@ -1,76 +1,94 @@
-mod browsing;
+mod control;
+mod render;
+mod switch;
 mod track;
 mod train;
 
-use bevy::{color::palettes::css::BLUE, prelude::*};
+use bevy::prelude::*;
+
+use control::ClickTarget;
+use control::ControlPlugin;
+use render::debug::DebugRenderPlugin;
+use switch::SwitchPlugin;
 use track::*;
-
-use browsing::BrowsingPlugin;
-
-use crate::train::{Direction, Train, TrainPlugin};
+use train::{Direction, Train, TrainPlugin};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
-        .add_plugins(BrowsingPlugin)
         .add_plugins(TrainPlugin)
+        .add_plugins(SwitchPlugin)
+        .add_plugins(ControlPlugin)
+        .add_plugins(DebugRenderPlugin)
         .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut commands: Commands,
-) {
+fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
+    let (config, _) = config.config_mut::<DefaultGizmoConfigGroup>();
+    config.line.width = 4.0;
+
     commands.spawn((Camera2d, Camera::default()));
 
-    let node_x = commands.spawn(TrackNode::new(-450.0, -600.0)).id();
-    let node_y = commands.spawn(TrackNode::new(-450.0, -150.0)).id();
-    let center_z = commands.spawn(TrackNode::new(-300.0, -150.0)).id();
-    let node_z = commands.spawn(TrackNode::new(-300.0, 0.0)).id();
-    let node_b = commands.spawn(TrackNode::new(300.0, 0.0)).id();
-    let center_a = commands.spawn(TrackNode::new(300.0, 150.0)).id(); // center
-    let node_c = commands.spawn(TrackNode::new(450.0, 150.0)).id();
-    let node_d = commands.spawn(TrackNode::new(450.0, 600.0)).id();
+    let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
+    let node_a = commands.spawn(TrackNode::bundle(-300.0, 0.0)).id();
+    let node_b = commands.spawn(TrackNode::bundle(-350.0, 50.0)).id();
+    let node_c = commands.spawn(TrackNode::bundle(-350.0, 300.0)).id();
+    let center_b = commands.spawn(TrackNode::bundle(-300.0, 300.0)).id();
+    let node_d = commands.spawn(TrackNode::bundle(-300.0, 350.0)).id();
+    let node_e = commands.spawn(TrackNode::bundle(-50.0, 350.0)).id();
+    let center_c = commands.spawn(TrackNode::bundle(-50.0, 300.0)).id();
+    let node_f = commands.spawn(TrackNode::bundle(0.0, 300.0)).id();
+    let node_g = commands.spawn(TrackNode::bundle(0.0, 50.0)).id();
+    let center_d = commands.spawn(TrackNode::bundle(-50.0, 50.0)).id();
+    let node_h = commands.spawn(TrackNode::bundle(-50.0, 0.0)).id();
+    let node_far_a = commands.spawn(TrackNode::bundle(300.0, 0.0)).id();
+    let center_far = commands.spawn(TrackNode::bundle(-50.0, -50.0)).id();
+    let node_far_b = commands.spawn(TrackNode::bundle(0.0, -50.0)).id();
 
-    let straight_track_a = commands
-        .spawn(TrackSegment::straight((node_x, node_y)))
-        .id();
-    let curved_track_a = commands
-        .spawn(TrackSegment::curved((node_y, node_z), center_z))
-        .id();
-    let straight_track_b = commands
-        .spawn(TrackSegment::straight((node_z, node_b)))
-        .id();
-    let curved_track_b = commands
-        .spawn(TrackSegment::curved((node_b, node_c), center_a))
-        .id();
-    let straight_track_c = commands
-        .spawn(TrackSegment::straight((node_c, node_d)))
-        .id();
+    let tracks = [
+        commands
+            .spawn(TrackSegment::straight((node_b, node_c)))
+            .id(),
+        commands
+            .spawn(TrackSegment::curved((node_a, node_b), center_a))
+            .id(),
+        commands
+            .spawn(TrackSegment::curved((node_c, node_d), center_b))
+            .id(),
+        commands
+            .spawn(TrackSegment::straight((node_d, node_e)))
+            .id(),
+        commands
+            .spawn(TrackSegment::curved((node_e, node_f), center_c))
+            .id(),
+        commands
+            .spawn(TrackSegment::straight((node_f, node_g)))
+            .id(),
+        commands
+            .spawn(TrackSegment::curved((node_g, node_h), center_d))
+            .id(),
+        commands
+            .spawn(TrackSegment::straight((node_h, node_a)))
+            .id(),
+        commands
+            .spawn(TrackSegment::straight((node_h, node_far_a)))
+            .id(),
+        commands
+            .spawn(TrackSegment::curved((node_h, node_far_b), center_far))
+            .id(),
+    ];
 
     commands.trigger(TrackUpdated);
 
-    let trains = [
-        Train::on_track(straight_track_a, Direction::Backward).with_speed(1.0),
-        Train::on_track(straight_track_b, Direction::Backward).with_speed(1.0),
-        Train::on_track(straight_track_c, Direction::Backward).with_speed(1.0),
-        Train::on_track(curved_track_a, Direction::Forward).with_speed(1.0),
-        Train::on_track(curved_track_b, Direction::Forward).with_speed(1.0),
-    ];
-
     // spawn train
-    let circle = meshes.add(Circle::new(3.0));
-    let blue = materials.add(Color::Srgba(BLUE));
-
-    for train in trains {
+    for track in tracks {
         commands.spawn((
-            train,
-            Mesh2d(circle.clone()),
-            MeshMaterial2d(blue.clone()),
+            ClickTarget,
+            Train::on_track(track, Direction::Backward).with_speed(-1.0),
             Transform::from_xyz(100.0, 0.0, 0.0),
         ));
+        break;
     }
 }
