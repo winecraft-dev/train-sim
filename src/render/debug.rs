@@ -44,7 +44,7 @@ fn render_tracks(
 fn render_trains(mut gizmos: Gizmos, trains: Query<&Transform, With<Train>>) {
     for transform in trains {
         let position = transform.translation.xy();
-        gizmos.circle_2d(position, 5.0, css::BLUE);
+        gizmos.circle_2d(position, 10.0, css::BLUE);
     }
 }
 
@@ -67,7 +67,7 @@ fn render_switches(
                 let active_segment = segments.get(active).unwrap();
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
-                let direction = (select_pos - position).normalize() * 35.0;
+                let direction = (select_pos - position).normalize() * 55.0;
                 gizmos.arrow_2d(position, position + direction, css::WHITE);
             }
             TrackSwitch::ThreewayTurnout {
@@ -79,11 +79,11 @@ fn render_switches(
                 let active_segment = segments.get(active).unwrap();
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
-                let direction = (select_pos - position).normalize() * 35.0;
+                let direction = (select_pos - position).normalize() * 55.0;
                 gizmos.arrow_2d(position, position + direction, css::WHITE);
             }
             _ => {}
         };
-        gizmos.circle_2d(position, 3.0, css::GREEN);
+        gizmos.circle_2d(position, 8.0, css::GREEN);
     }
 }

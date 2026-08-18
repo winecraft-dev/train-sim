@@ -25,7 +25,10 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
+    let (config, _) = config.config_mut::<DefaultGizmoConfigGroup>();
+    config.line.width = 4.0;
+
     commands.spawn((Camera2d, Camera::default()));
 
     let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
@@ -83,8 +86,9 @@ fn setup(mut commands: Commands) {
     for track in tracks {
         commands.spawn((
             ClickTarget,
-            Train::on_track(track, Direction::Backward).with_speed(1.0),
+            Train::on_track(track, Direction::Backward).with_speed(-1.0),
             Transform::from_xyz(100.0, 0.0, 0.0),
         ));
+        break;
     }
 }
