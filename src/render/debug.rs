@@ -1,9 +1,12 @@
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{
+    color::palettes::css::{self, WHITE},
+    prelude::*,
+};
 
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
-    train::Train,
+    train::{Train, axle::Axle},
 };
 
 pub struct DebugRenderPlugin;
@@ -41,10 +44,23 @@ fn render_tracks(
     }
 }
 
-fn render_trains(mut gizmos: Gizmos, trains: Query<&Transform, With<Train>>) {
-    for transform in trains {
-        let position = transform.translation.xy();
-        gizmos.circle_2d(position, 10.0, css::BLUE);
+fn render_trains(
+    mut gizmos: Gizmos,
+    trains: Query<(Entity, &Transform), (With<Axle>, With<Train>)>,
+    children: Query<&Children>,
+    rear_axles: Query<&Transform, (With<Axle>, Without<Train>)>,
+) {
+    for (e_main, main_axle) in trains {
+        let e_rear = children.get(e_main).unwrap()[0];
+        let rear_axle = rear_axles.get(e_rear).unwrap();
+
+        let main_pos = main_axle.translation.xy();
+        let rear_pos = rear_axle.translation.xy();
+        let arrow_pos = (main_pos - rear_pos).normalize() * 30.0 + main_pos;
+
+        gizmos.circle_2d(main_pos, 10.0, css::BLUE);
+        gizmos.circle_2d(rear_pos, 10.0, css::AQUAMARINE);
+        gizmos.arrow_2d(main_pos, arrow_pos, css::WHITE);
     }
 }
 

@@ -6,12 +6,11 @@ mod train;
 
 use bevy::prelude::*;
 
-use control::ClickTarget;
 use control::ControlPlugin;
 use render::debug::DebugRenderPlugin;
 use switch::SwitchPlugin;
 use track::*;
-use train::{Direction, Train, TrainPlugin};
+use train::{Train, TrainPlugin};
 
 fn main() {
     App::new()
@@ -82,13 +81,5 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
 
     commands.trigger(TrackUpdated);
 
-    // spawn train
-    for track in tracks {
-        commands.spawn((
-            ClickTarget,
-            Train::on_track(track, Direction::Backward).with_speed(-1.0),
-            Transform::from_xyz(100.0, 0.0, 0.0),
-        ));
-        break;
-    }
+    Train::new(-1.0).create(commands, tracks[0]);
 }

@@ -1,26 +1,39 @@
 use bevy::prelude::*;
 
+mod axle;
+
 use crate::{
     control::TargetClicked,
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
 };
 
+use axle::AxelPlugin;
+
 pub struct TrainPlugin;
 
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                apply_train_speeds,
-                switch_overflow_trains,
-                calculate_train_positions,
+        app.add_plugins(AxelPlugin)
+            .add_systems(
+                Update,
+                (
+                    apply_train_speeds,
+                    switch_overflow_trains,
+                    calculate_train_positions,
+                )
+                    .chain(),
             )
-                .chain(),
-        )
-        .add_observer(train_clicked);
+            .add_observer(train_clicked);
     }
+}
+
+// TrackTraversal is the modifier applied to speed based on the way the "front"
+// of the train enters the current TrackSegment.
+#[derive(Debug)]
+pub enum TrackTraversal {
+    FacingA,
+    FacingB,
 }
 
 #[derive(Debug, Component)]
@@ -30,22 +43,14 @@ pub struct Train {
     speed: f32,
     track: Entity,
     progress: f32,
-    direction: Direction,
-}
-
-// Direction is the modifier applied to speed based on the way the "front"
-// of the train enters the current TrackSegment. If the
-#[derive(Debug)]
-pub enum Direction {
-    Forward,  // Facing B
-    Backward, // Facing A
+    direction: TrackTraversal,
 }
 
 impl Train {
-    pub fn on_track(track: Entity, direction: Direction) -> Self {
+    pub fn on_track(track: Entity, direction: TrackTraversal) -> Self {
         let progress = match direction {
-            Direction::Forward => 0.0,
-            Direction::Backward => 1.0,
+            TrackTraversal::FacingA => 0.0,
+            TrackTraversal::FacingB => 1.0,
         };
         Self {
             speed: 0.0,
