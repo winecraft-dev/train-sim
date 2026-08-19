@@ -3,10 +3,7 @@ use bevy::prelude::*;
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
-    train::{
-        Train, TrainMoved,
-        cursor::{TrackCursor, TrackTraversal},
-    },
+    train::{TrainMoved, cursor::TrackTraversal},
 };
 
 use super::TrainCreated;

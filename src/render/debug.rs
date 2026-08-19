@@ -1,7 +1,4 @@
-use bevy::{
-    color::palettes::css::{self, WHITE},
-    prelude::*,
-};
+use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     switch::TrackSwitch,
