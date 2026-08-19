@@ -12,6 +12,15 @@ pub enum TrackTraversal {
     FacingB,
 }
 
+impl TrackTraversal {
+    fn flip(&mut self) {
+        match self {
+            TrackTraversal::FacingA => *self = TrackTraversal::FacingB,
+            TrackTraversal::FacingB => *self = TrackTraversal::FacingA,
+        }
+    }
+}
+
 pub type TrackCursor = Axle;
 
 impl TrackCursor {
@@ -26,7 +35,7 @@ impl TrackCursor {
             TrackTraversal::FacingB => speed,
         };
         self.distance += speed;
-        self.traverse(segments, switches, speed);
+        self.traverse(segments, switches);
     }
 
     pub fn next_offset(
@@ -40,16 +49,11 @@ impl TrackCursor {
             TrackTraversal::FacingB => offset.0,
         };
         self.distance += offset;
-        self.traverse(segments, switches, offset);
+        self.traverse(segments, switches);
         self.clone()
     }
 
-    fn traverse(
-        &mut self,
-        segments: Query<&TrackSegment>,
-        switches: Query<&TrackSwitch>,
-        delta: f32,
-    ) {
+    fn traverse(&mut self, segments: Query<&TrackSegment>, switches: Query<&TrackSwitch>) {
         loop {
             let current = segments.get(self.track).unwrap();
             let (e_switch, overflow_distance) = match self.exited(current) {
@@ -63,7 +67,7 @@ impl TrackCursor {
                 None => break,
             };
 
-            self.traverse_next(e_next, e_switch, segments, delta, overflow_distance);
+            self.traverse_next(e_next, e_switch, segments, overflow_distance);
         }
     }
 
@@ -82,28 +86,32 @@ impl TrackCursor {
     fn traverse_next(
         &mut self,
         e_next: Entity,   // segment
-        e_origin: Entity, // node
+        e_switch: Entity, // node
         segments: Query<&TrackSegment>,
-        delta: f32,
         overflow_distance: f32,
     ) {
-        self.track = e_next;
-
+        let last_track = segments.get(self.track).unwrap();
         let next_track = segments.get(e_next).unwrap();
-        if next_track.nodes.0 == e_origin {
-            self.traversal = if delta >= 0.0 {
-                TrackTraversal::FacingB
-            } else {
-                TrackTraversal::FacingA
-            };
+
+        self.track = e_next;
+        self.select_direction(last_track, next_track, e_switch);
+        if next_track.nodes.0 == e_switch {
             self.distance = overflow_distance;
         } else {
-            self.traversal = if delta >= 0.0 {
-                TrackTraversal::FacingA
-            } else {
-                TrackTraversal::FacingB
-            };
             self.distance = next_track.length() + overflow_distance;
+        }
+    }
+
+    fn select_direction(
+        &mut self,
+        last_track: &TrackSegment,
+        next_track: &TrackSegment,
+        switch: Entity,
+    ) {
+        if switch == last_track.nodes.0 && switch == next_track.nodes.0 {
+            self.traversal.flip();
+        } else if switch == last_track.nodes.1 && switch == next_track.nodes.1 {
+            self.traversal.flip();
         }
     }
 }
