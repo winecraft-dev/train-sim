@@ -48,7 +48,7 @@ impl TrackCursor {
             TrackTraversal::FacingA => -offset.0,
             TrackTraversal::FacingB => offset.0,
         };
-        self.distance += offset;
+        self.distance -= offset;
         self.traverse(segments, switches);
         self.clone()
     }
@@ -94,23 +94,18 @@ impl TrackCursor {
         let next_track = segments.get(e_next).unwrap();
 
         self.track = e_next;
-        self.select_direction(last_track, next_track, e_switch);
+        self.select_direction(last_track, next_track);
         if next_track.nodes.0 == e_switch {
-            self.distance = overflow_distance;
+            self.distance = overflow_distance.abs();
         } else {
-            self.distance = next_track.length() + overflow_distance;
+            self.distance = next_track.length() - overflow_distance.abs();
         }
     }
 
-    fn select_direction(
-        &mut self,
-        last_track: &TrackSegment,
-        next_track: &TrackSegment,
-        switch: Entity,
-    ) {
-        if switch == last_track.nodes.0 && switch == next_track.nodes.0 {
+    fn select_direction(&mut self, last_track: &TrackSegment, next_track: &TrackSegment) {
+        if last_track.nodes.0 == next_track.nodes.0 {
             self.traversal.flip();
-        } else if switch == last_track.nodes.1 && switch == next_track.nodes.1 {
+        } else if last_track.nodes.1 == next_track.nodes.1 {
             self.traversal.flip();
         }
     }

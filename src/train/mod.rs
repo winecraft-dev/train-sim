@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 pub mod axle;
-mod cursor;
+pub mod cursor;
 
 use axle::{Axle, AxlePlugin};
 
@@ -55,7 +55,6 @@ fn apply_train_speeds(
 ) {
     for (e_train, train, mut main_axle) in trains {
         main_axle.apply_speed(train.speed, segments, switches);
-        println!("{:?}", &main_axle);
         commands.trigger(TrainMoved(e_train));
     }
 }

@@ -20,9 +20,9 @@ impl Plugin for AxlePlugin {
 
 #[derive(Component, Clone, Debug)]
 pub struct Axle {
-    pub(super) track: Entity,
-    pub(super) distance: f32,
-    pub(super) traversal: TrackTraversal,
+    pub track: Entity,
+    pub distance: f32,
+    pub traversal: TrackTraversal,
 }
 
 impl Axle {
@@ -32,7 +32,7 @@ impl Axle {
         Self {
             track: e_track,
             distance: length / 2.0,
-            traversal: TrackTraversal::FacingA,
+            traversal: TrackTraversal::FacingB,
         }
     }
 }

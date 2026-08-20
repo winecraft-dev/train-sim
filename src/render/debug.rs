@@ -3,7 +3,7 @@ use bevy::{color::palettes::css, prelude::*};
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
-    train::{Train, axle::Axle},
+    train::{Train, axle::Axle, cursor::TrackTraversal},
 };
 
 pub struct DebugRenderPlugin;
@@ -12,7 +12,13 @@ impl Plugin for DebugRenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (render_tracks, render_switches, render_trains).chain(),
+            (
+                render_tracks,
+                render_switches,
+                render_trains,
+                render_traversing,
+            )
+                .chain(),
         );
     }
 }
@@ -58,6 +64,25 @@ fn render_trains(
         gizmos.circle_2d(main_pos, 10.0, css::BLUE);
         gizmos.circle_2d(rear_pos, 10.0, css::DARK_CYAN);
         gizmos.arrow_2d(main_pos, arrow_pos, css::WHITE);
+    }
+}
+
+fn render_traversing(
+    mut gizmos: Gizmos,
+    axles: Query<(&Axle, &Transform)>,
+    segments: Query<&TrackSegment>,
+    switches: Query<&Transform>,
+) {
+    for (axle, axle_pos) in axles {
+        let axle_pos = axle_pos.translation.xy();
+        let segment = segments.get(axle.track).unwrap();
+        let facing_switch = match axle.traversal {
+            TrackTraversal::FacingA => segment.nodes.0,
+            TrackTraversal::FacingB => segment.nodes.1,
+        };
+        let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
+        let arrow_pos = (switch_pos - axle_pos).normalize() * 30.0 + axle_pos;
+        gizmos.arrow_2d(axle_pos, arrow_pos, css::WHITE);
     }
 }
 
