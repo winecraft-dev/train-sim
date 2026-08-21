@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
-    train::{TrainMoved, cursor::TrackTraversal},
+    train::{TrainDerailed, TrainMoved, cursor::TrackTraversal},
 };
 
 use super::TrainCreated;
@@ -57,7 +57,16 @@ fn add_axles(
     let rear_axle_offset = AxleOffset(AXLE_DISTANCE);
 
     let mut cursor = main_axle.clone();
-    let rear_axle = cursor.next_offset(&rear_axle_offset, segments, switches);
+    let rear_axle = match cursor.next_offset(&rear_axle_offset, segments, switches) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!(
+                "Skipping train[{}], problem with Track Cursor {:?}",
+                e_train, e,
+            );
+            return;
+        }
+    };
 
     let e_rear = commands
         .spawn((rear_axle, rear_axle_offset, Transform::default()))
@@ -70,6 +79,7 @@ fn add_axles(
 
 fn follow_main_axle(
     main_axle_moved: On<TrainMoved>,
+    mut commands: Commands,
     children: Query<&Children>,
     main_axles: Query<&Axle, Without<AxleOffset>>,
     mut rear_axles: Query<(&mut Axle, &AxleOffset)>,
@@ -83,7 +93,13 @@ fn follow_main_axle(
     let (mut rear_axle, offset) = rear_axles.get_mut(e_rear).unwrap();
 
     let mut cursor = main_axle.clone();
-    *rear_axle = cursor.next_offset(offset, segments, switches);
+    *rear_axle = match cursor.next_offset(offset, segments, switches) {
+        Ok(a) => a,
+        Err(_) => {
+            commands.trigger(TrainDerailed(e_main));
+            return;
+        }
+    };
 }
 
 fn project_axle_positions(

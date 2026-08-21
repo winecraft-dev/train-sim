@@ -16,6 +16,7 @@ pub struct TrainPlugin;
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
+            .add_observer(train_derailed)
             .add_observer(train_clicked)
             .add_systems(Update, apply_train_speeds);
     }
@@ -29,6 +30,12 @@ pub struct TrainCreated {
 
 #[derive(Event)]
 pub struct TrainMoved(Entity);
+
+#[derive(Event)]
+pub struct TrainDerailed(Entity);
+
+#[derive(Component)]
+pub struct Derailed;
 
 #[derive(Component, Default, Debug)]
 pub struct Train {
@@ -49,14 +56,32 @@ impl Train {
 
 fn apply_train_speeds(
     mut commands: Commands,
-    trains: Query<(Entity, &Train, &mut Axle)>,
+    trains: Query<(Entity, &Train, &mut Axle), Without<Derailed>>,
     segments: Query<&TrackSegment>,
     switches: Query<&TrackSwitch>,
 ) {
     for (e_train, train, mut main_axle) in trains {
-        main_axle.apply_speed(train.speed, segments, switches);
+        match main_axle.apply_speed(train.speed, segments, switches) {
+            Ok(_) => {}
+            Err(_) => {
+                commands.trigger(TrainDerailed(e_train));
+                return;
+            }
+        };
         commands.trigger(TrainMoved(e_train));
     }
+}
+
+fn train_derailed(
+    derailed: On<TrainDerailed>,
+    mut commands: Commands,
+    mut trains: Query<&mut Train>,
+) {
+    let e_train = derailed.0;
+    let mut train = trains.get_mut(e_train).unwrap();
+
+    train.speed = 0.0;
+    commands.entity(e_train).insert(Derailed);
 }
 
 fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {

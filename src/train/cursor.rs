@@ -21,6 +21,11 @@ impl TrackTraversal {
     }
 }
 
+#[derive(Debug)]
+pub enum TrackCursorError {
+    NoNextSegment,
+}
+
 pub type TrackCursor = Axle;
 
 impl TrackCursor {
@@ -29,13 +34,14 @@ impl TrackCursor {
         speed: f32,
         segments: Query<&TrackSegment>,
         switches: Query<&TrackSwitch>,
-    ) {
+    ) -> Result<(), TrackCursorError> {
         let speed = match self.traversal {
             TrackTraversal::FacingA => -speed,
             TrackTraversal::FacingB => speed,
         };
         self.distance += speed;
-        self.traverse(segments, switches);
+        self.traverse(segments, switches)?;
+        Ok(())
     }
 
     pub fn next_offset(
@@ -43,17 +49,21 @@ impl TrackCursor {
         offset: &AxleOffset,
         segments: Query<&TrackSegment>,
         switches: Query<&TrackSwitch>,
-    ) -> Self {
+    ) -> Result<Self, TrackCursorError> {
         let offset = match self.traversal {
             TrackTraversal::FacingA => -offset.0,
             TrackTraversal::FacingB => offset.0,
         };
         self.distance -= offset;
-        self.traverse(segments, switches);
-        self.clone()
+        self.traverse(segments, switches)?;
+        Ok(self.clone())
     }
 
-    fn traverse(&mut self, segments: Query<&TrackSegment>, switches: Query<&TrackSwitch>) {
+    fn traverse(
+        &mut self,
+        segments: Query<&TrackSegment>,
+        switches: Query<&TrackSwitch>,
+    ) -> Result<(), TrackCursorError> {
         loop {
             let current = segments.get(self.track).unwrap();
             let (e_switch, overflow_distance) = match self.exited(current) {
@@ -64,11 +74,12 @@ impl TrackCursor {
             let switch = switches.get(e_switch).unwrap();
             let e_next = match switch.next_segment(self.track) {
                 Some(segment) => segment,
-                None => break,
+                None => return Err(TrackCursorError::NoNextSegment),
             };
 
             self.traverse_next(e_next, e_switch, segments, overflow_distance);
         }
+        Ok(())
     }
 
     fn exited(&self, track: &TrackSegment) -> Option<(Entity, f32)> {

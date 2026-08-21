@@ -81,5 +81,5 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
 
     commands.trigger(TrackUpdated);
 
-    Train::new(3.0).create(commands, tracks[7]);
+    Train::new(1.0).create(commands, tracks[7]);
 }
