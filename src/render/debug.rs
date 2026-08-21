@@ -1,9 +1,15 @@
+use std::{f32::consts::PI, process::Child};
+
 use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
-    train::{Train, axle::Axle, cursor::TrackTraversal},
+    train::{
+        Train,
+        axle::{AXLE_DISTANCE, Axle},
+        cursor::TrackTraversal,
+    },
 };
 
 pub struct DebugRenderPlugin;
@@ -15,6 +21,7 @@ impl Plugin for DebugRenderPlugin {
             (
                 render_tracks,
                 render_switches,
+                render_axles,
                 render_trains,
                 render_traversing,
             )
@@ -47,7 +54,7 @@ fn render_tracks(
     }
 }
 
-fn render_trains(
+fn render_axles(
     mut gizmos: Gizmos,
     trains: Query<(Entity, &Transform), (With<Axle>, With<Train>)>,
     children: Query<&Children>,
@@ -63,7 +70,6 @@ fn render_trains(
 
         gizmos.circle_2d(main_pos, 10.0, css::BLUE);
         gizmos.circle_2d(rear_pos, 10.0, css::DARK_CYAN);
-        gizmos.arrow_2d(main_pos, arrow_pos, css::WHITE);
     }
 }
 
@@ -83,6 +89,33 @@ fn render_traversing(
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
         let arrow_pos = (switch_pos - axle_pos).normalize() * 30.0 + axle_pos;
         gizmos.arrow_2d(axle_pos, arrow_pos, css::WHITE);
+    }
+}
+
+fn render_trains(
+    mut gizmos: Gizmos,
+    trains: Query<(Entity, &Transform), With<Train>>,
+    children: Query<&Children>,
+    rear_axles: Query<&Transform, (With<Axle>, Without<Train>)>,
+) {
+    for (e_train, train_pos) in trains {
+        let main_pos = train_pos.translation.xy();
+
+        let e_rear = children.get(e_train).unwrap()[0];
+        let rear_pos = rear_axles.get(e_rear).unwrap().translation.xy();
+
+        let center = main_pos - (main_pos - rear_pos) / 2.0;
+        let angle = (main_pos - rear_pos).to_angle();
+        let arrow_pos = (main_pos - rear_pos).normalize() * 30.0 + main_pos;
+        gizmos.rect_2d(
+            Isometry2d::new(
+                center, // position
+                Rot2::radians(angle),
+            ),
+            Vec2::new(AXLE_DISTANCE + 20.0, 20.0),
+            css::GRAY,
+        );
+        gizmos.arrow_2d(center, arrow_pos, css::GRAY);
     }
 }
 

@@ -40,7 +40,7 @@ impl Axle {
 #[derive(Component, Debug)]
 pub struct AxleOffset(pub(super) f32);
 
-const AXLE_DISTANCE: f32 = 50.0;
+pub const AXLE_DISTANCE: f32 = 50.0;
 
 fn add_axles(
     train_created: On<TrainCreated>,
