@@ -1,5 +1,3 @@
-use std::{f32::consts::PI, process::Child};
-
 use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
@@ -66,7 +64,6 @@ fn render_axles(
 
         let main_pos = main_axle.translation.xy();
         let rear_pos = rear_axle.translation.xy();
-        let arrow_pos = (main_pos - rear_pos).normalize() * 30.0 + main_pos;
 
         gizmos.circle_2d(main_pos, 10.0, css::BLUE);
         gizmos.circle_2d(rear_pos, 10.0, css::DARK_CYAN);
