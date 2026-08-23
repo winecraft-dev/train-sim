@@ -16,8 +16,7 @@ impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
             .add_observer(train_derailed)
-            .add_observer(train_clicked)
-            .add_systems(Update, apply_train_speeds);
+            .add_observer(train_clicked);
     }
 }
 
@@ -66,7 +65,6 @@ impl Train {
 //         };
 //         commands.trigger(TrainMoved(e_train));
 //     }
-// }
 
 fn train_derailed(
     derailed: On<TrainDerailed>,

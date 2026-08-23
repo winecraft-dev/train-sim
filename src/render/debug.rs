@@ -2,11 +2,13 @@ use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     switch::TrackSwitch,
-    track::{TrackNode, TrackSegment, TrackVariant},
+    track::{
+        TrackNode, TrackSegment, TrackVariant,
+        loc::{Direction, Location},
+    },
     train::{
         Train,
         axle::{AXLE_DISTANCE, Axle},
-        cursor::TrackTraversal,
     },
 };
 
@@ -72,16 +74,16 @@ fn render_axles(
 
 fn render_traversing(
     mut gizmos: Gizmos,
-    axles: Query<(&Axle, &Transform)>,
+    axles: Query<(&Axle, &Location, &Transform)>,
     segments: Query<&TrackSegment>,
     switches: Query<&Transform>,
 ) {
-    for (axle, axle_pos) in axles {
+    for (_, loc, axle_pos) in axles {
         let axle_pos = axle_pos.translation.xy();
-        let segment = segments.get(axle.track).unwrap();
-        let facing_switch = match axle.traversal {
-            TrackTraversal::FacingA => segment.nodes.0,
-            TrackTraversal::FacingB => segment.nodes.1,
+        let segment = segments.get(loc.track).unwrap();
+        let facing_switch = match loc.direction {
+            Direction::FacingA => segment.nodes.0,
+            Direction::FacingB => segment.nodes.1,
         };
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
         let arrow_pos = (switch_pos - axle_pos).normalize() * 30.0 + axle_pos;

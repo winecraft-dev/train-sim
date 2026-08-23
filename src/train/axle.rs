@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, cursor::TrackCursor, loc::Location, projector::Projector},
-    train::TrainDerailed,
+    train::{Derailed, Train, TrainDerailed},
 };
 
 use super::TrainCreated;
@@ -92,10 +92,43 @@ fn add_axles(
 //     };
 // }
 
-fn apply_train_speeds() {}
+fn apply_train_speeds(
+    mut commands: Commands,
+    trains: Query<(Entity, &Train, &Axle, &mut Location), Without<Derailed>>,
+    children: Query<&Children>,
+    mut axles: Query<(&Axle, &mut Location), Without<Train>>,
+    segments: Query<&TrackSegment>,
+    switches: Query<&TrackSwitch>,
+) {
+    for (e_train, train, _, mut main_loc) in trains {
+        let speed = train.speed;
+        let children = children.get(e_train).unwrap();
+
+        match main_loc.apply_speed(speed, segments, switches) {
+            Ok(_) => {}
+            Err(_) => {
+                commands.trigger(TrainDerailed(e_train));
+                continue;
+            }
+        }
+
+        let mut cursor = main_loc.clone();
+        for e_axle in children {
+            let (next_axle, mut next_loc) = axles.get_mut(*e_axle).unwrap();
+
+            *next_loc = match cursor.next_offset(next_axle.offset, segments, switches) {
+                Ok(loc) => loc,
+                Err(_) => {
+                    commands.trigger(TrainDerailed(e_train));
+                    return;
+                }
+            };
+        }
+    }
+}
 
 fn project_axle_positions(
-    axles: Query<(Entity, &mut Transform, &Location), With<Axle>>,
+    axles: Query<(Entity, &mut Transform, &Location), (With<Axle>, Without<TrackNode>)>,
     segments: Query<&TrackSegment>,
     nodes: Query<&Transform, With<TrackNode>>,
 ) {
