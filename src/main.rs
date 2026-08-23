@@ -1,5 +1,6 @@
 mod control;
 mod render;
+mod signal;
 mod switch;
 mod track;
 mod train;

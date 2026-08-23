@@ -2,31 +2,14 @@ use bevy::prelude::*;
 
 use crate::{
     switch::TrackSwitch,
-    track::TrackSegment,
-    train::axle::{Axle, AxleOffset},
+    track::{
+        TrackSegment,
+        error::TrackError,
+        loc::{Direction, Location},
+    },
 };
 
-#[derive(Debug, Clone, Copy)]
-pub enum TrackTraversal {
-    FacingA,
-    FacingB,
-}
-
-impl TrackTraversal {
-    fn flip(&mut self) {
-        match self {
-            TrackTraversal::FacingA => *self = TrackTraversal::FacingB,
-            TrackTraversal::FacingB => *self = TrackTraversal::FacingA,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum TrackCursorError {
-    NoNextSegment,
-}
-
-pub type TrackCursor = Axle;
+pub type TrackCursor = Location;
 
 impl TrackCursor {
     pub fn apply_speed(
@@ -34,10 +17,10 @@ impl TrackCursor {
         speed: f32,
         segments: Query<&TrackSegment>,
         switches: Query<&TrackSwitch>,
-    ) -> Result<(), TrackCursorError> {
-        let speed = match self.traversal {
-            TrackTraversal::FacingA => -speed,
-            TrackTraversal::FacingB => speed,
+    ) -> Result<(), TrackError> {
+        let speed = match self.direction {
+            Direction::FacingA => -speed,
+            Direction::FacingB => speed,
         };
         self.distance += speed;
         self.traverse(segments, switches)?;
@@ -46,13 +29,13 @@ impl TrackCursor {
 
     pub fn next_offset(
         &mut self,
-        offset: &AxleOffset,
+        offset: f32,
         segments: Query<&TrackSegment>,
         switches: Query<&TrackSwitch>,
-    ) -> Result<Self, TrackCursorError> {
-        let offset = match self.traversal {
-            TrackTraversal::FacingA => -offset.0,
-            TrackTraversal::FacingB => offset.0,
+    ) -> Result<Self, TrackError> {
+        let offset = match self.direction {
+            Direction::FacingA => -offset,
+            Direction::FacingB => offset,
         };
         self.distance -= offset;
         self.traverse(segments, switches)?;
@@ -63,7 +46,7 @@ impl TrackCursor {
         &mut self,
         segments: Query<&TrackSegment>,
         switches: Query<&TrackSwitch>,
-    ) -> Result<(), TrackCursorError> {
+    ) -> Result<(), TrackError> {
         loop {
             let current = segments.get(self.track).unwrap();
             let (e_switch, overflow_distance) = match self.exited(current) {
@@ -74,7 +57,7 @@ impl TrackCursor {
             let switch = switches.get(e_switch).unwrap();
             let e_next = match switch.next_segment(self.track) {
                 Some(segment) => segment,
-                None => return Err(TrackCursorError::NoNextSegment),
+                None => return Err(TrackError::NoNeighborSegment),
             };
 
             self.traverse_next(e_next, e_switch, segments, overflow_distance);
@@ -115,9 +98,9 @@ impl TrackCursor {
 
     fn select_direction(&mut self, last_track: &TrackSegment, next_track: &TrackSegment) {
         if last_track.nodes.0 == next_track.nodes.0 {
-            self.traversal.flip();
+            self.direction.flip();
         } else if last_track.nodes.1 == next_track.nodes.1 {
-            self.traversal.flip();
+            self.direction.flip();
         }
     }
 }

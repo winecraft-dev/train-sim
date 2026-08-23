@@ -2,6 +2,11 @@ use std::f32::consts::PI;
 
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
+pub mod cursor;
+pub mod error;
+pub mod loc;
+pub mod projector;
+
 pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {

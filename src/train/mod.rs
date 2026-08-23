@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 pub mod axle;
-pub mod cursor;
 
 use axle::{Axle, AxlePlugin};
 
@@ -29,9 +28,6 @@ pub struct TrainCreated {
 }
 
 #[derive(Event)]
-pub struct TrainMoved(Entity);
-
-#[derive(Event)]
 pub struct TrainDerailed(Entity);
 
 #[derive(Component)]
@@ -54,23 +50,23 @@ impl Train {
     }
 }
 
-fn apply_train_speeds(
-    mut commands: Commands,
-    trains: Query<(Entity, &Train, &mut Axle), Without<Derailed>>,
-    segments: Query<&TrackSegment>,
-    switches: Query<&TrackSwitch>,
-) {
-    for (e_train, train, mut main_axle) in trains {
-        match main_axle.apply_speed(train.speed, segments, switches) {
-            Ok(_) => {}
-            Err(_) => {
-                commands.trigger(TrainDerailed(e_train));
-                return;
-            }
-        };
-        commands.trigger(TrainMoved(e_train));
-    }
-}
+// fn apply_train_speeds(
+//     mut commands: Commands,
+//     trains: Query<(Entity, &Train, &mut Axle), Without<Derailed>>,
+//     segments: Query<&TrackSegment>,
+//     switches: Query<&TrackSwitch>,
+// ) {
+//     for (e_train, train, mut main_axle) in trains {
+//         match main_axle.apply_speed(train.speed, segments, switches) {
+//             Ok(_) => {}
+//             Err(_) => {
+//                 commands.trigger(TrainDerailed(e_train));
+//                 return;
+//             }
+//         };
+//         commands.trigger(TrainMoved(e_train));
+//     }
+// }
 
 fn train_derailed(
     derailed: On<TrainDerailed>,
