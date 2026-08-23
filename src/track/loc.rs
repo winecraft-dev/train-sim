@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::track::TrackSegment;
+use crate::track::{TrackSegment, error::TrackError};
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Location {
@@ -10,15 +10,18 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn on_track(e_track: Entity, segments: Query<&TrackSegment>) -> Self {
-        let track = segments.get(e_track).unwrap();
+    pub fn on_track(e_track: Entity, segments: Query<&TrackSegment>) -> Result<Self, TrackError> {
+        let track = match segments.get(e_track) {
+            Ok(s) => s,
+            Err(_) => return Err(TrackError::BrokenSegmentReference(e_track)),
+        };
         let length = track.length();
 
-        Self {
+        Ok(Self {
             track: e_track,
             distance: length / 2.0,
             direction: Direction::FacingB,
-        }
+        })
     }
 }
 

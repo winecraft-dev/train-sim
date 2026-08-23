@@ -2,13 +2,9 @@ use bevy::prelude::*;
 
 pub mod axle;
 
-use axle::{Axle, AxlePlugin};
+use axle::AxlePlugin;
 
-use crate::{
-    control::{ClickTarget, TargetClicked},
-    switch::TrackSwitch,
-    track::TrackSegment,
-};
+use crate::control::{ClickTarget, TargetClicked};
 
 pub struct TrainPlugin;
 
@@ -48,23 +44,6 @@ impl Train {
         train
     }
 }
-
-// fn apply_train_speeds(
-//     mut commands: Commands,
-//     trains: Query<(Entity, &Train, &mut Axle), Without<Derailed>>,
-//     segments: Query<&TrackSegment>,
-//     switches: Query<&TrackSwitch>,
-// ) {
-//     for (e_train, train, mut main_axle) in trains {
-//         match main_axle.apply_speed(train.speed, segments, switches) {
-//             Ok(_) => {}
-//             Err(_) => {
-//                 commands.trigger(TrainDerailed(e_train));
-//                 return;
-//             }
-//         };
-//         commands.trigger(TrainMoved(e_train));
-//     }
 
 fn train_derailed(
     derailed: On<TrainDerailed>,

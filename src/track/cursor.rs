@@ -48,19 +48,25 @@ impl TrackCursor {
         switches: Query<&TrackSwitch>,
     ) -> Result<(), TrackError> {
         loop {
-            let current = segments.get(self.track).unwrap();
+            let current = match segments.get(self.track) {
+                Ok(s) => s,
+                Err(_) => return Err(TrackError::BrokenSegmentReference(self.track)),
+            };
             let (e_switch, overflow_distance) = match self.exited(current) {
                 Some(exit) => exit,
                 None => break,
             };
 
-            let switch = switches.get(e_switch).unwrap();
+            let switch = match switches.get(e_switch) {
+                Ok(s) => s,
+                Err(_) => return Err(TrackError::BrokenNodeReference(e_switch)),
+            };
             let e_next = match switch.next_segment(self.track) {
                 Some(segment) => segment,
                 None => return Err(TrackError::NoNeighborSegment),
             };
 
-            self.traverse_next(e_next, e_switch, segments, overflow_distance);
+            self.traverse_next(e_next, e_switch, segments, overflow_distance)?;
         }
         Ok(())
     }
@@ -83,9 +89,15 @@ impl TrackCursor {
         e_switch: Entity, // node
         segments: Query<&TrackSegment>,
         overflow_distance: f32,
-    ) {
-        let last_track = segments.get(self.track).unwrap();
-        let next_track = segments.get(e_next).unwrap();
+    ) -> Result<(), TrackError> {
+        let last_track = match segments.get(self.track) {
+            Ok(s) => s,
+            Err(_) => return Err(TrackError::BrokenSegmentReference(self.track)),
+        };
+        let next_track = match segments.get(e_next) {
+            Ok(s) => s,
+            Err(_) => return Err(TrackError::BrokenSegmentReference(e_next)),
+        };
 
         self.track = e_next;
         self.select_direction(last_track, next_track);
@@ -94,6 +106,7 @@ impl TrackCursor {
         } else {
             self.distance = next_track.length() - overflow_distance.abs();
         }
+        Ok(())
     }
 
     fn select_direction(&mut self, last_track: &TrackSegment, next_track: &TrackSegment) {

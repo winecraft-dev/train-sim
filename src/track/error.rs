@@ -9,6 +9,9 @@ pub enum TrackError {
     #[error("reference to node broken: {0}")]
     BrokenNodeReference(Entity),
 
-    #[error("no neighbor resolved")]
+    #[error("no neighboring track found")]
     NoNeighborSegment,
+
+    #[error("missing precomputed track data")]
+    MissingPrecompute,
 }

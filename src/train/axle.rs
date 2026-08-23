@@ -41,7 +41,7 @@ fn add_axles(
         track: e_segment,
     } = train_created.event();
 
-    let main_location = Location::on_track(*e_segment, segments);
+    let main_location = Location::on_track(*e_segment, segments).unwrap();
     let main_axle = Axle::new(0.0);
 
     let rear_axle = Axle::new(AXLE_DISTANCE);
@@ -66,31 +66,6 @@ fn add_axles(
         .insert((main_location, main_axle, Transform::default()))
         .add_child(e_rear);
 }
-
-// fn follow_main_axle(
-//     main_axle_moved: On<TrainMoved>,
-//     mut commands: Commands,
-//     children: Query<&Children>,
-//     main_axles: Query<&Axle, Without<AxleOffset>>,
-//     mut rear_axles: Query<(&mut Axle, &AxleOffset)>,
-//     segments: Query<&TrackSegment>,
-//     switches: Query<&TrackSwitch>,
-// ) {
-//     let e_main = main_axle_moved.0;
-//     let e_rear = children.get(e_main).unwrap()[0];
-
-//     let main_axle = main_axles.get(e_main).unwrap();
-//     let (mut rear_axle, offset) = rear_axles.get_mut(e_rear).unwrap();
-
-//     let mut cursor = main_axle.clone();
-//     *rear_axle = match cursor.next_offset(offset, segments, switches) {
-//         Ok(a) => a,
-//         Err(_) => {
-//             commands.trigger(TrainDerailed(e_main));
-//             return;
-//         }
-//     };
-// }
 
 fn apply_train_speeds(
     mut commands: Commands,
