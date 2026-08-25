@@ -12,6 +12,10 @@ pub enum TrackError {
     #[error("no neighboring track found")]
     NoNeighborSegment,
 
+    #[error("exceeded max jumps")]
+    ExceedsMaxJumps,
+
+    #[allow(unused)]
     #[error("missing precomputed track data")]
     MissingPrecompute,
 }

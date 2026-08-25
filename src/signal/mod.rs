@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use block::BlockPlugin;
 
 pub mod block;
+pub mod error;
 
 pub struct SignalPlugin;
 

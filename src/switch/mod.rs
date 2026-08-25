@@ -16,6 +16,9 @@ impl Plugin for SwitchPlugin {
     }
 }
 
+#[derive(Event)]
+pub struct SwitchesSpawned;
+
 #[derive(Default, Debug, Component)]
 pub enum TrackSwitch {
     #[default]
@@ -115,6 +118,8 @@ pub fn spawn_switches(
         };
         commands.entity(e_origin).insert((switch, ClickTarget));
     }
+    println!("Done Spawning Switches");
+    commands.trigger(SwitchesSpawned);
 }
 
 fn split_ports<const OUTLET_N: usize>(

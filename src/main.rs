@@ -13,8 +13,14 @@ use switch::SwitchPlugin;
 use track::*;
 use train::{Train, TrainPlugin};
 
+use crate::{
+    switch::{SwitchesSpawned, TrackSwitch},
+    track::{loc::Location, measure::distance},
+};
+
 fn main() {
     App::new()
+        .add_observer(measure_distance)
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
         .add_plugins(TrainPlugin)
@@ -80,7 +86,34 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
             .id(),
     ];
 
+    let location = Location::new(tracks[1]);
+    let location_b = Location::new(tracks[2]).with_distance(39.32);
+    commands.spawn((TestLocation1, location));
+    commands.spawn((TestLocation2, location_b));
+
     commands.trigger(TrackUpdated);
 
-    Train::new(1.0).create(commands, tracks[7]);
+    Train::new(1.0).create(&mut commands, location);
+}
+
+#[derive(Component)]
+pub struct TestLocation1;
+
+#[derive(Component)]
+pub struct TestLocation2;
+
+fn measure_distance(
+    _spawned: On<SwitchesSpawned>,
+    location1: Single<&Location, With<TestLocation1>>,
+    location2: Single<&Location, With<TestLocation2>>,
+    segments: Query<&TrackSegment>,
+    switches: Query<&TrackSwitch>,
+) {
+    println!("HELLO");
+    let a = location1.clone();
+    let b = location2.clone();
+    let distance = distance(a, b, segments, switches);
+
+    println!("Between {:?} -> {:?}", a, b);
+    println!("Distance: {:?}", distance);
 }

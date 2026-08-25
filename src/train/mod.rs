@@ -4,7 +4,10 @@ pub mod axle;
 
 use axle::AxlePlugin;
 
-use crate::control::{ClickTarget, TargetClicked};
+use crate::{
+    control::{ClickTarget, TargetClicked},
+    track::loc::Location,
+};
 
 pub struct TrainPlugin;
 
@@ -19,7 +22,7 @@ impl Plugin for TrainPlugin {
 #[derive(Event)]
 pub struct TrainCreated {
     train: Entity,
-    track: Entity,
+    location: Location,
 }
 
 #[derive(Event)]
@@ -38,9 +41,9 @@ impl Train {
         Self { speed }
     }
 
-    pub fn create(self, mut commands: Commands, track: Entity) -> Entity {
+    pub fn create(self, commands: &mut Commands, location: Location) -> Entity {
         let train = commands.spawn((ClickTarget, self)).id();
-        commands.trigger(TrainCreated { train, track });
+        commands.trigger(TrainCreated { train, location });
         train
     }
 }

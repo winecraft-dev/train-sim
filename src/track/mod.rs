@@ -5,6 +5,7 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 pub mod cursor;
 pub mod error;
 pub mod loc;
+pub mod measure;
 pub mod projector;
 
 pub struct TrackPlugin;

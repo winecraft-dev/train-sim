@@ -109,7 +109,7 @@ impl TrackCursor {
         Ok(())
     }
 
-    fn select_direction(&mut self, last_track: &TrackSegment, next_track: &TrackSegment) {
+    pub fn select_direction(&mut self, last_track: &TrackSegment, next_track: &TrackSegment) {
         if last_track.nodes.0 == next_track.nodes.0 {
             self.direction.flip();
         } else if last_track.nodes.1 == next_track.nodes.1 {

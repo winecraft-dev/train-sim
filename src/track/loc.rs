@@ -10,6 +10,14 @@ pub struct Location {
 }
 
 impl Location {
+    pub fn new(e_track: Entity) -> Self {
+        Self {
+            track: e_track,
+            distance: 0.0,
+            direction: Direction::FacingB,
+        }
+    }
+
     pub fn on_track(e_track: Entity, segments: Query<&TrackSegment>) -> Result<Self, TrackError> {
         let track = match segments.get(e_track) {
             Ok(s) => s,
@@ -22,6 +30,15 @@ impl Location {
             distance: length / 2.0,
             direction: Direction::FacingB,
         })
+    }
+
+    pub fn with_distance(mut self, distance: f32) -> Self {
+        self.distance = distance;
+        self
+    }
+    pub fn with_direction(mut self, direction: Direction) -> Self {
+        self.direction = direction;
+        self
     }
 }
 

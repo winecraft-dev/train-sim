@@ -38,15 +38,14 @@ fn add_axles(
 ) {
     let TrainCreated {
         train: e_train,
-        track: e_segment,
+        location: main_loc,
     } = train_created.event();
 
-    let main_location = Location::on_track(*e_segment, segments).unwrap();
     let main_axle = Axle::new(0.0);
 
     let rear_axle = Axle::new(AXLE_DISTANCE);
 
-    let mut cursor: TrackCursor = main_location.clone();
+    let mut cursor: TrackCursor = main_loc.clone();
     let rear_location = match cursor.next_offset(AXLE_DISTANCE, segments, switches) {
         Ok(a) => a,
         Err(e) => {
@@ -63,7 +62,7 @@ fn add_axles(
         .id();
     commands
         .entity(*e_train)
-        .insert((main_location, main_axle, Transform::default()))
+        .insert((*main_loc, main_axle, Transform::default()))
         .add_child(e_rear);
 }
 
