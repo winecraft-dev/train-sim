@@ -12,19 +12,8 @@ impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(SwitchPlugin)
             .add_observer(compute_node_neighbors)
-            .add_observer(calculate_track_data)
-            .add_systems(Startup, init_track_status);
+            .add_observer(calculate_track_data);
     }
-}
-
-#[derive(Resource)]
-pub enum TrackStatus {
-    Loading,
-    Loaded,
-}
-
-fn init_track_status(mut commands: Commands) {
-    commands.insert_resource(TrackStatus::Loading);
 }
 
 #[derive(Event)]

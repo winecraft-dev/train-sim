@@ -1,12 +1,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{
-        Direction, Location,
-        cursor::TrackCursor,
-        projector::{self, Projector},
-    },
-    track::{TrackNode, TrackSegment},
+    loc::{Direction, Location, cursor::TrackCursor, projector::Projector},
+    track::TrackNode,
     train::{Derailed, Train, TrainCreated, TrainDerailed},
 };
 

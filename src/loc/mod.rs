@@ -4,7 +4,7 @@ pub mod cursor;
 pub mod error;
 pub mod projector;
 
-use crate::{loc::projector::Projector, track::TrackStatus};
+use crate::loc::projector::Projector;
 
 pub struct LocationPlugin;
 
@@ -42,7 +42,6 @@ impl Location {
 
 fn add_transforms(
     mut commands: Commands,
-    track_status: Res<TrackStatus>,
     locations: Query<(Entity, &Location), Without<Transform>>,
     projector: Projector,
 ) {

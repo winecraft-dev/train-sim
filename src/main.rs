@@ -93,7 +93,7 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     BlockBuilder::bounds(
         Location::new(tracks[2]),
         Location::new(tracks[3])
-            .with_distance(50.0)
+            .with_distance(150.0)
             .with_direction(Direction::FacingA),
     )
     .create(commands)

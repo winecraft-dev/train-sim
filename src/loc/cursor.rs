@@ -50,7 +50,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
         }
     }
 
-    pub fn in_between(&self, a: Location, b: Location, x: Location) -> Result<bool, LocError> {
+    pub fn passed(&self, from: Location, to: Location, x: Location) -> Result<bool, LocError> {
         Ok(false)
     }
 

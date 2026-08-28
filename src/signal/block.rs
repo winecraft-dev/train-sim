@@ -17,7 +17,7 @@ impl Plugin for BlockPlugin {
 #[derive(Component)]
 pub struct Block;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct BlockBound {
     block: Entity,
 }
@@ -48,9 +48,29 @@ impl BlockBuilder {
     }
 }
 
-fn check_train_passed(moved: On<AxleMoved>, cursor: TrackCursor) {
-    println!(
-        "Train[{}] moved: {:?}->{:?}",
-        moved.train, moved.from, moved.to
-    );
+fn check_train_passed(
+    moved: On<AxleMoved>,
+    bounds: Query<(&BlockBound, &Location)>,
+    cursor: TrackCursor,
+) {
+    for (bound, bound_loc) in bounds {
+        let AxleMoved {
+            train: e_train,
+            from,
+            to,
+        } = *moved;
+        let passed = match cursor.passed(from, to, *bound_loc) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("{}", e);
+                return;
+            }
+        };
+        if passed {
+            println!(
+                "Train[{}] passed bound: {:?} {:?}",
+                e_train, bound, bound_loc
+            );
+        }
+    }
 }
