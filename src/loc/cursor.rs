@@ -50,8 +50,77 @@ impl<'w, 's> TrackCursor<'w, 's> {
         }
     }
 
-    pub fn passed(&self, from: Location, to: Location, x: Location) -> Result<bool, LocError> {
-        Ok(false)
+    pub fn passed(&self, from: Location, to: Location, check: Location) -> Result<bool, LocError> {
+        let mut c_from = from;
+        let mut c_to = to;
+        loop {
+            // all on the same track
+            if c_from.track == check.track && c_from.track == c_to.track {
+                let a = c_from.distance;
+                let b = c_to.distance;
+                let x = check.distance;
+
+                match c_from.direction {
+                    Direction::FacingB => {
+                        if a <= x && x <= b {
+                            return Ok(true);
+                        }
+                    }
+                    Direction::FacingA => {
+                        if a >= x && x >= b {
+                            return Ok(true);
+                        }
+                    }
+                };
+                return Ok(false);
+            } else if c_from.track == c_to.track {
+                return Ok(false);
+            }
+
+            if c_from.track != check.track {
+                // c_from traverses forwards
+                let current_track = self.segments.get(c_from.track).unwrap(); // CLEAN
+                let e_switch = match c_from.direction {
+                    Direction::FacingA => current_track.nodes.0,
+                    Direction::FacingB => current_track.nodes.1,
+                };
+                let switch = self.switches.get(e_switch).unwrap(); // CLEAN
+                let e_next = match switch.next_segment(c_from.track) {
+                    Some(s) => s,
+                    None => return Err(LocError::NoNeighborSegment),
+                };
+                let next_track = self.segments.get(e_next).unwrap(); // CLEAN
+
+                c_from.track = e_next;
+                c_from.direction = select_direction(c_from.direction, current_track, next_track);
+                c_from.distance = if next_track.nodes.0 == e_switch {
+                    0.0
+                } else {
+                    next_track.length()
+                };
+            } else if c_to.track != check.track {
+                // c_to traverses backwards
+                let current_track = self.segments.get(c_to.track).unwrap(); // CLEAN
+                let e_switch = match c_to.direction {
+                    Direction::FacingA => current_track.nodes.1,
+                    Direction::FacingB => current_track.nodes.0,
+                };
+                let switch = self.switches.get(e_switch).unwrap(); // CLEAN
+                let e_next = match switch.next_segment(c_to.track) {
+                    Some(s) => s,
+                    None => return Err(LocError::NoNeighborSegment),
+                };
+                let next_track = self.segments.get(e_next).unwrap(); // CLEAN
+
+                c_to.track = e_next;
+                c_to.direction = select_direction(c_to.direction, current_track, next_track);
+                c_to.distance = if next_track.nodes.0 == e_switch {
+                    0.0
+                } else {
+                    next_track.length()
+                };
+            }
+        }
     }
 
     fn exited(&self, loc: &Location, track: &TrackSegment) -> Option<(Entity, f32)> {
