@@ -50,17 +50,17 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
     let main_axle = Axle::new(0.0);
     let rear_axle = Axle::new(AXLE_DISTANCE);
 
-    let rear_location =
-        match cursor.traverse_distance(*main_loc, axle_offset(*main_loc, AXLE_DISTANCE)) {
-            Ok(a) => a,
-            Err(e) => {
-                eprintln!(
-                    "Skipping train[{}], problem with Track Cursor {:?}",
-                    e_train, e,
-                );
-                return;
-            }
-        };
+    let offset = axle_offset(*main_loc, AXLE_DISTANCE);
+    let rear_location = match cursor.traverse(*main_loc, offset) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!(
+                "Skipping train[{}], problem with Track Cursor {:?}",
+                e_train, e,
+            );
+            return;
+        }
+    };
 
     let e_rear = commands
         .spawn((rear_location, rear_axle, Transform::default()))
@@ -86,10 +86,10 @@ fn apply_train_speeds(
     cursor: TrackCursor,
 ) {
     for (e_train, train, _, mut main_loc) in trains {
-        let speed = train.speed;
+        let speed = train_speed(*main_loc, train.speed);
         let children = children.get(e_train).unwrap();
 
-        *main_loc = match cursor.traverse_distance(*main_loc, train_speed(*main_loc, speed)) {
+        *main_loc = match cursor.traverse(*main_loc, speed) {
             Ok(l) => l,
             Err(_) => {
                 commands.trigger(TrainDerailed(e_train));
@@ -97,17 +97,19 @@ fn apply_train_speeds(
             }
         };
 
-        let axle_loc = main_loc.clone();
+        let mut axle_loc = *main_loc;
         for e_axle in children {
             let (next_axle, mut next_loc) = axles.get_mut(*e_axle).unwrap();
 
-            *next_loc = match cursor.next_offset(next_axle.offset, segments, switches) {
+            let offset = axle_offset(axle_loc, next_axle.offset);
+            axle_loc = match cursor.traverse(axle_loc, offset) {
                 Ok(loc) => loc,
                 Err(_) => {
                     commands.trigger(TrainDerailed(e_train));
                     return;
                 }
             };
+            *next_loc = axle_loc;
         }
     }
 }

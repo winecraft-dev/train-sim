@@ -16,11 +16,7 @@ pub struct TrackCursor<'w, 's> {
 }
 
 impl<'w, 's> TrackCursor<'w, 's> {
-    pub fn traverse_distance(
-        &self,
-        mut loc: Location,
-        distance: f32,
-    ) -> Result<Location, TrackError> {
+    pub fn traverse(&self, mut loc: Location, distance: f32) -> Result<Location, TrackError> {
         loc.distance += distance;
 
         loop {
