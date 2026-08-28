@@ -2,19 +2,29 @@ use std::f32::consts::PI;
 
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
-pub mod cursor;
-pub mod error;
-pub mod loc;
-pub mod measure;
-pub mod projector;
+use crate::track::switch::SwitchPlugin;
+
+pub mod switch;
 
 pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(compute_node_neighbors)
-            .add_observer(calculate_track_data);
+        app.add_plugins(SwitchPlugin)
+            .add_observer(compute_node_neighbors)
+            .add_observer(calculate_track_data)
+            .add_systems(Startup, init_track_status);
     }
+}
+
+#[derive(Resource)]
+pub enum TrackStatus {
+    Loading,
+    Loaded,
+}
+
+fn init_track_status(mut commands: Commands) {
+    commands.insert_resource(TrackStatus::Loading);
 }
 
 #[derive(Event)]
@@ -25,6 +35,9 @@ pub struct TrackDataCalculated;
 
 #[derive(Event)]
 pub struct NodeNeighborsComputed;
+
+#[derive(Event)]
+pub struct SwitchesSpawned;
 
 #[derive(Debug, Component)]
 pub struct TrackNode {

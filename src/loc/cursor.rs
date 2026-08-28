@@ -1,12 +1,9 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
+    loc::{Direction, Location, error::LocError},
     switch::TrackSwitch,
-    track::{
-        TrackSegment,
-        error::TrackError,
-        loc::{Direction, Location},
-    },
+    track::TrackSegment,
 };
 
 #[derive(SystemParam)]
@@ -16,13 +13,13 @@ pub struct TrackCursor<'w, 's> {
 }
 
 impl<'w, 's> TrackCursor<'w, 's> {
-    pub fn traverse(&self, mut loc: Location, distance: f32) -> Result<Location, TrackError> {
+    pub fn traverse(&self, mut loc: Location, distance: f32) -> Result<Location, LocError> {
         loc.distance += distance;
 
         loop {
             let current_track = match self.segments.get(loc.track) {
                 Ok(s) => s,
-                Err(_) => return Err(TrackError::BrokenSegmentReference(loc.track)),
+                Err(_) => return Err(LocError::BrokenSegmentReference(loc.track)),
             };
             let (e_switch, overflow_distance) = match self.exited(&loc, current_track) {
                 Some(exit) => exit,
@@ -31,16 +28,16 @@ impl<'w, 's> TrackCursor<'w, 's> {
 
             let switch = match self.switches.get(e_switch) {
                 Ok(s) => s,
-                Err(_) => return Err(TrackError::BrokenNodeReference(e_switch)),
+                Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
             };
             let e_next = match switch.next_segment(loc.track) {
                 Some(segment) => segment,
-                None => return Err(TrackError::NoNeighborSegment),
+                None => return Err(LocError::NoNeighborSegment),
             };
 
             let next_track = match self.segments.get(e_next) {
                 Ok(s) => s,
-                Err(_) => return Err(TrackError::BrokenSegmentReference(e_next)),
+                Err(_) => return Err(LocError::BrokenSegmentReference(e_next)),
             };
 
             loc.track = e_next;
@@ -51,6 +48,10 @@ impl<'w, 's> TrackCursor<'w, 's> {
                 next_track.length() - overflow_distance.abs()
             };
         }
+    }
+
+    pub fn in_between(&self, a: Location, b: Location, x: Location) -> Result<bool, LocError> {
+        Ok(false)
     }
 
     fn exited(&self, loc: &Location, track: &TrackSegment) -> Option<(Entity, f32)> {

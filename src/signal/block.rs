@@ -1,14 +1,17 @@
 use bevy::prelude::*;
 
 use crate::{
+    loc::{Location, cursor::TrackCursor},
     signal::error::SignalError,
-    track::loc::{Direction, Location},
+    train::axle::AxleMoved,
 };
 
 pub struct BlockPlugin;
 
 impl Plugin for BlockPlugin {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, app: &mut App) {
+        app.add_observer(check_train_passed);
+    }
 }
 
 #[derive(Component)]
@@ -43,4 +46,11 @@ impl BlockBuilder {
 
         Ok(())
     }
+}
+
+fn check_train_passed(moved: On<AxleMoved>, cursor: TrackCursor) {
+    println!(
+        "Train[{}] moved: {:?}->{:?}",
+        moved.train, moved.from, moved.to
+    );
 }

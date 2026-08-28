@@ -1,16 +1,14 @@
 use bevy::prelude::*;
 
 use crate::{
-    track::{
-        TrackNode, TrackSegment,
+    loc::{
+        Direction, Location,
         cursor::TrackCursor,
-        loc::{Direction, Location},
-        projector::Projector,
+        projector::{self, Projector},
     },
-    train::{Derailed, Train, TrainDerailed},
+    track::{TrackNode, TrackSegment},
+    train::{Derailed, Train, TrainCreated, TrainDerailed},
 };
-
-use super::TrainCreated;
 
 pub struct AxlePlugin;
 
@@ -62,12 +60,10 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
         }
     };
 
-    let e_rear = commands
-        .spawn((rear_location, rear_axle, Transform::default()))
-        .id();
+    let e_rear = commands.spawn((rear_location, rear_axle)).id();
     commands
         .entity(*e_train)
-        .insert((*main_loc, main_axle, Transform::default()))
+        .insert((*main_loc, main_axle))
         .add_child(e_rear);
 }
 
@@ -78,6 +74,13 @@ fn train_speed(loc: Location, speed: f32) -> f32 {
     }
 }
 
+#[derive(Event)]
+pub struct AxleMoved {
+    pub train: Entity,
+    pub from: Location,
+    pub to: Location,
+}
+
 fn apply_train_speeds(
     mut commands: Commands,
     trains: Query<(Entity, &Train, &Axle, &mut Location), Without<Derailed>>,
@@ -86,10 +89,11 @@ fn apply_train_speeds(
     cursor: TrackCursor,
 ) {
     for (e_train, train, _, mut main_loc) in trains {
-        let speed = train_speed(*main_loc, train.speed);
+        let old_train_loc = *main_loc;
+        let speed = train_speed(old_train_loc, train.speed);
         let children = children.get(e_train).unwrap();
 
-        *main_loc = match cursor.traverse(*main_loc, speed) {
+        let new_train_loc = match cursor.traverse(old_train_loc, speed) {
             Ok(l) => l,
             Err(_) => {
                 commands.trigger(TrainDerailed(e_train));
@@ -97,7 +101,9 @@ fn apply_train_speeds(
             }
         };
 
-        let mut axle_loc = *main_loc;
+        *main_loc = new_train_loc;
+
+        let mut axle_loc = new_train_loc;
         for e_axle in children {
             let (next_axle, mut next_loc) = axles.get_mut(*e_axle).unwrap();
 
@@ -111,19 +117,22 @@ fn apply_train_speeds(
             };
             *next_loc = axle_loc;
         }
+
+        commands.trigger(AxleMoved {
+            train: e_train,
+            from: old_train_loc,
+            to: new_train_loc,
+        });
     }
 }
 
 fn project_axle_positions(
     axles: Query<(Entity, &mut Transform, &Location), (With<Axle>, Without<TrackNode>)>,
-    segments: Query<&TrackSegment>,
-    nodes: Query<&Transform, With<TrackNode>>,
+    projector: Projector,
 ) {
     for (e_axle, mut transform, location) in axles {
-        let projector: Projector = *location;
-
-        transform.translation = match projector.project(segments, nodes) {
-            Ok(projected) => projected.extend(0.0),
+        transform.translation = match projector.project(*location) {
+            Ok(pos) => pos,
             Err(e) => {
                 eprintln!("Problem with axle[{}], skipping: {}", e_axle, e);
                 continue;

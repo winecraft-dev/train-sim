@@ -1,6 +1,18 @@
 use bevy::prelude::*;
 
-use crate::track::{TrackSegment, error::TrackError};
+pub mod cursor;
+pub mod error;
+pub mod projector;
+
+use crate::{loc::projector::Projector, track::TrackStatus};
+
+pub struct LocationPlugin;
+
+impl Plugin for LocationPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, (add_transforms).chain());
+    }
+}
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Location {
@@ -18,20 +30,6 @@ impl Location {
         }
     }
 
-    pub fn on_track(e_track: Entity, segments: Query<&TrackSegment>) -> Result<Self, TrackError> {
-        let track = match segments.get(e_track) {
-            Ok(s) => s,
-            Err(_) => return Err(TrackError::BrokenSegmentReference(e_track)),
-        };
-        let length = track.length();
-
-        Ok(Self {
-            track: e_track,
-            distance: length / 2.0,
-            direction: Direction::FacingB,
-        })
-    }
-
     pub fn with_distance(mut self, distance: f32) -> Self {
         self.distance = distance;
         self
@@ -39,6 +37,28 @@ impl Location {
     pub fn with_direction(mut self, direction: Direction) -> Self {
         self.direction = direction;
         self
+    }
+}
+
+fn add_transforms(
+    mut commands: Commands,
+    track_status: Res<TrackStatus>,
+    locations: Query<(Entity, &Location), Without<Transform>>,
+    projector: Projector,
+) {
+    // if let TrackStatus::Loading = *track_status {
+    //     return;
+    // }
+
+    for (e, loc) in locations {
+        let pos = match projector.project(*loc) {
+            Ok(v3) => v3,
+            Err(e) => {
+                eprintln!("{}", e);
+                continue;
+            }
+        };
+        commands.entity(e).insert(Transform::from_translation(pos));
     }
 }
 

@@ -6,7 +6,7 @@ use axle::AxlePlugin;
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::loc::Location,
+    loc::Location,
 };
 
 pub struct TrainPlugin;
@@ -25,12 +25,6 @@ pub struct TrainCreated {
     location: Location,
 }
 
-#[derive(Event)]
-pub struct TrainDerailed(Entity);
-
-#[derive(Component)]
-pub struct Derailed;
-
 #[derive(Component, Default, Debug)]
 pub struct Train {
     speed: f32,
@@ -47,6 +41,12 @@ impl Train {
         train
     }
 }
+
+#[derive(Event)]
+pub struct TrainDerailed(Entity);
+
+#[derive(Component)]
+pub struct Derailed;
 
 fn train_derailed(
     derailed: On<TrainDerailed>,

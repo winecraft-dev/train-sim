@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum TrackError {
+pub enum LocError {
     #[error("reference to segment broken: {0}")]
     BrokenSegmentReference(Entity),
 

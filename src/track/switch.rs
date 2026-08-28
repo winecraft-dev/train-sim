@@ -4,7 +4,7 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::{NodeNeighborsComputed, TrackNode, TrackSegment},
+    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment},
 };
 
 pub struct SwitchPlugin;
@@ -15,9 +15,6 @@ impl Plugin for SwitchPlugin {
             .add_observer(switch_clicked);
     }
 }
-
-#[derive(Event)]
-pub struct SwitchesSpawned;
 
 #[derive(Default, Debug, Component)]
 pub enum TrackSwitch {

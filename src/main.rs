@@ -1,7 +1,7 @@
 mod control;
+mod loc;
 mod render;
 mod signal;
-mod switch;
 mod track;
 mod train;
 
@@ -9,22 +9,22 @@ use bevy::prelude::*;
 
 use control::ControlPlugin;
 use render::debug::DebugRenderPlugin;
-use switch::SwitchPlugin;
 use track::*;
 use train::{Train, TrainPlugin};
 
 use crate::{
-    switch::{SwitchesSpawned, TrackSwitch},
-    track::loc::Location,
+    loc::{Direction, Location, LocationPlugin},
+    signal::{SignalPlugin, block::BlockBuilder},
 };
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
+        .add_plugins(LocationPlugin)
         .add_plugins(TrainPlugin)
-        .add_plugins(SwitchPlugin)
         .add_plugins(ControlPlugin)
+        .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
         .add_systems(Startup, setup)
         .run();
@@ -89,20 +89,13 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     commands.trigger(TrackUpdated);
 
     Train::new(1.0).create(&mut commands, location);
+
+    BlockBuilder::bounds(
+        Location::new(tracks[2]),
+        Location::new(tracks[3])
+            .with_distance(50.0)
+            .with_direction(Direction::FacingA),
+    )
+    .create(commands)
+    .unwrap();
 }
-
-// fn measure_distance(
-//     _spawned: On<SwitchesSpawned>,
-//     location1: Single<&Location, With<TestLocation1>>,
-//     location2: Single<&Location, With<TestLocation2>>,
-//     segments: Query<&TrackSegment>,
-//     switches: Query<&TrackSwitch>,
-// ) {
-//     println!("HELLO");
-//     let a = location1.clone();
-//     let b = location2.clone();
-//     let distance = distance(a, b, segments, switches);
-
-//     println!("Between {:?} -> {:?}", a, b);
-//     println!("Distance: {:?}", distance);
-// }
