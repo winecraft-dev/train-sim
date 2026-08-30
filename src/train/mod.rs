@@ -6,7 +6,7 @@ use axle::AxlePlugin;
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    loc::Location,
+    loc::{Direction, FacingLocation, Location},
 };
 
 pub struct TrainPlugin;
@@ -22,7 +22,7 @@ impl Plugin for TrainPlugin {
 #[derive(Event)]
 pub struct TrainCreated {
     train: Entity,
-    location: Location,
+    f_loc: FacingLocation,
 }
 
 #[derive(Component, Default, Debug)]
@@ -37,7 +37,10 @@ impl Train {
 
     pub fn create(self, commands: &mut Commands, location: Location) -> Entity {
         let train = commands.spawn((ClickTarget, self)).id();
-        commands.trigger(TrainCreated { train, location });
+        commands.trigger(TrainCreated {
+            train,
+            f_loc: (location, Direction::default()),
+        });
         train
     }
 }

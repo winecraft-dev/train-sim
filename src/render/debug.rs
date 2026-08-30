@@ -74,14 +74,14 @@ fn render_axles(
 
 fn render_traversing(
     mut gizmos: Gizmos,
-    axles: Query<(&Axle, &Location, &Transform)>,
+    axles: Query<(&Axle, &Location, &Direction, &Transform)>,
     segments: Query<&TrackSegment>,
     switches: Query<&Transform>,
 ) {
-    for (_, loc, axle_pos) in axles {
+    for (_, loc, facing, axle_pos) in axles {
         let axle_pos = axle_pos.translation.xy();
         let segment = segments.get(loc.track).unwrap();
-        let facing_switch = match loc.direction {
+        let facing_switch = match facing {
             Direction::FacingA => segment.nodes.0,
             Direction::FacingB => segment.nodes.1,
         };
@@ -158,22 +158,10 @@ fn render_switches(
     }
 }
 
-fn render_bounds(
-    mut gizmos: Gizmos,
-    bounds: Query<(&BlockBound, &Location, &Transform)>,
-    segments: Query<&TrackSegment>,
-    switches: Query<&Transform>,
-) {
-    for (_, loc, bound_pos) in bounds {
+fn render_bounds(mut gizmos: Gizmos, bounds: Query<(&BlockBound, &Transform)>) {
+    for (_, bound_pos) in bounds {
         let bound_pos = bound_pos.translation.xy();
-        let segment = segments.get(loc.track).unwrap();
-        let facing_switch = match loc.direction {
-            Direction::FacingA => segment.nodes.0,
-            Direction::FacingB => segment.nodes.1,
-        };
-        let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
-        let arrow_pos = (switch_pos - bound_pos).normalize() * 30.0 + bound_pos;
+
         gizmos.circle_2d(bound_pos, 5.0, css::YELLOW);
-        gizmos.arrow_2d(bound_pos, arrow_pos, css::YELLOW);
     }
 }

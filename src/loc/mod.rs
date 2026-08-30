@@ -14,11 +14,12 @@ impl Plugin for LocationPlugin {
     }
 }
 
+pub type FacingLocation = (Location, Direction);
+
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Location {
     pub track: Entity,
     pub distance: f32,
-    pub direction: Direction,
 }
 
 impl Location {
@@ -26,16 +27,11 @@ impl Location {
         Self {
             track: e_track,
             distance: 0.0,
-            direction: Direction::FacingB,
         }
     }
 
     pub fn with_distance(mut self, distance: f32) -> Self {
         self.distance = distance;
-        self
-    }
-    pub fn with_direction(mut self, direction: Direction) -> Self {
-        self.direction = direction;
         self
     }
 }
@@ -61,17 +57,18 @@ fn add_transforms(
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Component, Default, Debug, Clone, Copy)]
 pub enum Direction {
     FacingA,
+    #[default]
     FacingB,
 }
 
 impl Direction {
-    pub fn flip(&mut self) {
+    pub fn flip(self) -> Self {
         match self {
-            Direction::FacingA => *self = Direction::FacingB,
-            Direction::FacingB => *self = Direction::FacingA,
+            Direction::FacingA => Direction::FacingB,
+            Direction::FacingB => Direction::FacingA,
         }
     }
 }

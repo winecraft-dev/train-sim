@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Direction, Location, error::LocError},
+    loc::{Direction, FacingLocation, Location, error::LocError},
     switch::TrackSwitch,
     track::TrackSegment,
 };
@@ -13,7 +13,12 @@ pub struct TrackCursor<'w, 's> {
 }
 
 impl<'w, 's> TrackCursor<'w, 's> {
-    pub fn traverse(&self, mut loc: Location, distance: f32) -> Result<Location, LocError> {
+    pub fn traverse(
+        &self,
+        f_loc: FacingLocation,
+        distance: f32,
+    ) -> Result<FacingLocation, LocError> {
+        let (mut loc, mut facing) = f_loc;
         loc.distance += distance;
 
         loop {
@@ -23,7 +28,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
             };
             let (e_switch, overflow_distance) = match self.exited(&loc, current_track) {
                 Some(exit) => exit,
-                None => return Ok(loc),
+                None => return Ok((loc, facing)),
             };
 
             let switch = match self.switches.get(e_switch) {
@@ -41,7 +46,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
             };
 
             loc.track = e_next;
-            loc.direction = select_direction(loc.direction, current_track, next_track);
+            facing = select_direction(facing, current_track, next_track);
             loc.distance = if next_track.nodes.0 == e_switch {
                 overflow_distance.abs()
             } else {
@@ -50,17 +55,23 @@ impl<'w, 's> TrackCursor<'w, 's> {
         }
     }
 
-    pub fn passed(&self, from: Location, to: Location, check: Location) -> Result<bool, LocError> {
+    pub fn passed(
+        &self,
+        from: FacingLocation,
+        to: FacingLocation,
+        check: Location,
+    ) -> Result<bool, LocError> {
         let mut c_from = from;
         let mut c_to = to;
+        c_to.1 = c_to.1.flip();
         loop {
             // all on the same track
-            if c_from.track == check.track && c_from.track == c_to.track {
-                let a = c_from.distance;
-                let b = c_to.distance;
+            if c_from.0.track == check.track && c_to.0.track == check.track {
+                let a = c_from.0.distance;
+                let b = c_to.0.distance;
                 let x = check.distance;
 
-                match c_from.direction {
+                match c_from.1 {
                     Direction::FacingB => {
                         if a <= x && x <= b {
                             return Ok(true);
@@ -73,48 +84,48 @@ impl<'w, 's> TrackCursor<'w, 's> {
                     }
                 };
                 return Ok(false);
-            } else if c_from.track == c_to.track {
+            } else if c_from.0.track == c_to.0.track {
                 return Ok(false);
             }
 
-            if c_from.track != check.track {
+            if c_from.0.track != check.track {
                 // c_from traverses forwards
-                let current_track = self.segments.get(c_from.track).unwrap(); // CLEAN
-                let e_switch = match c_from.direction {
+                let current_track = self.segments.get(c_from.0.track).unwrap(); // CLEAN
+                let e_switch = match c_from.1 {
                     Direction::FacingA => current_track.nodes.0,
                     Direction::FacingB => current_track.nodes.1,
                 };
                 let switch = self.switches.get(e_switch).unwrap(); // CLEAN
-                let e_next = match switch.next_segment(c_from.track) {
+                let e_next = match switch.next_segment(c_from.0.track) {
                     Some(s) => s,
                     None => return Err(LocError::NoNeighborSegment),
                 };
                 let next_track = self.segments.get(e_next).unwrap(); // CLEAN
 
-                c_from.track = e_next;
-                c_from.direction = select_direction(c_from.direction, current_track, next_track);
-                c_from.distance = if next_track.nodes.0 == e_switch {
+                c_from.0.track = e_next;
+                c_from.1 = select_direction(c_from.1, current_track, next_track);
+                c_from.0.distance = if next_track.nodes.0 == e_switch {
                     0.0
                 } else {
                     next_track.length()
                 };
-            } else if c_to.track != check.track {
+            } else if c_to.0.track != check.track {
                 // c_to traverses backwards
-                let current_track = self.segments.get(c_to.track).unwrap(); // CLEAN
-                let e_switch = match c_to.direction {
-                    Direction::FacingA => current_track.nodes.1,
-                    Direction::FacingB => current_track.nodes.0,
+                let current_track = self.segments.get(c_to.0.track).unwrap(); // CLEAN
+                let e_switch = match c_to.1 {
+                    Direction::FacingA => current_track.nodes.0,
+                    Direction::FacingB => current_track.nodes.1,
                 };
                 let switch = self.switches.get(e_switch).unwrap(); // CLEAN
-                let e_next = match switch.next_segment(c_to.track) {
+                let e_next = match switch.next_segment(c_to.0.track) {
                     Some(s) => s,
                     None => return Err(LocError::NoNeighborSegment),
                 };
                 let next_track = self.segments.get(e_next).unwrap(); // CLEAN
 
-                c_to.track = e_next;
-                c_to.direction = select_direction(c_to.direction, current_track, next_track);
-                c_to.distance = if next_track.nodes.0 == e_switch {
+                c_to.0.track = e_next;
+                c_to.1 = select_direction(c_to.1, current_track, next_track);
+                c_to.0.distance = if next_track.nodes.0 == e_switch {
                     0.0
                 } else {
                     next_track.length()
@@ -137,14 +148,15 @@ impl<'w, 's> TrackCursor<'w, 's> {
 }
 
 pub fn select_direction(
-    mut dir: Direction,
+    dir: Direction,
     current_track: &TrackSegment,
     next_track: &TrackSegment,
 ) -> Direction {
     if current_track.nodes.0 == next_track.nodes.0 {
-        dir.flip();
+        dir.flip()
     } else if current_track.nodes.1 == next_track.nodes.1 {
-        dir.flip();
+        dir.flip()
+    } else {
+        dir
     }
-    dir
 }
