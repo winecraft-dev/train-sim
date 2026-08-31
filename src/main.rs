@@ -94,7 +94,7 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
         (Location::new(tracks[2]), Direction::FacingB),
         (
             Location::new(tracks[3]).with_distance(150.0),
-            Direction::FacingA,
+            Direction::FacingB,
         ),
     )
     .create(commands)

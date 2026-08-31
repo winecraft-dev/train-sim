@@ -60,7 +60,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
         from: FacingLocation,
         to: FacingLocation,
         check: Location,
-    ) -> Result<bool, LocError> {
+    ) -> Result<Option<Direction>, LocError> {
         let mut c_from = from;
         let mut c_to = to;
         c_to.1 = c_to.1.flip();
@@ -74,18 +74,18 @@ impl<'w, 's> TrackCursor<'w, 's> {
                 match c_from.1 {
                     Direction::FacingB => {
                         if a <= x && x <= b {
-                            return Ok(true);
+                            return Ok(Some(Direction::FacingB));
                         }
                     }
                     Direction::FacingA => {
                         if a >= x && x >= b {
-                            return Ok(true);
+                            return Ok(Some(Direction::FacingA));
                         }
                     }
                 };
-                return Ok(false);
+                return Ok(None);
             } else if c_from.0.track == c_to.0.track {
-                return Ok(false);
+                return Ok(None);
             }
 
             if c_from.0.track != check.track {

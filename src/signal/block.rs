@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{FacingLocation, Location, cursor::TrackCursor},
+    loc::{Direction, FacingLocation, Location, cursor::TrackCursor},
     signal::error::SignalError,
     train::axle::AxleMoved,
 };
@@ -11,7 +11,8 @@ pub struct BlockPlugin;
 impl Plugin for BlockPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(check_train_passed)
-            .add_observer(handle_train_entered);
+            .add_observer(handle_train_entered)
+            .add_observer(handle_train_exited);
     }
 }
 
@@ -35,6 +36,29 @@ fn handle_train_entered(
             commands.entity(*block).insert(OccupiedBlock(*train));
             println!("Train[{}] entered block[{}]", train, block);
         }
+    }
+}
+
+fn handle_train_exited(
+    train_exited: On<TrainExitedBlock>,
+    mut commands: Commands,
+    blocks: Query<Option<&OccupiedBlock>, With<Block>>,
+) {
+    let TrainExitedBlock {
+        block: e_block,
+        train: e_train,
+    } = train_exited.event();
+
+    let occupied = blocks.get(*e_block).unwrap();
+    match occupied {
+        Some(_) => {
+            commands.entity(*e_block).remove::<OccupiedBlock>();
+            println!("Train[{}] exited block[{}]", e_train, e_block);
+        }
+        None => println!(
+            "Block[{}] wasn't occupied, but train[{}] exited!",
+            e_block, e_train
+        ),
     }
 }
 
@@ -76,13 +100,19 @@ pub struct TrainEnteredBlock {
     train: Entity,
 }
 
+#[derive(Event)]
+pub struct TrainExitedBlock {
+    block: Entity,
+    train: Entity,
+}
+
 fn check_train_passed(
     moved: On<AxleMoved>,
     mut commands: Commands,
-    bounds: Query<(&BlockBound, &Location)>,
+    bounds: Query<(&BlockBound, &Location, &Direction)>,
     cursor: TrackCursor,
 ) {
-    for (bound, bound_loc) in bounds {
+    for (bound, bound_loc, bound_dir) in bounds {
         let AxleMoved {
             train: e_train,
             from,
@@ -95,8 +125,17 @@ fn check_train_passed(
                 return;
             }
         };
-        if passed {
+        let pass_dir = match passed {
+            None => continue,
+            Some(d) => d,
+        };
+        if pass_dir == *bound_dir {
             commands.trigger(TrainEnteredBlock {
+                block: bound.block,
+                train: e_train,
+            })
+        } else {
+            commands.trigger(TrainExitedBlock {
                 block: bound.block,
                 train: e_train,
             });
