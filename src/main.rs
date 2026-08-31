@@ -63,7 +63,7 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
             .spawn(TrackSegment::curved((node_c, node_d), center_b))
             .id(),
         commands
-            .spawn(TrackSegment::straight((node_d, node_e)))
+            .spawn(TrackSegment::straight((node_e, node_d)))
             .id(),
         commands
             .spawn(TrackSegment::curved((node_e, node_f), center_c))

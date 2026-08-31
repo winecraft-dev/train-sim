@@ -10,12 +10,33 @@ pub struct BlockPlugin;
 
 impl Plugin for BlockPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(check_train_passed);
+        app.add_observer(check_train_passed)
+            .add_observer(handle_train_entered);
     }
 }
 
 #[derive(Component)]
 pub struct Block;
+
+#[derive(Component)]
+pub struct OccupiedBlock(Entity);
+
+fn handle_train_entered(
+    train_entered: On<TrainEnteredBlock>,
+    mut commands: Commands,
+    blocks: Query<Option<&OccupiedBlock>, With<Block>>,
+) {
+    let TrainEnteredBlock { block, train } = train_entered.event();
+
+    let occupied = blocks.get(*block).unwrap();
+    match occupied {
+        Some(t) => println!("Block[{}] already occupied by train[{}]!", block, t.0),
+        None => {
+            commands.entity(*block).insert(OccupiedBlock(*train));
+            println!("Train[{}] entered block[{}]", train, block);
+        }
+    }
+}
 
 #[derive(Component, Debug)]
 pub struct BlockBound {
@@ -38,18 +59,26 @@ impl BlockBuilder {
         Self { start, end }
     }
 
-    pub fn create(self, mut commands: Commands) -> Result<(), SignalError> {
-        let e_block = commands.spawn(Block).id();
+    pub fn create(self, mut commands: Commands) -> Result<Entity, SignalError> {
+        let e_block = commands.spawn((Block, Transform::default())).id();
 
-        commands.spawn((BlockBound::new(e_block), self.start));
-        commands.spawn((BlockBound::new(e_block), self.end));
+        let start_id = commands.spawn((BlockBound::new(e_block), self.start)).id();
+        let end_id = commands.spawn((BlockBound::new(e_block), self.end)).id();
 
-        Ok(())
+        commands.entity(e_block).add_children(&[start_id, end_id]);
+        Ok(e_block)
     }
+}
+
+#[derive(Event)]
+pub struct TrainEnteredBlock {
+    block: Entity,
+    train: Entity,
 }
 
 fn check_train_passed(
     moved: On<AxleMoved>,
+    mut commands: Commands,
     bounds: Query<(&BlockBound, &Location)>,
     cursor: TrackCursor,
 ) {
@@ -67,10 +96,10 @@ fn check_train_passed(
             }
         };
         if passed {
-            println!(
-                "Train[{}] passed bound: {:?} {:?}",
-                e_train, bound, bound_loc
-            );
+            commands.trigger(TrainEnteredBlock {
+                block: bound.block,
+                train: e_train,
+            });
         }
     }
 }
