@@ -22,8 +22,8 @@ impl Plugin for DebugRenderPlugin {
                 render_switches,
                 render_axles,
                 render_trains,
-                render_traversing,
                 render_bounds,
+                render_facing,
             )
                 .chain(),
         );
@@ -69,25 +69,6 @@ fn render_axles(
 
         gizmos.circle_2d(main_pos, 10.0, css::DARK_RED);
         gizmos.circle_2d(rear_pos, 10.0, css::RED);
-    }
-}
-
-fn render_traversing(
-    mut gizmos: Gizmos,
-    axles: Query<(&Axle, &Location, &Direction, &Transform)>,
-    segments: Query<&TrackSegment>,
-    switches: Query<&Transform>,
-) {
-    for (_, loc, facing, axle_pos) in axles {
-        let axle_pos = axle_pos.translation.xy();
-        let segment = segments.get(loc.track).unwrap();
-        let facing_switch = match facing {
-            Direction::FacingA => segment.nodes.0,
-            Direction::FacingB => segment.nodes.1,
-        };
-        let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
-        let arrow_pos = (switch_pos - axle_pos).normalize() * 30.0 + axle_pos;
-        gizmos.arrow_2d(axle_pos, arrow_pos, css::WHITE);
     }
 }
 
@@ -179,5 +160,24 @@ fn render_bounds(
         gizmos.line_2d(bound_pos[0], bound_pos[1], color);
         gizmos.circle_2d(bound_pos[0], 5.0, color);
         gizmos.circle_2d(bound_pos[1], 5.0, color);
+    }
+}
+
+fn render_facing(
+    mut gizmos: Gizmos,
+    facing: Query<(&Location, &Direction, &Transform)>,
+    segments: Query<&TrackSegment>,
+    switches: Query<&Transform>,
+) {
+    for (loc, facing, facing_pos) in facing {
+        let facing_pos = facing_pos.translation.xy();
+        let segment = segments.get(loc.track).unwrap();
+        let facing_switch = match facing {
+            Direction::FacingA => segment.nodes.0,
+            Direction::FacingB => segment.nodes.1,
+        };
+        let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
+        let arrow_pos = (switch_pos - facing_pos).normalize() * 30.0 + facing_pos;
+        gizmos.arrow_2d(facing_pos, arrow_pos, css::WHITE);
     }
 }
