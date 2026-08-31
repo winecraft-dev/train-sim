@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{Location, cursor::TrackCursor},
+    loc::{FacingLocation, Location, cursor::TrackCursor},
     signal::error::SignalError,
     train::axle::AxleMoved,
 };
@@ -50,12 +50,12 @@ impl BlockBound {
 }
 
 pub struct BlockBuilder {
-    start: Location,
-    end: Location,
+    start: FacingLocation,
+    end: FacingLocation,
 }
 
 impl BlockBuilder {
-    pub fn bounds(start: Location, end: Location) -> Self {
+    pub fn bounds(start: FacingLocation, end: FacingLocation) -> Self {
         Self { start, end }
     }
 

@@ -57,7 +57,7 @@ fn add_transforms(
     }
 }
 
-#[derive(Component, Default, Debug, Clone, Copy)]
+#[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     FacingA,
     #[default]

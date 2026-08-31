@@ -72,20 +72,22 @@ fn train_speed(facing: Direction, speed: f32) -> f32 {
     }
 }
 
-fn movement_direction(speed: f32) -> Direction {
-    if speed < 0.0 {
-        Direction::FacingA
-    } else {
-        Direction::FacingB
-    }
-}
-
 #[derive(Event)]
 pub struct AxleMoved {
     pub train: Entity,
-    pub from: FacingLocation,
     // facing direction refers to the direction the Axle moved, not just which direction it is facing
+    pub from: FacingLocation,
     pub to: FacingLocation,
+}
+
+fn speed_direction(old: &mut FacingLocation, new: &mut FacingLocation, speed: f32) {
+    let flipped = old.1 != new.1;
+    old.1 = if speed < 0.0 {
+        Direction::FacingA
+    } else {
+        Direction::FacingB
+    };
+    new.1 = if !flipped { old.1 } else { old.1.flip() }
 }
 
 fn apply_train_speeds(
@@ -130,8 +132,7 @@ fn apply_train_speeds(
         // probably a bug here... maybe it will get exposed when a train
         // traverses beyond a single segment. Edge case that might turn
         // up later.
-        old_train_floc.1 = movement_direction(speed);
-        new_train_floc.1 = movement_direction(speed);
+        speed_direction(&mut old_train_floc, &mut new_train_floc, speed);
 
         commands.trigger(AxleMoved {
             train: e_train,

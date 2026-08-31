@@ -13,7 +13,7 @@ use track::*;
 use train::{Train, TrainPlugin};
 
 use crate::{
-    loc::{Location, LocationPlugin},
+    loc::{Direction, Location, LocationPlugin},
     signal::{SignalPlugin, block::BlockBuilder},
 };
 
@@ -91,8 +91,11 @@ fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     Train::new(1.0).create(&mut commands, location);
 
     BlockBuilder::bounds(
-        Location::new(tracks[2]),
-        Location::new(tracks[3]).with_distance(150.0),
+        (Location::new(tracks[2]), Direction::FacingB),
+        (
+            Location::new(tracks[3]).with_distance(150.0),
+            Direction::FacingA,
+        ),
     )
     .create(commands)
     .unwrap();

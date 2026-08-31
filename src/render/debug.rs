@@ -2,7 +2,7 @@ use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     loc::{Direction, Location},
-    signal::block::BlockBound,
+    signal::block::{Block, BlockBound, OccupiedBlock},
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
     train::{
@@ -158,10 +158,26 @@ fn render_switches(
     }
 }
 
-fn render_bounds(mut gizmos: Gizmos, bounds: Query<(&BlockBound, &Transform)>) {
-    for (_, bound_pos) in bounds {
-        let bound_pos = bound_pos.translation.xy();
+fn render_bounds(
+    mut gizmos: Gizmos,
+    blocks: Query<(Entity, &Block, Option<&OccupiedBlock>)>,
+    children: Query<&Children>,
+    bounds: Query<(&BlockBound, &Transform)>,
+) {
+    for (e_block, _, occupied) in blocks {
+        let children = children.get(e_block).unwrap();
+        let e_bounds: [Entity; 2] = *children.as_array::<2>().unwrap();
+        let bound_pos = bounds
+            .get_many(e_bounds)
+            .unwrap()
+            .map(|(_, t)| t.translation.xy());
 
-        gizmos.circle_2d(bound_pos, 5.0, css::YELLOW);
+        let color = match occupied {
+            Some(_) => css::ORANGE_RED,
+            None => css::YELLOW,
+        };
+        gizmos.line_2d(bound_pos[0], bound_pos[1], color);
+        gizmos.circle_2d(bound_pos[0], 5.0, color);
+        gizmos.circle_2d(bound_pos[1], 5.0, color);
     }
 }
