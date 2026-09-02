@@ -34,13 +34,15 @@ pub struct TrackNode {
 }
 
 impl TrackNode {
-    pub fn bundle(x: f32, y: f32) -> impl Bundle {
-        (
-            Self {
-                neighbors: Vec::new(),
-            },
-            Transform::from_xyz(x, y, 0.0),
-        )
+    pub fn spawn(x: f32, y: f32, commands: &mut Commands) -> Entity {
+        commands
+            .spawn((
+                Self {
+                    neighbors: Vec::new(),
+                },
+                Transform::from_xyz(x, y, 0.0),
+            ))
+            .id()
     }
 }
 
@@ -72,6 +74,10 @@ impl TrackSegment {
             length: None,
             node_angles: None,
         }
+    }
+
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        commands.spawn(self).id()
     }
 
     pub fn curved(nodes: (Entity, Entity), center: Entity) -> Self {
