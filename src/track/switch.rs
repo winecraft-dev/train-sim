@@ -4,7 +4,7 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::{NodeNeighborsComputed, TrackNode, TrackSegment},
+    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment},
 };
 
 pub struct SwitchPlugin;
@@ -115,6 +115,8 @@ pub fn spawn_switches(
         };
         commands.entity(e_origin).insert((switch, ClickTarget));
     }
+    println!("Done Spawning Switches");
+    commands.trigger(SwitchesSpawned);
 }
 
 fn split_ports<const OUTLET_N: usize>(

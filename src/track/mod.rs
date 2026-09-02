@@ -2,11 +2,16 @@ use std::f32::consts::PI;
 
 use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
+use crate::track::switch::SwitchPlugin;
+
+pub mod switch;
+
 pub struct TrackPlugin;
 
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(compute_node_neighbors)
+        app.add_plugins(SwitchPlugin)
+            .add_observer(compute_node_neighbors)
             .add_observer(calculate_track_data);
     }
 }
@@ -20,19 +25,24 @@ pub struct TrackDataCalculated;
 #[derive(Event)]
 pub struct NodeNeighborsComputed;
 
+#[derive(Event)]
+pub struct SwitchesSpawned;
+
 #[derive(Debug, Component)]
 pub struct TrackNode {
     pub neighbors: Vec<Entity>, // neighboring segments
 }
 
 impl TrackNode {
-    pub fn bundle(x: f32, y: f32) -> impl Bundle {
-        (
-            Self {
-                neighbors: Vec::new(),
-            },
-            Transform::from_xyz(x, y, 0.0),
-        )
+    pub fn spawn(x: f32, y: f32, commands: &mut Commands) -> Entity {
+        commands
+            .spawn((
+                Self {
+                    neighbors: Vec::new(),
+                },
+                Transform::from_xyz(x, y, 0.0),
+            ))
+            .id()
     }
 }
 
@@ -64,6 +74,10 @@ impl TrackSegment {
             length: None,
             node_angles: None,
         }
+    }
+
+    pub fn spawn(self, commands: &mut Commands) -> Entity {
+        commands.spawn(self).id()
     }
 
     pub fn curved(nodes: (Entity, Entity), center: Entity) -> Self {

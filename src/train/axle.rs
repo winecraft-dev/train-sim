@@ -1,63 +1,53 @@
 use bevy::prelude::*;
 
 use crate::{
-    switch::TrackSwitch,
-    track::{TrackNode, TrackSegment, TrackVariant},
-    train::{TrainDerailed, TrainMoved, cursor::TrackTraversal},
+    loc::{Direction, FacingLocation, Location, cursor::TrackCursor, projector::Projector},
+    track::TrackNode,
+    train::{Derailed, Train, TrainCreated, TrainDerailed},
 };
-
-use super::TrainCreated;
 
 pub struct AxlePlugin;
 
 impl Plugin for AxlePlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(add_axles)
-            .add_observer(follow_main_axle)
-            .add_systems(Update, project_axle_positions);
+            .add_systems(Update, (apply_train_speeds, project_axle_positions).chain());
     }
 }
 
 #[derive(Component, Clone, Debug)]
 pub struct Axle {
-    pub track: Entity,
-    pub distance: f32,
-    pub traversal: TrackTraversal,
+    offset: f32,
 }
 
 impl Axle {
-    fn on_track(e_track: Entity, segments: Query<&TrackSegment>) -> Self {
-        let track = segments.get(e_track).unwrap();
-        let length = track.length();
-        Self {
-            track: e_track,
-            distance: length / 2.0,
-            traversal: TrackTraversal::FacingB,
-        }
+    fn new(offset: f32) -> Self {
+        Self { offset }
     }
 }
 
-#[derive(Component, Debug)]
-pub struct AxleOffset(pub(super) f32);
-
 pub const AXLE_DISTANCE: f32 = 50.0;
 
-fn add_axles(
-    train_created: On<TrainCreated>,
-    mut commands: Commands,
-    segments: Query<&TrackSegment>,
-    switches: Query<&TrackSwitch>,
-) {
+fn axle_offset(facing: Direction, offset: f32) -> f32 {
+    match facing {
+        Direction::FacingA => offset,
+        Direction::FacingB => -offset,
+    }
+}
+
+fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: TrackCursor) {
     let TrainCreated {
         train: e_train,
-        track: e_segment,
+        f_loc,
     } = train_created.event();
 
-    let main_axle = Axle::on_track(*e_segment, segments);
-    let rear_axle_offset = AxleOffset(AXLE_DISTANCE);
+    let main_floc = *f_loc;
 
-    let mut cursor = main_axle.clone();
-    let rear_axle = match cursor.next_offset(&rear_axle_offset, segments, switches) {
+    let main_axle = Axle::new(0.0);
+    let rear_axle = Axle::new(AXLE_DISTANCE);
+
+    let offset = axle_offset(main_floc.1, AXLE_DISTANCE);
+    let rear_floc = match cursor.traverse(main_floc, offset) {
         Ok(a) => a,
         Err(e) => {
             eprintln!(
@@ -68,86 +58,101 @@ fn add_axles(
         }
     };
 
-    let e_rear = commands
-        .spawn((rear_axle, rear_axle_offset, Transform::default()))
-        .id();
+    let e_rear = commands.spawn((rear_floc, rear_axle)).id();
     commands
         .entity(*e_train)
-        .insert((main_axle, Transform::default()))
+        .insert((main_floc, main_axle))
         .add_child(e_rear);
 }
 
-fn follow_main_axle(
-    main_axle_moved: On<TrainMoved>,
-    mut commands: Commands,
-    children: Query<&Children>,
-    main_axles: Query<&Axle, Without<AxleOffset>>,
-    mut rear_axles: Query<(&mut Axle, &AxleOffset)>,
-    segments: Query<&TrackSegment>,
-    switches: Query<&TrackSwitch>,
-) {
-    let e_main = main_axle_moved.0;
-    let e_rear = children.get(e_main).unwrap()[0];
-
-    let main_axle = main_axles.get(e_main).unwrap();
-    let (mut rear_axle, offset) = rear_axles.get_mut(e_rear).unwrap();
-
-    let mut cursor = main_axle.clone();
-    *rear_axle = match cursor.next_offset(offset, segments, switches) {
-        Ok(a) => a,
-        Err(_) => {
-            commands.trigger(TrainDerailed(e_main));
-            return;
-        }
-    };
-}
-
-fn project_axle_positions(
-    axles: Query<(&mut Transform, &Axle)>,
-    nodes: Query<&Transform, (With<TrackNode>, Without<Axle>)>,
-    segments: Query<&TrackSegment>,
-) {
-    for (mut transform, axle) in axles {
-        let segment = segments.get(axle.track).unwrap();
-        let projected_position = project_axle_position(axle, segment, nodes);
-
-        transform.translation = projected_position.extend(0.0);
+fn train_speed(facing: Direction, speed: f32) -> f32 {
+    match facing {
+        Direction::FacingA => -speed,
+        Direction::FacingB => speed,
     }
 }
 
-fn project_axle_position(
-    axle: &Axle,
-    segment: &TrackSegment,
-    nodes: Query<&Transform, (With<TrackNode>, Without<Axle>)>,
-) -> Vec2 {
-    let a = nodes.get(segment.nodes.0).unwrap().translation.xy();
-    let b = nodes.get(segment.nodes.1).unwrap().translation.xy();
+#[derive(Event)]
+pub struct AxleMoved {
+    pub train: Entity,
+    // facing direction refers to the direction the Axle moved, not just which direction it is facing
+    pub from: FacingLocation,
+    pub to: FacingLocation,
+}
 
-    match segment.variant {
-        TrackVariant::Straight => {
-            let projected = a.lerp(b, axle.distance / segment.length());
-            projected
+fn speed_direction(old: &mut FacingLocation, new: &mut FacingLocation, speed: f32) {
+    let flipped = old.1 != new.1;
+    old.1 = if speed < 0.0 {
+        Direction::FacingA
+    } else {
+        Direction::FacingB
+    };
+    new.1 = if !flipped { old.1 } else { old.1.flip() }
+}
+
+fn apply_train_speeds(
+    mut commands: Commands,
+    trains: Query<(Entity, &Train, &Axle, &mut Location, &mut Direction), Without<Derailed>>,
+    children: Query<&Children>,
+    mut axles: Query<(&Axle, &mut Location, &mut Direction), Without<Train>>,
+    cursor: TrackCursor,
+) {
+    for (e_train, train, _, mut main_loc, mut main_dir) in trains {
+        let mut old_train_floc = (*main_loc, *main_dir);
+        let speed = train_speed(old_train_floc.1, train.speed);
+        let children = children.get(e_train).unwrap();
+
+        let mut new_train_floc = match cursor.traverse(old_train_floc, speed) {
+            Ok(l) => l,
+            Err(_) => {
+                commands.trigger(TrainDerailed(e_train));
+                continue;
+            }
+        };
+
+        *main_loc = new_train_floc.0;
+        *main_dir = new_train_floc.1;
+
+        let mut axle_floc = new_train_floc;
+        for e_axle in children {
+            let (next_axle, mut next_loc, mut next_dir) = axles.get_mut(*e_axle).unwrap();
+
+            let offset = axle_offset(axle_floc.1, next_axle.offset);
+            axle_floc = match cursor.traverse(axle_floc, offset) {
+                Ok(loc) => loc,
+                Err(_) => {
+                    commands.trigger(TrainDerailed(e_train));
+                    return;
+                }
+            };
+            *next_loc = axle_floc.0;
+            *next_dir = axle_floc.1;
         }
-        TrackVariant::Curved {
-            center,
-            angle,
-            radius,
-        } => {
-            let center = nodes.get(center).unwrap().translation.xy();
-            let start_angle = (a - center).to_angle();
 
-            let angle = angle.unwrap();
-            let track_radius = radius.unwrap();
+        // probably a bug here... maybe it will get exposed when a train
+        // traverses beyond a single segment. Edge case that might turn
+        // up later.
+        speed_direction(&mut old_train_floc, &mut new_train_floc, speed);
 
-            let delta_angle = 0.0.lerp(angle, axle.distance / segment.length());
-            let theta = start_angle + delta_angle;
+        commands.trigger(AxleMoved {
+            train: e_train,
+            from: old_train_floc,
+            to: new_train_floc,
+        });
+    }
+}
 
-            let (sin, cos) = ops::sin_cos(theta);
-            let x = cos * track_radius;
-            let y = sin * track_radius;
-            let position = Vec2::new(x, y) + center;
-
-            position
-        }
+fn project_axle_positions(
+    axles: Query<(Entity, &mut Transform, &Location), (With<Axle>, Without<TrackNode>)>,
+    projector: Projector,
+) {
+    for (e_axle, mut transform, location) in axles {
+        transform.translation = match projector.project(*location) {
+            Ok(pos) => pos,
+            Err(e) => {
+                eprintln!("Problem with axle[{}], skipping: {}", e_axle, e);
+                continue;
+            }
+        };
     }
 }
