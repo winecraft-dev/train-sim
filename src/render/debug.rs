@@ -157,7 +157,6 @@ fn render_bounds(
             Some(_) => css::ORANGE_RED,
             None => css::YELLOW,
         };
-        gizmos.line_2d(bound_pos[0], bound_pos[1], color);
         gizmos.circle_2d(bound_pos[0], 5.0, color);
         gizmos.circle_2d(bound_pos[1], 5.0, color);
     }

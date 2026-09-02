@@ -13,7 +13,7 @@ use track::*;
 use train::{Train, TrainPlugin};
 
 use crate::{
-    loc::{Direction, Location, LocationPlugin},
+    loc::{Direction, FacingLocation, Location, LocationPlugin},
     signal::{SignalPlugin, block::BlockBuilder},
 };
 
@@ -85,18 +85,58 @@ fn setup_tracks(mut commands: Commands) {
 }
 
 fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, store: Res<TrackStore>) {
-    Train::new(1.0).create(&mut commands, Location::new(store.segments[1]));
-    Train::new(1.1).create(&mut commands, Location::new(store.segments[10]));
+    Train::new(2.0).create(&mut commands, Location::new(store.segments[1]));
+    // Train::new(1.1).create(&mut commands, Location::new(store.segments[10]));
 }
 
-fn setup_blocks(_done: On<SwitchesSpawned>, commands: Commands, store: Res<TrackStore>) {
-    BlockBuilder::bounds(
-        (Location::new(store.segments[5]), Direction::FacingB),
-        (
-            Location::new(store.segments[5]).with_distance(100.0),
-            Direction::FacingA,
+fn setup_blocks(
+    _done: On<SwitchesSpawned>,
+    mut commands: Commands,
+    store: Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+) {
+    let blocks = [
+        BlockBuilder::bounds(
+            location_at(&store, segments, 5, Direction::FacingB, 0.0),
+            location_at(&store, segments, 5, Direction::FacingA, 0.0),
         ),
-    )
-    .create(commands)
-    .unwrap();
+        BlockBuilder::bounds(
+            location_at(&store, segments, 0, Direction::FacingB, 50.0),
+            location_at(&store, segments, 1, Direction::FacingA, 0.0),
+        ),
+        BlockBuilder::bounds(
+            location_at(&store, segments, 2, Direction::FacingB, 0.0),
+            location_at(&store, segments, 4, Direction::FacingA, 50.0),
+        ),
+        BlockBuilder::bounds(
+            location_at(&store, segments, 6, Direction::FacingA, 50.0),
+            location_at(&store, segments, 7, Direction::FacingA, 0.0),
+        ),
+        BlockBuilder::bounds(
+            location_at(&store, segments, 8, Direction::FacingA, 0.0),
+            location_at(&store, segments, 10, Direction::FacingA, 50.0),
+        ),
+    ];
+
+    for block in blocks {
+        block.create(&mut commands);
+    }
+}
+
+fn location_at(
+    store: &Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+    i: usize,
+    end: Direction,
+    offset: f32,
+) -> FacingLocation {
+    let e_segment = store.segments[i];
+    let distance = match end {
+        Direction::FacingA => {
+            let segment = segments.get(e_segment).unwrap();
+            segment.length() - offset
+        }
+        Direction::FacingB => 0.0 + offset,
+    };
+    (Location::new(e_segment).with_distance(distance), end)
 }

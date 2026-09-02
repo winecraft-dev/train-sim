@@ -83,14 +83,14 @@ impl BlockBuilder {
         Self { start, end }
     }
 
-    pub fn create(self, mut commands: Commands) -> Result<Entity, SignalError> {
+    pub fn create(self, commands: &mut Commands) -> Entity {
         let e_block = commands.spawn((Block, Transform::default())).id();
 
         let start_id = commands.spawn((BlockBound::new(e_block), self.start)).id();
         let end_id = commands.spawn((BlockBound::new(e_block), self.end)).id();
 
         commands.entity(e_block).add_children(&[start_id, end_id]);
-        Ok(e_block)
+        e_block
     }
 }
 
