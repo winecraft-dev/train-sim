@@ -2,7 +2,10 @@ use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     loc::{Direction, Location},
-    signal::block::{Block, BlockBound, OccupiedBlock},
+    signal::{
+        Signal, StopSignal,
+        block::{Block, BlockBound, OccupiedBlock},
+    },
     switch::TrackSwitch,
     track::{TrackNode, TrackSegment, TrackVariant},
     train::{
@@ -19,11 +22,12 @@ impl Plugin for DebugRenderPlugin {
             Update,
             (
                 render_tracks,
-                render_switches,
                 render_axles,
                 render_trains,
                 render_bounds,
+                render_signals,
                 render_facing,
+                render_switches,
             )
                 .chain(),
         );
@@ -40,7 +44,7 @@ fn render_tracks(
         let b = nodes.get(segment.nodes.1).unwrap().translation;
         match segment.variant {
             TrackVariant::Straight => {
-                gizmos.line_2d(a.xy(), b.xy(), css::SLATE_BLUE);
+                gizmos.line_2d(a.xy(), b.xy(), css::DIM_GRAY);
             }
             TrackVariant::Curved {
                 center,
@@ -48,7 +52,7 @@ fn render_tracks(
                 radius: _,
             } => {
                 let center = nodes.get(center).unwrap().translation;
-                gizmos.short_arc_2d_between(center.xy(), a.xy(), b.xy(), css::SLATE_BLUE);
+                gizmos.short_arc_2d_between(center.xy(), a.xy(), b.xy(), css::DIM_GRAY);
             }
         };
     }
@@ -67,8 +71,8 @@ fn render_axles(
         let main_pos = main_axle.translation.xy();
         let rear_pos = rear_axle.translation.xy();
 
-        gizmos.circle_2d(main_pos, 10.0, css::DARK_RED);
-        gizmos.circle_2d(rear_pos, 10.0, css::RED);
+        gizmos.circle_2d(main_pos, 3.0, css::DARK_RED);
+        gizmos.circle_2d(rear_pos, 3.0, css::RED);
     }
 }
 
@@ -107,6 +111,7 @@ fn render_switches(
 ) {
     for (e_switch, transform, switch) in switches {
         let position = transform.translation.xy();
+        gizmos.circle_2d(position, 6.0, css::BLUE_VIOLET);
         match switch {
             TrackSwitch::Switch {
                 control,
@@ -119,7 +124,7 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
-                gizmos.arrow_2d(position, position + direction, css::WHITE);
+                gizmos.arrow_2d(position, position + direction, css::DEEP_SKY_BLUE);
             }
             TrackSwitch::ThreewayTurnout {
                 control,
@@ -131,11 +136,10 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
-                gizmos.arrow_2d(position, position + direction, css::WHITE);
+                gizmos.arrow_2d(position, position + direction, css::DEEP_SKY_BLUE);
             }
             _ => {}
         };
-        gizmos.circle_2d(position, 8.0, css::GREEN);
     }
 }
 
@@ -157,8 +161,8 @@ fn render_bounds(
             Some(_) => css::ORANGE_RED,
             None => css::YELLOW,
         };
-        gizmos.circle_2d(bound_pos[0], 5.0, color);
-        gizmos.circle_2d(bound_pos[1], 5.0, color);
+        gizmos.circle_2d(bound_pos[0], 3.0, color);
+        gizmos.circle_2d(bound_pos[1], 3.0, color);
     }
 }
 
@@ -176,7 +180,21 @@ fn render_facing(
             Direction::FacingB => segment.nodes.1,
         };
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
-        let arrow_pos = (switch_pos - facing_pos).normalize() * 30.0 + facing_pos;
-        gizmos.arrow_2d(facing_pos, arrow_pos, css::WHITE);
+        let arrow_pos = (switch_pos - facing_pos).normalize() * 20.0 + facing_pos;
+        gizmos.arrow_2d(facing_pos, arrow_pos, css::ORANGE);
+    }
+}
+
+fn render_signals(
+    mut gizmos: Gizmos,
+    signals: Query<(&Transform, Option<&StopSignal>), With<Signal>>,
+) {
+    for (pos, stopped) in signals {
+        let pos = pos.translation.xy();
+        let color = match stopped {
+            Some(_) => css::RED,
+            None => css::GREEN,
+        };
+        gizmos.circle_2d(pos, 6.0, color);
     }
 }

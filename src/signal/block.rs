@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{Direction, FacingLocation, Location, cursor::TrackCursor},
-    signal::error::SignalError,
-    train::axle::AxleMoved,
+    loc::FacingLocation,
+    signal::landmark::{Landmark, LandmarkPassed},
 };
 
 pub struct BlockPlugin;
@@ -31,7 +30,7 @@ fn handle_train_entered(
 
     let occupied = blocks.get(*block).unwrap();
     match occupied {
-        Some(t) => println!("Block[{}] already occupied by train[{}]!", block, t.0),
+        Some(_) => {}
         None => {
             commands.entity(*block).insert(OccupiedBlock(*train));
             println!("Train[{}] entered block[{}]", train, block);
@@ -53,12 +52,8 @@ fn handle_train_exited(
     match occupied {
         Some(_) => {
             commands.entity(*e_block).remove::<OccupiedBlock>();
-            println!("Train[{}] exited block[{}]", e_train, e_block);
         }
-        None => println!(
-            "Block[{}] wasn't occupied, but train[{}] exited!",
-            e_block, e_train
-        ),
+        None => {}
     }
 }
 
@@ -73,25 +68,18 @@ impl BlockBound {
     }
 }
 
-pub struct BlockBuilder {
-    start: FacingLocation,
-    end: FacingLocation,
-}
+pub fn create_block(commands: &mut Commands, start: FacingLocation, end: FacingLocation) -> Entity {
+    let e_block = commands.spawn((Block, Transform::default())).id();
 
-impl BlockBuilder {
-    pub fn bounds(start: FacingLocation, end: FacingLocation) -> Self {
-        Self { start, end }
-    }
+    let e_start = commands
+        .spawn((Landmark, BlockBound::new(e_block), start))
+        .id();
+    let e_end = commands
+        .spawn((Landmark, BlockBound::new(e_block), end))
+        .id();
 
-    pub fn create(self, commands: &mut Commands) -> Entity {
-        let e_block = commands.spawn((Block, Transform::default())).id();
-
-        let start_id = commands.spawn((BlockBound::new(e_block), self.start)).id();
-        let end_id = commands.spawn((BlockBound::new(e_block), self.end)).id();
-
-        commands.entity(e_block).add_children(&[start_id, end_id]);
-        e_block
-    }
+    commands.entity(e_block).add_children(&[e_start, e_end]);
+    e_block
 }
 
 #[derive(Event)]
@@ -107,38 +95,29 @@ pub struct TrainExitedBlock {
 }
 
 fn check_train_passed(
-    moved: On<AxleMoved>,
+    passed: On<LandmarkPassed>,
     mut commands: Commands,
-    bounds: Query<(&BlockBound, &Location, &Direction)>,
-    cursor: TrackCursor,
+    bounds: Query<&BlockBound>,
 ) {
-    for (bound, bound_loc, bound_dir) in bounds {
-        let AxleMoved {
+    let LandmarkPassed {
+        forwards,
+        landmark: e_landmark,
+        train: e_train,
+    } = *passed;
+
+    let bound = match bounds.get(e_landmark) {
+        Ok(b) => b,
+        Err(_) => return,
+    };
+
+    match forwards {
+        true => commands.trigger(TrainEnteredBlock {
+            block: bound.block,
             train: e_train,
-            from,
-            to,
-        } = *moved;
-        let passed = match cursor.passed(from, to, *bound_loc) {
-            Ok(p) => p,
-            Err(e) => {
-                eprintln!("{}", e);
-                return;
-            }
-        };
-        let pass_dir = match passed {
-            None => continue,
-            Some(d) => d,
-        };
-        if pass_dir == *bound_dir {
-            commands.trigger(TrainEnteredBlock {
-                block: bound.block,
-                train: e_train,
-            })
-        } else {
-            commands.trigger(TrainExitedBlock {
-                block: bound.block,
-                train: e_train,
-            });
-        }
-    }
+        }),
+        false => commands.trigger(TrainExitedBlock {
+            block: bound.block,
+            train: e_train,
+        }),
+    };
 }

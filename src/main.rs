@@ -14,7 +14,7 @@ use train::{Train, TrainPlugin};
 
 use crate::{
     loc::{Direction, FacingLocation, Location, LocationPlugin},
-    signal::{SignalPlugin, block::BlockBuilder},
+    signal::{SignalPlugin, block::create_block, create_signal},
 };
 
 fn main() {
@@ -96,31 +96,37 @@ fn setup_blocks(
     segments: Query<&TrackSegment>,
 ) {
     let blocks = [
-        BlockBuilder::bounds(
+        create_block(
+            &mut commands,
             location_at(&store, segments, 5, Direction::FacingB, 0.0),
             location_at(&store, segments, 5, Direction::FacingA, 0.0),
         ),
-        BlockBuilder::bounds(
+        create_block(
+            &mut commands,
             location_at(&store, segments, 0, Direction::FacingB, 50.0),
             location_at(&store, segments, 1, Direction::FacingA, 0.0),
         ),
-        BlockBuilder::bounds(
+        create_block(
+            &mut commands,
             location_at(&store, segments, 2, Direction::FacingB, 0.0),
             location_at(&store, segments, 4, Direction::FacingA, 50.0),
         ),
-        BlockBuilder::bounds(
+        create_block(
+            &mut commands,
             location_at(&store, segments, 6, Direction::FacingA, 50.0),
             location_at(&store, segments, 7, Direction::FacingA, 0.0),
         ),
-        BlockBuilder::bounds(
+        create_block(
+            &mut commands,
             location_at(&store, segments, 8, Direction::FacingA, 0.0),
             location_at(&store, segments, 10, Direction::FacingA, 50.0),
         ),
     ];
-
-    for block in blocks {
-        block.create(&mut commands);
-    }
+    create_signal(
+        &mut commands,
+        blocks[1],
+        location_at(&store, segments, 0, Direction::FacingB, 25.0),
+    );
 }
 
 fn location_at(
