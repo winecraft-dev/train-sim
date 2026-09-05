@@ -7,7 +7,7 @@ use axle::AxlePlugin;
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    loc::{Direction, FacingLocation, Location},
+    loc::FacingLocation,
     signal::TrainSignaled,
     train::effect::TrainEffect,
 };
@@ -35,7 +35,9 @@ pub struct Train {
 }
 
 pub fn create_train(commands: &mut Commands, speed: f32, floc: FacingLocation) -> Entity {
-    let train = commands.spawn((ClickTarget, Train { speed })).id();
+    let train = commands
+        .spawn((GlobalTransform::default(), ClickTarget, Train { speed }))
+        .id();
     commands.trigger(TrainCreated { train, f_loc: floc });
     train
 }

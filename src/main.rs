@@ -7,15 +7,13 @@ mod train;
 
 use bevy::prelude::*;
 
-use control::ControlPlugin;
-use render::debug::DebugRenderPlugin;
-use track::*;
-use train::{Train, TrainPlugin};
-
 use crate::{
+    control::ControlPlugin,
     loc::{Direction, FacingLocation, Location, LocationPlugin},
+    render::debug::DebugRenderPlugin,
     signal::{SignalPlugin, block::create_block, create_signal},
-    train::create_train,
+    track::{SwitchesSpawned, TrackNode, TrackPlugin, TrackSegment, TrackUpdated},
+    train::{TrainPlugin, create_train},
 };
 
 fn main() {
@@ -142,6 +140,7 @@ fn setup_blocks(
         blocks[1],
         location_at(&store, segments, 0, Direction::FacingB, 25.0),
     );
+    println!("{:?}", blocks);
 }
 
 fn location_at(

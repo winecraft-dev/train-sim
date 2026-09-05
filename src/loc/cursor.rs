@@ -2,8 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
     loc::{Direction, FacingLocation, Location, error::LocError},
-    switch::TrackSwitch,
-    track::TrackSegment,
+    track::{TrackSegment, switch::TrackSwitch},
 };
 
 #[derive(SystemParam)]

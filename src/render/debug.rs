@@ -6,8 +6,7 @@ use crate::{
         Signal,
         block::{Block, BlockBound, OccupiedBlock},
     },
-    switch::TrackSwitch,
-    track::{TrackNode, TrackSegment, TrackVariant},
+    track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
     train::{
         Train,
         axle::{AXLE_DISTANCE, Axle},
@@ -186,7 +185,7 @@ fn render_facing(
 }
 
 fn render_signals(mut gizmos: Gizmos, signals: Query<(&Transform, &Signal)>) {
-    for (pos, signal) in signals {
+    for (pos, _) in signals {
         let pos = pos.translation.xy();
         gizmos.circle_2d(pos, 6.0, css::RED);
     }
