@@ -15,6 +15,7 @@ use train::{Train, TrainPlugin};
 use crate::{
     loc::{Direction, FacingLocation, Location, LocationPlugin},
     signal::{SignalPlugin, block::create_block, create_signal},
+    train::create_train,
 };
 
 fn main() {
@@ -41,6 +42,7 @@ fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
 
 #[derive(Resource)]
 pub struct TrackStore {
+    #[allow(unused)]
     nodes: Vec<Entity>,
     segments: Vec<Entity>,
 }
@@ -84,9 +86,22 @@ fn setup_tracks(mut commands: Commands) {
     commands.trigger(TrackUpdated);
 }
 
-fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, store: Res<TrackStore>) {
-    Train::new(2.0).create(&mut commands, Location::new(store.segments[1]));
-    // Train::new(1.1).create(&mut commands, Location::new(store.segments[10]));
+fn setup_trains(
+    _done: On<SwitchesSpawned>,
+    mut commands: Commands,
+    store: Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+) {
+    create_train(
+        &mut commands,
+        1.0,
+        location_at(&store, segments, 8, Direction::FacingA, 0.0),
+    );
+    create_train(
+        &mut commands,
+        0.6,
+        location_at(&store, segments, 10, Direction::FacingB, 0.0),
+    );
 }
 
 fn setup_blocks(

@@ -10,8 +10,7 @@ pub struct BlockPlugin;
 impl Plugin for BlockPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(check_train_passed)
-            .add_observer(handle_train_entered)
-            .add_observer(handle_train_exited);
+            .add_observer(train_passed);
     }
 }
 
@@ -21,39 +20,22 @@ pub struct Block;
 #[derive(Component)]
 pub struct OccupiedBlock(Entity);
 
-fn handle_train_entered(
-    train_entered: On<TrainEnteredBlock>,
+fn train_passed(
+    passed: On<TrainPassedBlock>,
     mut commands: Commands,
     blocks: Query<Option<&OccupiedBlock>, With<Block>>,
 ) {
-    let TrainEnteredBlock { block, train } = train_entered.event();
-
-    let occupied = blocks.get(*block).unwrap();
-    match occupied {
-        Some(_) => {}
-        None => {
-            commands.entity(*block).insert(OccupiedBlock(*train));
-            println!("Train[{}] entered block[{}]", train, block);
-        }
-    }
-}
-
-fn handle_train_exited(
-    train_exited: On<TrainExitedBlock>,
-    mut commands: Commands,
-    blocks: Query<Option<&OccupiedBlock>, With<Block>>,
-) {
-    let TrainExitedBlock {
+    let TrainPassedBlock {
+        entered,
         block: e_block,
         train: e_train,
-    } = train_exited.event();
+    } = *passed.event();
 
-    let occupied = blocks.get(*e_block).unwrap();
-    match occupied {
-        Some(_) => {
-            commands.entity(*e_block).remove::<OccupiedBlock>();
-        }
-        None => {}
+    let occupied = blocks.get(e_block).unwrap().is_some();
+    if !occupied && entered {
+        commands.entity(e_block).insert(OccupiedBlock(e_train));
+    } else if occupied && !entered {
+        commands.entity(e_block).remove::<OccupiedBlock>();
     }
 }
 
@@ -83,15 +65,10 @@ pub fn create_block(commands: &mut Commands, start: FacingLocation, end: FacingL
 }
 
 #[derive(Event)]
-pub struct TrainEnteredBlock {
-    block: Entity,
-    train: Entity,
-}
-
-#[derive(Event)]
-pub struct TrainExitedBlock {
-    block: Entity,
-    train: Entity,
+pub struct TrainPassedBlock {
+    pub entered: bool,
+    pub block: Entity,
+    pub train: Entity,
 }
 
 fn check_train_passed(
@@ -110,14 +87,9 @@ fn check_train_passed(
         Err(_) => return,
     };
 
-    match forwards {
-        true => commands.trigger(TrainEnteredBlock {
-            block: bound.block,
-            train: e_train,
-        }),
-        false => commands.trigger(TrainExitedBlock {
-            block: bound.block,
-            train: e_train,
-        }),
-    };
+    commands.trigger(TrainPassedBlock {
+        entered: forwards,
+        block: bound.block,
+        train: e_train,
+    });
 }

@@ -6,9 +6,10 @@ use landmark::LandmarkPlugin;
 use crate::{
     loc::FacingLocation,
     signal::{
-        block::{TrainEnteredBlock, TrainExitedBlock},
+        block::{Block, OccupiedBlock, TrainPassedBlock},
         landmark::{Landmark, LandmarkPassed},
     },
+    train::effect::TrainEffect,
 };
 
 pub mod block;
@@ -19,7 +20,9 @@ pub struct SignalPlugin;
 
 impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(LandmarkPlugin).add_plugins(BlockPlugin);
+        app.add_plugins(LandmarkPlugin)
+            .add_plugins(BlockPlugin)
+            .add_observer(train_passed);
     }
 }
 
@@ -29,14 +32,55 @@ pub struct Signal {
 }
 
 #[derive(Component)]
-pub struct StopSignal;
-
-pub fn create_signal(commands: &mut Commands, block: Entity, location: FacingLocation) -> Entity {
-    commands.spawn((Landmark, Signal { block }, location)).id()
+pub struct HoldingSignal {
+    train: Entity,
 }
 
-fn entered_block(entered: On<TrainEnteredBlock>) {}
+pub fn create_signal(commands: &mut Commands, block: Entity, location: FacingLocation) -> Entity {
+    let e_signal = commands.spawn((Landmark, Signal { block }, location)).id();
+    e_signal
+}
 
-fn exited_block(exited: On<TrainExitedBlock>) {}
+#[derive(Event)]
+pub struct TrainSignaled {
+    pub train: Entity,
+    pub effect: TrainEffect,
+}
 
-fn handle_train_passed(passed: On<LandmarkPassed>, signals: Query<&Signal>) {}
+fn train_passed(
+    passed: On<LandmarkPassed>,
+    mut commands: Commands,
+    signals: Query<&Signal>,
+    blocks: Query<Option<&OccupiedBlock>, With<Block>>,
+) {
+    let LandmarkPassed {
+        forwards,
+        landmark: e_landmark,
+        train: e_train,
+    } = *passed.event();
+
+    if !forwards {
+        return;
+    }
+
+    println!("Train[{}] passed landmark[{}]", e_train, e_landmark);
+    let signal = match signals.get(e_landmark) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    println!("Train[{}] passed signal[{}]", e_train, e_landmark);
+
+    let block_occupied = blocks.get(signal.block).unwrap().is_some();
+
+    if block_occupied {
+        commands
+            .entity(e_landmark)
+            .insert(HoldingSignal { train: e_train });
+        commands.trigger(TrainSignaled {
+            train: e_train,
+            effect: TrainEffect::Stop,
+        });
+    }
+}
+
+fn train_exited(passed: On<TrainPassedBlock>, mut commands: Commands) {}

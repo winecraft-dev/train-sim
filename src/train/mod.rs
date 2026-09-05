@@ -1,12 +1,15 @@
 use bevy::prelude::*;
 
 pub mod axle;
+pub mod effect;
 
 use axle::AxlePlugin;
 
 use crate::{
     control::{ClickTarget, TargetClicked},
     loc::{Direction, FacingLocation, Location},
+    signal::TrainSignaled,
+    train::effect::TrainEffect,
 };
 
 pub struct TrainPlugin;
@@ -15,7 +18,8 @@ impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
             .add_observer(train_derailed)
-            .add_observer(train_clicked);
+            .add_observer(train_clicked)
+            .add_observer(train_signaled);
     }
 }
 
@@ -30,19 +34,10 @@ pub struct Train {
     speed: f32,
 }
 
-impl Train {
-    pub fn new(speed: f32) -> Self {
-        Self { speed }
-    }
-
-    pub fn create(self, commands: &mut Commands, location: Location) -> Entity {
-        let train = commands.spawn((ClickTarget, self)).id();
-        commands.trigger(TrainCreated {
-            train,
-            f_loc: (location, Direction::default()),
-        });
-        train
-    }
+pub fn create_train(commands: &mut Commands, speed: f32, floc: FacingLocation) -> Entity {
+    let train = commands.spawn((ClickTarget, Train { speed })).id();
+    commands.trigger(TrainCreated { train, f_loc: floc });
+    train
 }
 
 #[derive(Event)]
@@ -70,4 +65,17 @@ fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {
         Err(_) => return,
     };
     train.speed *= -1.0;
+}
+
+fn train_signaled(signaled: On<TrainSignaled>, mut trains: Query<&mut Train>) {
+    let TrainSignaled {
+        train: e_train,
+        effect,
+    } = signaled.event();
+
+    let mut train = trains.get_mut(*e_train).unwrap();
+    match effect {
+        TrainEffect::Stop => train.speed = 0.0,
+        TrainEffect::Go => {}
+    }
 }

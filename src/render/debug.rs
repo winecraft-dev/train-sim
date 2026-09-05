@@ -3,7 +3,7 @@ use bevy::{color::palettes::css, prelude::*};
 use crate::{
     loc::{Direction, Location},
     signal::{
-        Signal, StopSignal,
+        Signal,
         block::{Block, BlockBound, OccupiedBlock},
     },
     switch::TrackSwitch,
@@ -185,16 +185,9 @@ fn render_facing(
     }
 }
 
-fn render_signals(
-    mut gizmos: Gizmos,
-    signals: Query<(&Transform, Option<&StopSignal>), With<Signal>>,
-) {
-    for (pos, stopped) in signals {
+fn render_signals(mut gizmos: Gizmos, signals: Query<(&Transform, &Signal)>) {
+    for (pos, signal) in signals {
         let pos = pos.translation.xy();
-        let color = match stopped {
-            Some(_) => css::RED,
-            None => css::GREEN,
-        };
-        gizmos.circle_2d(pos, 6.0, color);
+        gizmos.circle_2d(pos, 6.0, css::RED);
     }
 }
