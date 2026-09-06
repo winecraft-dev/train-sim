@@ -18,6 +18,7 @@ impl Plugin for BlockPlugin {
 pub struct Block;
 
 #[derive(Component)]
+#[allow(unused)]
 pub struct OccupiedBlock(Entity);
 
 fn train_passed(

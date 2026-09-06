@@ -110,7 +110,6 @@ fn render_switches(
 ) {
     for (e_switch, transform, switch) in switches {
         let position = transform.translation.xy();
-        gizmos.circle_2d(position, 6.0, css::BLUE_VIOLET);
         match switch {
             TrackSwitch::Switch {
                 control,
@@ -149,19 +148,20 @@ fn render_bounds(
     bounds: Query<(&BlockBound, &Transform)>,
 ) {
     for (e_block, _, occupied) in blocks {
-        let children = children.get(e_block).unwrap();
-        let e_bounds: [Entity; 2] = *children.as_array::<2>().unwrap();
-        let bound_pos = bounds
-            .get_many(e_bounds)
+        let bound_pos: Vec<Vec2> = children
+            .get(e_block)
             .unwrap()
-            .map(|(_, t)| t.translation.xy());
+            .iter()
+            .filter_map(|e| bounds.get(e).ok())
+            .map(|b| b.1.translation.xy())
+            .collect();
 
         let color = match occupied {
             Some(_) => css::ORANGE_RED,
             None => css::YELLOW,
         };
-        gizmos.circle_2d(bound_pos[0], 3.0, color);
-        gizmos.circle_2d(bound_pos[1], 3.0, color);
+        gizmos.circle_2d(bound_pos[0], 1.0, color);
+        gizmos.circle_2d(bound_pos[1], 1.0, color);
     }
 }
 
@@ -187,6 +187,6 @@ fn render_facing(
 fn render_signals(mut gizmos: Gizmos, signals: Query<(&Transform, &Signal)>) {
     for (pos, _) in signals {
         let pos = pos.translation.xy();
-        gizmos.circle_2d(pos, 6.0, css::RED);
+        gizmos.circle_2d(pos, 10.0, css::RED);
     }
 }

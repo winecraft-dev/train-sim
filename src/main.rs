@@ -47,20 +47,20 @@ pub struct TrackStore {
 
 fn setup_tracks(mut commands: Commands) {
     let n = [
-        TrackNode::spawn(50.0, 0.0, &mut commands),
-        TrackNode::spawn(250.0, 0.0, &mut commands),
-        TrackNode::spawn(250.0, 100.0, &mut commands), // center
-        TrackNode::spawn(350.0, 100.0, &mut commands),
-        TrackNode::spawn(250.0, 200.0, &mut commands),
-        TrackNode::spawn(150.0, 100.0, &mut commands),
-        TrackNode::spawn(50.0, 100.0, &mut commands), // center
-        TrackNode::spawn(-50.0, 0.0, &mut commands),
-        TrackNode::spawn(-250.0, 0.0, &mut commands),
-        TrackNode::spawn(-250.0, -100.0, &mut commands), // center
-        TrackNode::spawn(-350.0, -100.0, &mut commands),
-        TrackNode::spawn(-250.0, -200.0, &mut commands),
-        TrackNode::spawn(-150.0, -100.0, &mut commands),
-        TrackNode::spawn(-50.0, -100.0, &mut commands), // center
+        TrackNode::spawn(100.0, 0.0, &mut commands),
+        TrackNode::spawn(300.0, 0.0, &mut commands),
+        TrackNode::spawn(300.0, 100.0, &mut commands), // center
+        TrackNode::spawn(400.0, 100.0, &mut commands),
+        TrackNode::spawn(300.0, 200.0, &mut commands),
+        TrackNode::spawn(200.0, 100.0, &mut commands),
+        TrackNode::spawn(100.0, 100.0, &mut commands), // center
+        TrackNode::spawn(-100.0, 0.0, &mut commands),
+        TrackNode::spawn(-300.0, 0.0, &mut commands),
+        TrackNode::spawn(-300.0, -100.0, &mut commands), // center
+        TrackNode::spawn(-400.0, -100.0, &mut commands),
+        TrackNode::spawn(-300.0, -200.0, &mut commands),
+        TrackNode::spawn(-200.0, -100.0, &mut commands),
+        TrackNode::spawn(-100.0, -100.0, &mut commands), // center
     ];
 
     let t = [
@@ -92,13 +92,13 @@ fn setup_trains(
 ) {
     create_train(
         &mut commands,
-        1.0,
-        location_at(&store, segments, 8, Direction::FacingA, 0.0),
+        3.0,
+        location_at(&store, segments, 8, Direction::FacingA, 0.0, false),
     );
     create_train(
         &mut commands,
-        0.6,
-        location_at(&store, segments, 10, Direction::FacingB, 0.0),
+        1.0,
+        location_at(&store, segments, 10, Direction::FacingB, 0.0, false),
     );
 }
 
@@ -111,36 +111,63 @@ fn setup_blocks(
     let blocks = [
         create_block(
             &mut commands,
-            location_at(&store, segments, 5, Direction::FacingB, 0.0),
-            location_at(&store, segments, 5, Direction::FacingA, 0.0),
+            location_at(&store, segments, 5, Direction::FacingB, 0.0, false),
+            location_at(&store, segments, 5, Direction::FacingA, 0.0, false),
         ),
         create_block(
             &mut commands,
-            location_at(&store, segments, 0, Direction::FacingB, 50.0),
-            location_at(&store, segments, 1, Direction::FacingA, 0.0),
+            location_at(&store, segments, 0, Direction::FacingB, 5.0, false),
+            location_at(&store, segments, 1, Direction::FacingA, 5.0, false),
         ),
         create_block(
             &mut commands,
-            location_at(&store, segments, 2, Direction::FacingB, 0.0),
-            location_at(&store, segments, 4, Direction::FacingA, 50.0),
+            location_at(&store, segments, 2, Direction::FacingB, 5.0, false),
+            location_at(&store, segments, 4, Direction::FacingA, 5.0, false),
         ),
         create_block(
             &mut commands,
-            location_at(&store, segments, 6, Direction::FacingA, 50.0),
-            location_at(&store, segments, 7, Direction::FacingA, 0.0),
+            location_at(&store, segments, 6, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 7, Direction::FacingA, 5.0, false),
         ),
         create_block(
             &mut commands,
-            location_at(&store, segments, 8, Direction::FacingA, 0.0),
-            location_at(&store, segments, 10, Direction::FacingA, 50.0),
+            location_at(&store, segments, 8, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 10, Direction::FacingA, 5.0, false),
         ),
     ];
-    create_signal(
-        &mut commands,
-        blocks[1],
-        location_at(&store, segments, 0, Direction::FacingB, 25.0),
-    );
-    println!("{:?}", blocks);
+    let signals = [
+        create_signal(
+            &mut commands,
+            blocks[0],
+            location_at(&store, segments, 4, Direction::FacingA, 5.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[0],
+            location_at(&store, segments, 10, Direction::FacingA, 5.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[1],
+            location_at(&store, segments, 0, Direction::FacingB, 0.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[2],
+            location_at(&store, segments, 1, Direction::FacingA, 0.0, true),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[3],
+            location_at(&store, segments, 6, Direction::FacingA, 0.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[4],
+            location_at(&store, segments, 7, Direction::FacingA, 0.0, true),
+        ),
+    ];
+    println!("{:?} {:?}", blocks, signals);
 }
 
 fn location_at(
@@ -149,6 +176,7 @@ fn location_at(
     i: usize,
     end: Direction,
     offset: f32,
+    facing_opposite: bool,
 ) -> FacingLocation {
     let e_segment = store.segments[i];
     let distance = match end {
@@ -158,5 +186,9 @@ fn location_at(
         }
         Direction::FacingB => 0.0 + offset,
     };
-    (Location::new(e_segment).with_distance(distance), end)
+    let facing = match facing_opposite {
+        true => end.flip(),
+        false => end,
+    };
+    (Location::new(e_segment).with_distance(distance), facing)
 }

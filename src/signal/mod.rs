@@ -22,7 +22,8 @@ impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(LandmarkPlugin)
             .add_plugins(BlockPlugin)
-            .add_observer(train_passed);
+            .add_observer(train_passed)
+            .add_observer(train_exited);
     }
 }
 
@@ -38,6 +39,7 @@ pub struct HoldingSignal {
 
 pub fn create_signal(commands: &mut Commands, block: Entity, location: FacingLocation) -> Entity {
     let e_signal = commands.spawn((Landmark, Signal { block }, location)).id();
+    commands.entity(block).add_child(e_signal);
     e_signal
 }
 
@@ -63,12 +65,10 @@ fn train_passed(
         return;
     }
 
-    println!("Train[{}] passed landmark[{}]", e_train, e_landmark);
     let signal = match signals.get(e_landmark) {
         Ok(s) => s,
         Err(_) => return,
     };
-    println!("Train[{}] passed signal[{}]", e_train, e_landmark);
 
     let block_occupied = blocks.get(signal.block).unwrap().is_some();
 
@@ -83,4 +83,35 @@ fn train_passed(
     }
 }
 
-fn train_exited(passed: On<TrainPassedBlock>, mut commands: Commands) {}
+fn train_exited(
+    passed: On<TrainPassedBlock>,
+    mut commands: Commands,
+    signals: Query<(&HoldingSignal, &Signal)>,
+    children: Query<&Children>,
+) {
+    let TrainPassedBlock {
+        entered,
+        block: e_block,
+        train: _,
+    } = *passed.event();
+
+    if entered {
+        return;
+    }
+
+    let signals: Vec<(&HoldingSignal, &Signal)> = children
+        .get(e_block)
+        .unwrap()
+        .iter()
+        .filter_map(|e| signals.get(e).ok())
+        .collect();
+
+    for (holding, _) in signals {
+        let e_release = holding.train;
+
+        commands.trigger(TrainSignaled {
+            train: e_release,
+            effect: TrainEffect::Go,
+        });
+    }
+}

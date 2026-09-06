@@ -9,7 +9,7 @@ use crate::{
     control::{ClickTarget, TargetClicked},
     loc::FacingLocation,
     signal::TrainSignaled,
-    train::effect::TrainEffect,
+    train::effect::{StoppedTrain, TrainEffect},
 };
 
 pub struct TrainPlugin;
@@ -69,15 +69,30 @@ fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {
     train.speed *= -1.0;
 }
 
-fn train_signaled(signaled: On<TrainSignaled>, mut trains: Query<&mut Train>) {
+fn train_signaled(
+    signaled: On<TrainSignaled>,
+    mut commands: Commands,
+    mut trains: Query<(&mut Train, Option<&StoppedTrain>)>,
+) {
     let TrainSignaled {
         train: e_train,
         effect,
-    } = signaled.event();
+    } = *signaled.event();
 
-    let mut train = trains.get_mut(*e_train).unwrap();
+    let (mut train, stopped) = trains.get_mut(e_train).unwrap();
     match effect {
-        TrainEffect::Stop => train.speed = 0.0,
-        TrainEffect::Go => {}
+        TrainEffect::Stop => {
+            let old_speed = train.speed;
+            commands.entity(e_train).insert(StoppedTrain(old_speed));
+            train.speed = 0.0;
+        }
+        TrainEffect::Go => {
+            let old_speed = match stopped {
+                Some(s) => s.0,
+                None => return,
+            };
+            commands.entity(e_train).remove::<StoppedTrain>();
+            train.speed = old_speed;
+        }
     }
 }
