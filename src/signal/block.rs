@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::{
+    landmark::{Landmark, LandmarkPassed},
     loc::FacingLocation,
-    signal::landmark::{Landmark, LandmarkPassed},
 };
 
 pub struct BlockPlugin;

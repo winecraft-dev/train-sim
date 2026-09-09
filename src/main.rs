@@ -1,4 +1,5 @@
 mod control;
+mod landmark;
 mod loc;
 mod render;
 mod signal;
@@ -9,6 +10,7 @@ use bevy::prelude::*;
 
 use crate::{
     control::ControlPlugin,
+    landmark::{LandmarkPlugin, store::LandmarksUpdated},
     loc::{Direction, FacingLocation, Location, LocationPlugin},
     render::debug::DebugRenderPlugin,
     signal::{SignalPlugin, block::create_block, create_signal},
@@ -22,10 +24,11 @@ fn main() {
         .add_plugins(TrackPlugin)
         .add_plugins(LocationPlugin)
         .add_plugins(TrainPlugin)
+        .add_plugins(LandmarkPlugin)
         .add_plugins(ControlPlugin)
         .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
-        .add_systems(Startup, (config, setup_tracks).chain())
+        .add_systems(Startup, (config, setup_tracks, zoom_camera).chain())
         .add_observer(setup_trains)
         .add_observer(setup_blocks)
         .run();
@@ -139,12 +142,12 @@ fn setup_blocks(
         create_signal(
             &mut commands,
             blocks[0],
-            location_at(&store, segments, 4, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 4, Direction::FacingA, 5.0, true),
         ),
         create_signal(
             &mut commands,
             blocks[0],
-            location_at(&store, segments, 10, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 10, Direction::FacingA, 5.0, true),
         ),
         create_signal(
             &mut commands,
@@ -167,6 +170,7 @@ fn setup_blocks(
             location_at(&store, segments, 7, Direction::FacingA, 0.0, true),
         ),
     ];
+    commands.trigger(LandmarksUpdated);
     println!("{:?} {:?}", blocks, signals);
 }
 

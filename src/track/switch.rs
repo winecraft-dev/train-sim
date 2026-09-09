@@ -135,14 +135,14 @@ fn split_ports<const OUTLET_N: usize>(
         match end {
             None => {
                 end = Some(out_angle);
-                groups.0.add(e_neighbor);
+                groups.0.push(e_neighbor);
             }
             Some(end_angle) => {
                 let diff = out_angle - end_angle;
                 if diff > PI / -2.0 && diff < PI / 2.0 {
-                    groups.0.add(e_neighbor);
+                    groups.0.push(e_neighbor);
                 } else {
-                    groups.1.add(e_neighbor);
+                    groups.1.push(e_neighbor);
                 }
             }
         }

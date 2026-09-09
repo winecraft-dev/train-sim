@@ -1,27 +1,22 @@
 use bevy::prelude::*;
 
 use block::BlockPlugin;
-use landmark::LandmarkPlugin;
 
 use crate::{
+    landmark::{Landmark, LandmarkPassed},
     loc::FacingLocation,
-    signal::{
-        block::{Block, OccupiedBlock, TrainPassedBlock},
-        landmark::{Landmark, LandmarkPassed},
-    },
+    signal::block::{Block, OccupiedBlock, TrainPassedBlock},
     train::effect::TrainEffect,
 };
 
 pub mod block;
 pub mod error;
-pub mod landmark;
 
 pub struct SignalPlugin;
 
 impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(LandmarkPlugin)
-            .add_plugins(BlockPlugin)
+        app.add_plugins(BlockPlugin)
             .add_observer(train_passed)
             .add_observer(train_exited);
     }

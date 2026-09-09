@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
+use bevy::prelude::*;
 
 use crate::track::switch::SwitchPlugin;
 
@@ -194,7 +194,7 @@ pub fn compute_node_neighbors(
         let b = segment.nodes.1;
         let segment_nodes = nodes.get_many_mut([a, b]).unwrap();
         for mut s_node in segment_nodes {
-            s_node.neighbors.add(entity);
+            s_node.neighbors.push(entity);
         }
     }
     commands.trigger(NodeNeighborsComputed);
