@@ -28,7 +28,7 @@ fn main() {
         .add_plugins(ControlPlugin)
         .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
-        .add_systems(Startup, (config, setup_tracks, zoom_camera).chain())
+        .add_systems(Startup, (config, setup_tracks).chain())
         .add_observer(setup_trains)
         .add_observer(setup_blocks)
         .run();
@@ -142,31 +142,37 @@ fn setup_blocks(
         create_signal(
             &mut commands,
             blocks[0],
+            -40.0,
             location_at(&store, segments, 4, Direction::FacingA, 5.0, true),
         ),
         create_signal(
             &mut commands,
             blocks[0],
+            -40.0,
             location_at(&store, segments, 10, Direction::FacingA, 5.0, true),
         ),
         create_signal(
             &mut commands,
             blocks[1],
+            -40.0,
             location_at(&store, segments, 0, Direction::FacingB, 0.0, false),
         ),
         create_signal(
             &mut commands,
             blocks[2],
+            -40.0,
             location_at(&store, segments, 1, Direction::FacingA, 0.0, true),
         ),
         create_signal(
             &mut commands,
             blocks[3],
+            -40.0,
             location_at(&store, segments, 6, Direction::FacingA, 0.0, false),
         ),
         create_signal(
             &mut commands,
             blocks[4],
+            -40.0,
             location_at(&store, segments, 7, Direction::FacingA, 0.0, true),
         ),
     ];

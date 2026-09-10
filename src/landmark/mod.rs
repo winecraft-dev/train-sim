@@ -13,12 +13,15 @@ pub struct LandmarkPlugin;
 impl Plugin for LandmarkPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(check_landmarks_passed)
-            .add_observer(setup_store);
+            .add_systems(Startup, setup_store);
     }
 }
 
 #[derive(Component)]
 pub struct Landmark;
+
+#[derive(Component)]
+pub struct IndexedLandmark;
 
 #[derive(Event)]
 pub struct LandmarkPassed {
@@ -52,7 +55,6 @@ fn check_landmarks_passed(
             return;
         }
     };
-    println!("Passed {passed_landmarks:?}");
 
     for (e_landmark, forwards) in passed_landmarks {
         commands.trigger(LandmarkPassed {

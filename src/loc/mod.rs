@@ -41,10 +41,6 @@ fn add_transforms(
     locations: Query<(Entity, &Location), Without<Transform>>,
     projector: Projector,
 ) {
-    // if let TrackStatus::Loading = *track_status {
-    //     return;
-    // }
-
     for (e, loc) in locations {
         let pos = match projector.project(*loc) {
             Ok(v3) => v3,

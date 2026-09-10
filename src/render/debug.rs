@@ -1,11 +1,9 @@
 use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
+    landmark::Landmark,
     loc::{Direction, Location},
-    signal::{
-        Signal,
-        block::{Block, BlockBound, OccupiedBlock},
-    },
+    signal::{ObservableBound, Signal, block::OccupiedBlock},
     track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
     train::{
         Train,
@@ -17,20 +15,38 @@ pub struct DebugRenderPlugin;
 
 impl Plugin for DebugRenderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
+        app.add_systems(Startup, init_config).add_systems(
             Update,
             (
                 render_tracks,
-                render_axles,
                 render_trains,
-                render_bounds,
                 render_signals,
-                render_facing,
+                render_facing.run_if(should_render_directions),
+                render_locations.run_if(should_render_locations),
                 render_switches,
             )
                 .chain(),
         );
     }
+}
+
+#[derive(Resource, Default)]
+pub struct RenderDirections(pub bool);
+
+fn should_render_directions(config: Res<RenderDirections>) -> bool {
+    config.0
+}
+
+fn should_render_locations(config: Res<RenderLocations>) -> bool {
+    config.0
+}
+
+#[derive(Resource, Default)]
+pub struct RenderLocations(pub bool);
+
+fn init_config(mut commands: Commands) {
+    commands.insert_resource(RenderDirections::default());
+    commands.insert_resource(RenderLocations::default());
 }
 
 fn render_tracks(
@@ -54,24 +70,6 @@ fn render_tracks(
                 gizmos.short_arc_2d_between(center.xy(), a.xy(), b.xy(), css::DIM_GRAY);
             }
         };
-    }
-}
-
-fn render_axles(
-    mut gizmos: Gizmos,
-    trains: Query<(Entity, &Transform), (With<Axle>, With<Train>)>,
-    children: Query<&Children>,
-    rear_axles: Query<&Transform, (With<Axle>, Without<Train>)>,
-) {
-    for (e_main, main_axle) in trains {
-        let e_rear = children.get(e_main).unwrap()[0];
-        let rear_axle = rear_axles.get(e_rear).unwrap();
-
-        let main_pos = main_axle.translation.xy();
-        let rear_pos = rear_axle.translation.xy();
-
-        gizmos.circle_2d(main_pos, 3.0, css::DARK_RED);
-        gizmos.circle_2d(rear_pos, 3.0, css::RED);
     }
 }
 
@@ -122,7 +120,7 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
-                gizmos.arrow_2d(position, position + direction, css::DEEP_SKY_BLUE);
+                gizmos.arrow_2d(position, position + direction, css::BLUE);
             }
             TrackSwitch::ThreewayTurnout {
                 control,
@@ -134,34 +132,10 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
-                gizmos.arrow_2d(position, position + direction, css::DEEP_SKY_BLUE);
+                gizmos.arrow_2d(position, position + direction, css::BLUE);
             }
             _ => {}
         };
-    }
-}
-
-fn render_bounds(
-    mut gizmos: Gizmos,
-    blocks: Query<(Entity, &Block, Option<&OccupiedBlock>)>,
-    children: Query<&Children>,
-    bounds: Query<(&BlockBound, &Transform)>,
-) {
-    for (e_block, _, occupied) in blocks {
-        let bound_pos: Vec<Vec2> = children
-            .get(e_block)
-            .unwrap()
-            .iter()
-            .filter_map(|e| bounds.get(e).ok())
-            .map(|b| b.1.translation.xy())
-            .collect();
-
-        let color = match occupied {
-            Some(_) => css::ORANGE_RED,
-            None => css::YELLOW,
-        };
-        gizmos.circle_2d(bound_pos[0], 1.0, color);
-        gizmos.circle_2d(bound_pos[1], 1.0, color);
     }
 }
 
@@ -184,9 +158,38 @@ fn render_facing(
     }
 }
 
-fn render_signals(mut gizmos: Gizmos, signals: Query<(&Transform, &Signal)>) {
-    for (pos, _) in signals {
+fn render_locations(
+    mut gizmos: Gizmos,
+    locations: Query<(&Transform, Option<&Landmark>), With<Location>>,
+) {
+    for (transform, landmark) in locations {
+        let color = match landmark {
+            Some(_) => css::PURPLE,
+            None => css::HOT_PINK,
+        };
+        gizmos.circle_2d(transform.translation.xy(), 1.0, color);
+    }
+}
+
+fn render_signals(
+    mut gizmos: Gizmos,
+    signals: Query<(&Transform, &Signal)>,
+    obv_bounds: Query<&Transform, With<ObservableBound>>,
+    blocks: Query<Option<&OccupiedBlock>>,
+) {
+    for (pos, signal) in signals {
         let pos = pos.translation.xy();
-        gizmos.circle_2d(pos, 10.0, css::RED);
+        let occupied = blocks.get(signal.block).unwrap();
+        let color = match occupied {
+            Some(_) => css::RED,
+            None => css::GREEN,
+        };
+
+        gizmos.circle_2d(pos, 10.0, color);
+    }
+
+    for pos in obv_bounds {
+        let pos = pos.translation.xy();
+        gizmos.cross_2d(pos, 5.0, css::RED);
     }
 }

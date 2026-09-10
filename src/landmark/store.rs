@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
-    landmark::Landmark,
+    landmark::{IndexedLandmark, Landmark},
     loc::{Direction, Location},
 };
 
@@ -14,9 +14,8 @@ pub struct LandmarksUpdated;
 pub struct LandmarkStore(HashMap<Entity, Vec<Entity>>);
 
 pub fn setup_store(
-    _updated: On<LandmarksUpdated>,
     mut commands: Commands,
-    landmarks: Query<(Entity, &Location, &Direction), With<Landmark>>,
+    landmarks: Query<(Entity, &Location, &Direction), (With<Landmark>, Without<IndexedLandmark>)>,
 ) {
     let mut store = LandmarkStore::default();
 
@@ -43,7 +42,7 @@ pub fn setup_store(
 fn compare_landmarks(
     a: Entity,
     b: Entity,
-    landmarks: Query<(Entity, &Location, &Direction), With<Landmark>>,
+    landmarks: Query<(Entity, &Location, &Direction), (With<Landmark>, Without<IndexedLandmark>)>,
 ) -> Ordering {
     let la = landmarks.get(a).unwrap();
     let lb = landmarks.get(b).unwrap();
