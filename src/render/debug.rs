@@ -21,8 +21,10 @@ impl Plugin for DebugRenderPlugin {
                 render_tracks,
                 render_trains,
                 render_signals,
-                render_facing.run_if(should_render_directions),
-                render_locations.run_if(should_render_locations),
+                // render_facing.run_if(should_render_directions),
+                // render_locations.run_if(should_render_locations),
+                render_facing,
+                render_locations,
                 render_switches,
             )
                 .chain(),
@@ -37,12 +39,12 @@ fn should_render_directions(config: Res<RenderDirections>) -> bool {
     config.0
 }
 
+#[derive(Resource, Default)]
+pub struct RenderLocations(pub bool);
+
 fn should_render_locations(config: Res<RenderLocations>) -> bool {
     config.0
 }
-
-#[derive(Resource, Default)]
-pub struct RenderLocations(pub bool);
 
 fn init_config(mut commands: Commands) {
     commands.insert_resource(RenderDirections::default());
