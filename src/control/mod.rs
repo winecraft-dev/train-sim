@@ -9,7 +9,7 @@ use browse::BrowsingPlugin;
 
 use crate::{
     control::browse::{DragEnded, DragStarted},
-    render::debug::{RenderDirections, RenderLocations},
+    render::debug::RenderConfig,
 };
 
 pub struct ControlPlugin;
@@ -17,7 +17,7 @@ pub struct ControlPlugin;
 impl Plugin for ControlPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(BrowsingPlugin)
-            .add_systems(Update, (handle_click, change_config));
+            .add_systems(Update, (handle_click, change_render_config));
     }
 }
 
@@ -74,15 +74,14 @@ fn check_targets_clicked(
     None
 }
 
-fn change_config(
-    key_input: Res<ButtonInput<KeyCode>>,
-    mut render_loc: ResMut<RenderLocations>,
-    mut render_dir: ResMut<RenderDirections>,
-) {
-    if key_input.just_pressed(KeyCode::KeyF) {
-        render_loc.0 = !render_loc.0;
-    }
+fn change_render_config(key_input: Res<ButtonInput<KeyCode>>, mut config: ResMut<RenderConfig>) {
     if key_input.just_pressed(KeyCode::KeyL) {
-        render_dir.0 = !render_dir.0;
+        config.locations = !config.locations;
+    }
+    if key_input.just_pressed(KeyCode::KeyF) {
+        config.directions = !config.directions;
+    }
+    if key_input.just_pressed(KeyCode::KeyB) {
+        config.blocks = !config.blocks;
     }
 }

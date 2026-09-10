@@ -10,14 +10,21 @@ use crate::{
 #[derive(Event)]
 pub struct LandmarksUpdated;
 
-#[derive(Resource, Default, DerefMut, Deref)]
+#[derive(Resource, Default, DerefMut, Deref, Debug)]
 pub struct LandmarkStore(HashMap<Entity, Vec<Entity>>);
 
-pub fn setup_store(
+pub fn init_store(mut commands: Commands) {
+    let store = LandmarkStore::default();
+
+    commands.insert_resource(store);
+}
+
+pub fn update_store(
     mut commands: Commands,
+    mut store: ResMut<LandmarkStore>,
     landmarks: Query<(Entity, &Location, &Direction), (With<Landmark>, Without<IndexedLandmark>)>,
 ) {
-    let mut store = LandmarkStore::default();
+    let mut indexed_landmarks: Vec<Entity> = Vec::default();
 
     for (e_landmark, loc, _) in landmarks {
         let e_track = loc.track;
@@ -31,12 +38,11 @@ pub fn setup_store(
                 store.insert(e_track, l);
             }
         };
+        indexed_landmarks.push(e_landmark);
     }
     for (_, l) in store.iter_mut() {
         l.sort_by(|a, b| compare_landmarks(*a, *b, landmarks));
     }
-
-    commands.insert_resource(store);
 }
 
 fn compare_landmarks(

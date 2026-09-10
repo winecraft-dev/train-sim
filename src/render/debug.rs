@@ -3,7 +3,10 @@ use bevy::{color::palettes::css, prelude::*};
 use crate::{
     landmark::Landmark,
     loc::{Direction, Location},
-    signal::{ObservableBound, Signal, block::OccupiedBlock},
+    signal::{
+        ObservableBound, Signal,
+        block::{Block, BlockBound, OccupiedBlock},
+    },
     track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
     train::{
         Train,
@@ -21,10 +24,9 @@ impl Plugin for DebugRenderPlugin {
                 render_tracks,
                 render_trains,
                 render_signals,
-                // render_facing.run_if(should_render_directions),
-                // render_locations.run_if(should_render_locations),
-                render_facing,
-                render_locations,
+                render_facing.run_if(should_render_directions),
+                render_locations.run_if(should_render_locations),
+                render_blocks.run_if(should_render_blocks),
                 render_switches,
             )
                 .chain(),
@@ -33,22 +35,26 @@ impl Plugin for DebugRenderPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct RenderDirections(pub bool);
-
-fn should_render_directions(config: Res<RenderDirections>) -> bool {
-    config.0
+pub struct RenderConfig {
+    pub directions: bool,
+    pub locations: bool,
+    pub blocks: bool,
 }
 
-#[derive(Resource, Default)]
-pub struct RenderLocations(pub bool);
+fn should_render_directions(config: Res<RenderConfig>) -> bool {
+    config.directions
+}
 
-fn should_render_locations(config: Res<RenderLocations>) -> bool {
-    config.0
+fn should_render_locations(config: Res<RenderConfig>) -> bool {
+    config.locations
+}
+
+fn should_render_blocks(config: Res<RenderConfig>) -> bool {
+    config.blocks
 }
 
 fn init_config(mut commands: Commands) {
-    commands.insert_resource(RenderDirections::default());
-    commands.insert_resource(RenderLocations::default());
+    commands.insert_resource(RenderConfig::default());
 }
 
 fn render_tracks(
@@ -170,6 +176,30 @@ fn render_locations(
             None => css::HOT_PINK,
         };
         gizmos.circle_2d(transform.translation.xy(), 1.0, color);
+    }
+}
+
+fn render_blocks(
+    mut gizmos: Gizmos,
+    blocks: Query<(Entity, &Block, Option<&OccupiedBlock>)>,
+    children: Query<&Children>,
+    bounds: Query<(&BlockBound, &Transform)>,
+) {
+    for (e_block, _, occupied) in blocks {
+        let bound_pos: Vec<Vec2> = children
+            .get(e_block)
+            .unwrap()
+            .iter()
+            .filter_map(|e| bounds.get(e).ok())
+            .map(|b| b.1.translation.xy())
+            .collect();
+
+        let color = match occupied {
+            Some(_) => css::ORANGE_RED,
+            None => css::YELLOW,
+        };
+        gizmos.circle_2d(bound_pos[0], 1.0, color);
+        gizmos.circle_2d(bound_pos[1], 1.0, color);
     }
 }
 

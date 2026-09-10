@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 pub mod store;
 
 use crate::{
-    landmark::store::{LandmarkStore, setup_store},
+    landmark::store::{LandmarkStore, init_store, update_store},
     loc::{Direction, FacingLocation, Location, cursor::TrackCursor, error::LocError},
     train::axle::AxleMoved,
 };
@@ -13,7 +13,8 @@ pub struct LandmarkPlugin;
 impl Plugin for LandmarkPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(check_landmarks_passed)
-            .add_systems(Startup, setup_store);
+            .add_systems(Startup, init_store)
+            .add_systems(Update, update_store);
     }
 }
 

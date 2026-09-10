@@ -77,7 +77,10 @@ fn add_observable_bound(
         let e_obv = commands
             .spawn((Landmark, ObservableBound { signal: e_signal }, obv_loc))
             .id();
-        commands.entity(e_signal).add_child(e_obv);
+        commands
+            .entity(e_signal)
+            .add_child(e_obv)
+            .insert(SignalWithBound);
     }
 }
 
