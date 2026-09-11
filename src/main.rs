@@ -1,85 +1,204 @@
 mod control;
+mod landmark;
+mod loc;
 mod render;
-mod switch;
+mod signal;
 mod track;
 mod train;
 
 use bevy::prelude::*;
 
-use control::ControlPlugin;
-use render::debug::DebugRenderPlugin;
-use switch::SwitchPlugin;
-use track::*;
-use train::{Train, TrainPlugin};
+use crate::{
+    control::ControlPlugin,
+    landmark::{LandmarkPlugin, store::LandmarksUpdated},
+    loc::{Direction, FacingLocation, Location, LocationPlugin},
+    render::debug::DebugRenderPlugin,
+    signal::{SignalPlugin, block::create_block, create_signal},
+    track::{SwitchesSpawned, TrackNode, TrackPlugin, TrackSegment, TrackUpdated},
+    train::{TrainPlugin, create_train},
+};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
+        .add_plugins(LocationPlugin)
         .add_plugins(TrainPlugin)
-        .add_plugins(SwitchPlugin)
+        .add_plugins(LandmarkPlugin)
         .add_plugins(ControlPlugin)
+        .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (config, setup_tracks).chain())
+        .add_observer(setup_trains)
+        .add_observer(setup_blocks)
         .run();
 }
 
-fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
+fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     let (config, _) = config.config_mut::<DefaultGizmoConfigGroup>();
     config.line.width = 4.0;
 
     commands.spawn((Camera2d, Camera::default()));
+}
 
-    let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
-    let node_a = commands.spawn(TrackNode::bundle(-300.0, 0.0)).id();
-    let node_b = commands.spawn(TrackNode::bundle(-350.0, 50.0)).id();
-    let node_c = commands.spawn(TrackNode::bundle(-350.0, 300.0)).id();
-    let center_b = commands.spawn(TrackNode::bundle(-300.0, 300.0)).id();
-    let node_d = commands.spawn(TrackNode::bundle(-300.0, 350.0)).id();
-    let node_e = commands.spawn(TrackNode::bundle(-50.0, 350.0)).id();
-    let center_c = commands.spawn(TrackNode::bundle(-50.0, 300.0)).id();
-    let node_f = commands.spawn(TrackNode::bundle(0.0, 300.0)).id();
-    let node_g = commands.spawn(TrackNode::bundle(0.0, 50.0)).id();
-    let center_d = commands.spawn(TrackNode::bundle(-50.0, 50.0)).id();
-    let node_h = commands.spawn(TrackNode::bundle(-50.0, 0.0)).id();
-    let node_far_a = commands.spawn(TrackNode::bundle(300.0, 0.0)).id();
-    let center_far = commands.spawn(TrackNode::bundle(-50.0, -50.0)).id();
-    let node_far_b = commands.spawn(TrackNode::bundle(0.0, -50.0)).id();
+#[derive(Resource)]
+pub struct TrackStore {
+    #[allow(unused)]
+    nodes: Vec<Entity>,
+    segments: Vec<Entity>,
+}
 
-    let tracks = [
-        commands
-            .spawn(TrackSegment::straight((node_b, node_c)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_a, node_b), center_a))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_c, node_d), center_b))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_d, node_e)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_e, node_f), center_c))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_f, node_g)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_g, node_h), center_d))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_h, node_a)))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_h, node_far_a)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_h, node_far_b), center_far))
-            .id(),
+fn setup_tracks(mut commands: Commands) {
+    let n = [
+        TrackNode::spawn(100.0, 0.0, &mut commands),
+        TrackNode::spawn(300.0, 0.0, &mut commands),
+        TrackNode::spawn(300.0, 100.0, &mut commands), // center
+        TrackNode::spawn(400.0, 100.0, &mut commands),
+        TrackNode::spawn(300.0, 200.0, &mut commands),
+        TrackNode::spawn(200.0, 100.0, &mut commands),
+        TrackNode::spawn(100.0, 100.0, &mut commands), // center
+        TrackNode::spawn(-100.0, 0.0, &mut commands),
+        TrackNode::spawn(-300.0, 0.0, &mut commands),
+        TrackNode::spawn(-300.0, -100.0, &mut commands), // center
+        TrackNode::spawn(-400.0, -100.0, &mut commands),
+        TrackNode::spawn(-300.0, -200.0, &mut commands),
+        TrackNode::spawn(-200.0, -100.0, &mut commands),
+        TrackNode::spawn(-100.0, -100.0, &mut commands), // center
     ];
 
-    commands.trigger(TrackUpdated);
+    let t = [
+        TrackSegment::straight((n[0], n[1])).spawn(&mut commands),
+        TrackSegment::curved((n[1], n[3]), n[2]).spawn(&mut commands),
+        TrackSegment::curved((n[3], n[4]), n[2]).spawn(&mut commands),
+        TrackSegment::curved((n[4], n[5]), n[2]).spawn(&mut commands),
+        TrackSegment::curved((n[5], n[0]), n[6]).spawn(&mut commands),
+        TrackSegment::straight((n[0], n[7])).spawn(&mut commands),
+        TrackSegment::straight((n[8], n[7])).spawn(&mut commands),
+        TrackSegment::curved((n[8], n[10]), n[9]).spawn(&mut commands),
+        TrackSegment::curved((n[11], n[10]), n[9]).spawn(&mut commands),
+        TrackSegment::curved((n[11], n[12]), n[9]).spawn(&mut commands),
+        TrackSegment::curved((n[12], n[7]), n[13]).spawn(&mut commands),
+    ];
 
-    Train::new(1.0).create(commands, tracks[7]);
+    commands.insert_resource(TrackStore {
+        nodes: n.to_vec(),
+        segments: t.to_vec(),
+    });
+    commands.trigger(TrackUpdated);
+}
+
+fn setup_trains(
+    _done: On<SwitchesSpawned>,
+    mut commands: Commands,
+    store: Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+) {
+    create_train(
+        &mut commands,
+        3.0,
+        location_at(&store, segments, 8, Direction::FacingA, 0.0, false),
+    );
+    create_train(
+        &mut commands,
+        1.0,
+        location_at(&store, segments, 10, Direction::FacingB, 0.0, false),
+    );
+}
+
+fn setup_blocks(
+    _done: On<SwitchesSpawned>,
+    mut commands: Commands,
+    store: Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+) {
+    let blocks = [
+        create_block(
+            &mut commands,
+            location_at(&store, segments, 5, Direction::FacingB, 0.0, false),
+            location_at(&store, segments, 5, Direction::FacingA, 0.0, false),
+        ),
+        create_block(
+            &mut commands,
+            location_at(&store, segments, 0, Direction::FacingB, 5.0, false),
+            location_at(&store, segments, 1, Direction::FacingA, 5.0, false),
+        ),
+        create_block(
+            &mut commands,
+            location_at(&store, segments, 2, Direction::FacingB, 5.0, false),
+            location_at(&store, segments, 4, Direction::FacingA, 5.0, false),
+        ),
+        create_block(
+            &mut commands,
+            location_at(&store, segments, 6, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 7, Direction::FacingA, 5.0, false),
+        ),
+        create_block(
+            &mut commands,
+            location_at(&store, segments, 8, Direction::FacingA, 5.0, false),
+            location_at(&store, segments, 10, Direction::FacingA, 5.0, false),
+        ),
+    ];
+    let signals = [
+        create_signal(
+            &mut commands,
+            blocks[0],
+            -40.0,
+            location_at(&store, segments, 4, Direction::FacingA, 5.0, true),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[0],
+            -40.0,
+            location_at(&store, segments, 10, Direction::FacingA, 5.0, true),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[1],
+            -40.0,
+            location_at(&store, segments, 0, Direction::FacingB, 0.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[2],
+            -40.0,
+            location_at(&store, segments, 1, Direction::FacingA, 0.0, true),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[3],
+            -40.0,
+            location_at(&store, segments, 6, Direction::FacingA, 0.0, false),
+        ),
+        create_signal(
+            &mut commands,
+            blocks[4],
+            -40.0,
+            location_at(&store, segments, 7, Direction::FacingA, 0.0, true),
+        ),
+    ];
+    commands.trigger(LandmarksUpdated);
+    println!("{:?} {:?}", blocks, signals);
+}
+
+fn location_at(
+    store: &Res<TrackStore>,
+    segments: Query<&TrackSegment>,
+    i: usize,
+    end: Direction,
+    offset: f32,
+    facing_opposite: bool,
+) -> FacingLocation {
+    let e_segment = store.segments[i];
+    let distance = match end {
+        Direction::FacingA => {
+            let segment = segments.get(e_segment).unwrap();
+            segment.length() - offset
+        }
+        Direction::FacingB => 0.0 + offset,
+    };
+    let facing = match facing_opposite {
+        true => end.flip(),
+        false => end,
+    };
+    (Location::new(e_segment).with_distance(distance), facing)
 }

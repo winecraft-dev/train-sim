@@ -8,7 +8,6 @@ use crate::{
 pub mod debug;
 mod track_mesh;
 
-#[allow(unused)]
 pub struct MeshRenderPlugin;
 
 impl Plugin for MeshRenderPlugin {
@@ -17,7 +16,6 @@ impl Plugin for MeshRenderPlugin {
     }
 }
 
-#[allow(unused)]
 pub fn generate_track_mesh(
     _track_updated: On<TrackDataCalculated>,
     mut commands: Commands,
