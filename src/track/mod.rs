@@ -66,9 +66,9 @@ pub struct TrackSegment {
 }
 
 impl TrackSegment {
-    pub fn straight(nodes: (Entity, Entity)) -> Self {
+    pub fn straight(a: Entity, b: Entity) -> Self {
         Self {
-            nodes,
+            nodes: (a, b),
             variant: TrackVariant::Straight,
 
             length: None,
@@ -80,9 +80,9 @@ impl TrackSegment {
         commands.spawn(self).id()
     }
 
-    pub fn curved(nodes: (Entity, Entity), center: Entity) -> Self {
+    pub fn curved(a: Entity, b: Entity, center: Entity) -> Self {
         Self {
-            nodes,
+            nodes: (a, b),
             variant: TrackVariant::Curved {
                 center,
                 angle: Option::None,

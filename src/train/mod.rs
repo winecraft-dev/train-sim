@@ -18,7 +18,7 @@ impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
             .add_observer(train_derailed)
-            .add_observer(train_clicked)
+            // .add_observer(train_clicked)
             .add_observer(train_signaled);
     }
 }

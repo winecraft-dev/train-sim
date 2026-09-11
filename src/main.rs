@@ -10,7 +10,7 @@ use bevy::prelude::*;
 
 use crate::{
     control::ControlPlugin,
-    landmark::{LandmarkPlugin, store::LandmarksUpdated},
+    landmark::LandmarkPlugin,
     loc::{Direction, FacingLocation, Location, LocationPlugin},
     render::debug::DebugRenderPlugin,
     signal::{SignalPlugin, block::create_block, create_signal},
@@ -50,34 +50,47 @@ pub struct TrackStore {
 
 fn setup_tracks(mut commands: Commands) {
     let n = [
-        TrackNode::spawn(100.0, 0.0, &mut commands),
-        TrackNode::spawn(300.0, 0.0, &mut commands),
-        TrackNode::spawn(300.0, 100.0, &mut commands), // center
-        TrackNode::spawn(400.0, 100.0, &mut commands),
-        TrackNode::spawn(300.0, 200.0, &mut commands),
-        TrackNode::spawn(200.0, 100.0, &mut commands),
-        TrackNode::spawn(100.0, 100.0, &mut commands), // center
-        TrackNode::spawn(-100.0, 0.0, &mut commands),
-        TrackNode::spawn(-300.0, 0.0, &mut commands),
-        TrackNode::spawn(-300.0, -100.0, &mut commands), // center
-        TrackNode::spawn(-400.0, -100.0, &mut commands),
-        TrackNode::spawn(-300.0, -200.0, &mut commands),
-        TrackNode::spawn(-200.0, -100.0, &mut commands),
-        TrackNode::spawn(-100.0, -100.0, &mut commands), // center
+        Vec2::new(-300.0, 300.0),
+        Vec2::new(300.0, 300.0),
+        Vec2::new(300.0, 250.0), // CENTER
+        Vec2::new(350.0, 250.0),
+        Vec2::new(350.0, 0.0),
+        Vec2::new(300.0, 0.0), // CENTER
+        Vec2::new(300.0, -50.0),
+        Vec2::new(350.0, -250.0),
+        Vec2::new(300.0, -250.0), // CENTER
+        Vec2::new(300.0, -300.0),
+        Vec2::new(-300.0, -300.0),
+        Vec2::new(-300.0, -250.0), // CENTER
+        Vec2::new(-350.0, -250.0),
+        Vec2::new(-300.0, -50.0),
+        Vec2::new(-300.0, 0.0), // CENTER
+        Vec2::new(-350.0, 0.0),
+        Vec2::new(-300.0, 250.0), // CENTER
+        Vec2::new(-350.0, 250.0),
     ];
 
+    let commands = &mut commands;
+
+    let n: Vec<Entity> = n
+        .iter()
+        .map(|p| TrackNode::spawn(p.x, p.y, commands))
+        .collect();
+
     let t = [
-        TrackSegment::straight((n[0], n[1])).spawn(&mut commands),
-        TrackSegment::curved((n[1], n[3]), n[2]).spawn(&mut commands),
-        TrackSegment::curved((n[3], n[4]), n[2]).spawn(&mut commands),
-        TrackSegment::curved((n[4], n[5]), n[2]).spawn(&mut commands),
-        TrackSegment::curved((n[5], n[0]), n[6]).spawn(&mut commands),
-        TrackSegment::straight((n[0], n[7])).spawn(&mut commands),
-        TrackSegment::straight((n[8], n[7])).spawn(&mut commands),
-        TrackSegment::curved((n[8], n[10]), n[9]).spawn(&mut commands),
-        TrackSegment::curved((n[11], n[10]), n[9]).spawn(&mut commands),
-        TrackSegment::curved((n[11], n[12]), n[9]).spawn(&mut commands),
-        TrackSegment::curved((n[12], n[7]), n[13]).spawn(&mut commands),
+        TrackSegment::straight(n[0], n[1]).spawn(commands),
+        TrackSegment::curved(n[1], n[3], n[2]).spawn(commands),
+        TrackSegment::straight(n[3], n[4]).spawn(commands),
+        TrackSegment::curved(n[4], n[6], n[5]).spawn(commands),
+        TrackSegment::straight(n[4], n[7]).spawn(commands),
+        TrackSegment::curved(n[7], n[9], n[8]).spawn(commands),
+        TrackSegment::straight(n[9], n[10]).spawn(commands),
+        TrackSegment::curved(n[10], n[12], n[11]).spawn(commands),
+        TrackSegment::straight(n[12], n[15]).spawn(commands), // 60
+        TrackSegment::straight(n[17], n[15]).spawn(commands), // 61
+        TrackSegment::curved(n[13], n[15], n[14]).spawn(commands), // 62
+        TrackSegment::straight(n[6], n[13]).spawn(commands),
+        TrackSegment::curved(n[17], n[0], n[16]).spawn(commands),
     ];
 
     commands.insert_resource(TrackStore {
@@ -95,13 +108,8 @@ fn setup_trains(
 ) {
     create_train(
         &mut commands,
-        3.0,
-        location_at(&store, segments, 8, Direction::FacingA, 0.0, false),
-    );
-    create_train(
-        &mut commands,
-        1.0,
-        location_at(&store, segments, 10, Direction::FacingB, 0.0, false),
+        2.0,
+        location_at(&store, segments, 1, Direction::FacingA, 50.0, false),
     );
 }
 
@@ -111,73 +119,6 @@ fn setup_blocks(
     store: Res<TrackStore>,
     segments: Query<&TrackSegment>,
 ) {
-    let blocks = [
-        create_block(
-            &mut commands,
-            location_at(&store, segments, 5, Direction::FacingB, 0.0, false),
-            location_at(&store, segments, 5, Direction::FacingA, 0.0, false),
-        ),
-        create_block(
-            &mut commands,
-            location_at(&store, segments, 0, Direction::FacingB, 5.0, false),
-            location_at(&store, segments, 1, Direction::FacingA, 5.0, false),
-        ),
-        create_block(
-            &mut commands,
-            location_at(&store, segments, 2, Direction::FacingB, 5.0, false),
-            location_at(&store, segments, 4, Direction::FacingA, 5.0, false),
-        ),
-        create_block(
-            &mut commands,
-            location_at(&store, segments, 6, Direction::FacingA, 5.0, false),
-            location_at(&store, segments, 7, Direction::FacingA, 5.0, false),
-        ),
-        create_block(
-            &mut commands,
-            location_at(&store, segments, 8, Direction::FacingA, 5.0, false),
-            location_at(&store, segments, 10, Direction::FacingA, 5.0, false),
-        ),
-    ];
-    let signals = [
-        create_signal(
-            &mut commands,
-            blocks[0],
-            -40.0,
-            location_at(&store, segments, 4, Direction::FacingA, 5.0, true),
-        ),
-        create_signal(
-            &mut commands,
-            blocks[0],
-            -40.0,
-            location_at(&store, segments, 10, Direction::FacingA, 5.0, true),
-        ),
-        create_signal(
-            &mut commands,
-            blocks[1],
-            -40.0,
-            location_at(&store, segments, 0, Direction::FacingB, 0.0, false),
-        ),
-        create_signal(
-            &mut commands,
-            blocks[2],
-            -40.0,
-            location_at(&store, segments, 1, Direction::FacingA, 0.0, true),
-        ),
-        create_signal(
-            &mut commands,
-            blocks[3],
-            -40.0,
-            location_at(&store, segments, 6, Direction::FacingA, 0.0, false),
-        ),
-        create_signal(
-            &mut commands,
-            blocks[4],
-            -40.0,
-            location_at(&store, segments, 7, Direction::FacingA, 0.0, true),
-        ),
-    ];
-    commands.trigger(LandmarksUpdated);
-    println!("{:?} {:?}", blocks, signals);
 }
 
 fn location_at(

@@ -128,6 +128,7 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
+                gizmos.rounded_rect_2d(position, Vec2::new(5.0, 5.0), css::DARK_CYAN);
                 gizmos.arrow_2d(position, position + direction, css::BLUE);
             }
             TrackSwitch::ThreewayTurnout {
@@ -140,6 +141,7 @@ fn render_switches(
                 let select_node = active_segment.opposite(e_switch).unwrap();
                 let select_pos = nodes.get(select_node).unwrap().translation.xy();
                 let direction = (select_pos - position).normalize() * 55.0;
+                gizmos.rounded_rect_2d(position, Vec2::new(5.0, 5.0), css::DARK_CYAN);
                 gizmos.arrow_2d(position, position + direction, css::BLUE);
             }
             _ => {}

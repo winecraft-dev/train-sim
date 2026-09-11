@@ -129,7 +129,7 @@ fn split_ports<const OUTLET_N: usize>(
 
     for e_neighbor in origin.neighbors.iter() {
         let segment = segments.get(e_neighbor).unwrap();
-        let out_angle = segment.angle_from(e_origin).unwrap().clamp(-PI, PI);
+        let out_angle = segment.angle_from(e_origin).unwrap();
         let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 
         match end {
@@ -147,6 +147,7 @@ fn split_ports<const OUTLET_N: usize>(
             }
         }
     }
+
     if groups.0.len() == 1 {
         (*groups.0.first().unwrap(), *groups.1.as_array().unwrap())
     } else {
