@@ -49,7 +49,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
             loc.distance = if next_track.nodes.0 == e_switch {
                 overflow_distance.abs()
             } else {
-                next_track.length() - overflow_distance.abs()
+                next_track.length - overflow_distance.abs()
             };
         }
     }
@@ -71,13 +71,13 @@ impl<'w, 's> TrackCursor<'w, 's> {
         floc.0.distance = if next_track.nodes.0 == e_switch {
             0.0
         } else {
-            next_track.length()
+            next_track.length
         };
         Ok(())
     }
 
     fn exited(&self, loc: &Location, track: &TrackSegment) -> Option<(Entity, f32)> {
-        let length = track.length();
+        let length = track.length;
         if loc.distance < 0.0 {
             let node_a = track.nodes.0;
             return Some((node_a, loc.distance));

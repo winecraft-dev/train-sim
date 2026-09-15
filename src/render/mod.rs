@@ -2,7 +2,7 @@ use bevy::{color::palettes::css::RED, prelude::*};
 
 use crate::{
     render::track_mesh::TrackMeshBuilder,
-    track::{TrackDataCalculated, TrackNode, TrackSegment, TrackVariant},
+    track::{TrackNode, TrackSegment, TrackVariant},
 };
 
 pub mod debug;
@@ -11,13 +11,10 @@ mod track_mesh;
 pub struct MeshRenderPlugin;
 
 impl Plugin for MeshRenderPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_observer(generate_track_mesh);
-    }
+    fn build(&self, app: &mut App) {}
 }
 
 pub fn generate_track_mesh(
-    _track_updated: On<TrackDataCalculated>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -35,12 +32,7 @@ pub fn generate_track_mesh(
                 center,
                 angle,
                 radius,
-            } => track_builder.add_curved_track(
-                segment.nodes,
-                center,
-                angle.unwrap(),
-                radius.unwrap(),
-            ),
+            } => track_builder.add_curved_track(segment.nodes, center, angle, radius),
         }
     }
 

@@ -29,7 +29,7 @@ impl<'w, 's> Projector<'w, 's> {
 
         match segment.variant {
             TrackVariant::Straight => {
-                let projected = a.lerp(b, loc.distance / segment.length());
+                let projected = a.lerp(b, loc.distance / segment.length);
                 Ok(projected.extend(0.0))
             }
             TrackVariant::Curved {
@@ -40,15 +40,12 @@ impl<'w, 's> Projector<'w, 's> {
                 let center = self.nodes.get(center).unwrap().translation.xy();
                 let start_angle = (a - center).to_angle();
 
-                let angle = angle.unwrap();
-                let track_radius = radius.unwrap();
-
-                let delta_angle = 0.0.lerp(angle, loc.distance / segment.length());
+                let delta_angle = 0.0.lerp(angle, loc.distance / segment.length);
                 let theta = start_angle + delta_angle;
 
                 let (sin, cos) = ops::sin_cos(theta);
-                let x = cos * track_radius;
-                let y = sin * track_radius;
+                let x = cos * radius;
+                let y = sin * radius;
                 let position = Vec2::new(x, y) + center;
 
                 Ok(position.extend(0.0))

@@ -5,6 +5,7 @@ mod render;
 mod signal;
 mod track;
 mod train;
+mod zone;
 
 use bevy::prelude::*;
 
@@ -14,8 +15,12 @@ use crate::{
     loc::{Direction, FacingLocation, Location, LocationPlugin},
     render::debug::DebugRenderPlugin,
     signal::{SignalPlugin, block::create_block, create_signal},
-    track::{SwitchesSpawned, TrackNode, TrackPlugin, TrackSegment, TrackUpdated},
+    track::{
+        SwitchesSpawned, TrackNode, TrackPlugin, TrackSegment, TrackUpdated,
+        builder::{TrackBuilder, TrackStore},
+    },
     train::{TrainPlugin, create_train},
+    zone::AxleCounterPlugin,
 };
 
 fn main() {
@@ -28,9 +33,9 @@ fn main() {
         .add_plugins(ControlPlugin)
         .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
-        .add_systems(Startup, (config, setup_tracks).chain())
+        .add_plugins(AxleCounterPlugin)
+        .add_systems(Startup, (config, setup_nodes, setup_tracks).chain())
         .add_observer(setup_trains)
-        .add_observer(setup_blocks)
         .run();
 }
 
@@ -39,65 +44,46 @@ fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     config.line.width = 4.0;
 
     commands.spawn((Camera2d, Camera::default()));
+    commands.insert_resource(TrackStore::default());
 }
 
-#[derive(Resource)]
-pub struct TrackStore {
-    #[allow(unused)]
-    nodes: Vec<Entity>,
-    segments: Vec<Entity>,
+fn setup_nodes(mut builder: TrackBuilder) {
+    builder.node(-300.0, 300.0);
+    builder.node(300.0, 300.0);
+    builder.node(300.0, 250.0); // CENTER
+    builder.node(350.0, 250.0);
+    builder.node(350.0, 0.0);
+    builder.node(300.0, 0.0); // CENTER
+    builder.node(300.0, -50.0);
+    builder.node(350.0, -250.0);
+    builder.node(300.0, -250.0); // CENTER
+    builder.node(300.0, -300.0);
+    builder.node(-300.0, -300.0);
+    builder.node(-300.0, -250.0); // CENTER
+    builder.node(-350.0, -250.0);
+    builder.node(-300.0, -50.0);
+    builder.node(-300.0, 0.0); // CENTER
+    builder.node(-350.0, 0.0);
+    builder.node(-300.0, 250.0); // CENTER
+    builder.node(-350.0, 250.0);
 }
 
-fn setup_tracks(mut commands: Commands) {
-    let n = [
-        Vec2::new(-300.0, 300.0),
-        Vec2::new(300.0, 300.0),
-        Vec2::new(300.0, 250.0), // CENTER
-        Vec2::new(350.0, 250.0),
-        Vec2::new(350.0, 0.0),
-        Vec2::new(300.0, 0.0), // CENTER
-        Vec2::new(300.0, -50.0),
-        Vec2::new(350.0, -250.0),
-        Vec2::new(300.0, -250.0), // CENTER
-        Vec2::new(300.0, -300.0),
-        Vec2::new(-300.0, -300.0),
-        Vec2::new(-300.0, -250.0), // CENTER
-        Vec2::new(-350.0, -250.0),
-        Vec2::new(-300.0, -50.0),
-        Vec2::new(-300.0, 0.0), // CENTER
-        Vec2::new(-350.0, 0.0),
-        Vec2::new(-300.0, 250.0), // CENTER
-        Vec2::new(-350.0, 250.0),
-    ];
+fn setup_tracks(mut builder: TrackBuilder) {
+    builder.straight(0, 1);
+    builder.curved(1, 3, 2);
+    builder.straight(3, 4);
+    builder.curved(4, 6, 5);
+    builder.straight(4, 7);
+    builder.curved(7, 9, 8);
+    builder.straight(9, 10);
+    builder.curved(10, 12, 11);
+    builder.straight(12, 15);
+    builder.straight(17, 15);
+    builder.curved(13, 15, 14);
+    builder.straight(6, 13);
+    builder.curved(17, 0, 16);
 
-    let commands = &mut commands;
-
-    let n: Vec<Entity> = n
-        .iter()
-        .map(|p| TrackNode::spawn(p.x, p.y, commands))
-        .collect();
-
-    let t = [
-        TrackSegment::straight(n[0], n[1]).spawn(commands),
-        TrackSegment::curved(n[1], n[3], n[2]).spawn(commands),
-        TrackSegment::straight(n[3], n[4]).spawn(commands),
-        TrackSegment::curved(n[4], n[6], n[5]).spawn(commands),
-        TrackSegment::straight(n[4], n[7]).spawn(commands),
-        TrackSegment::curved(n[7], n[9], n[8]).spawn(commands),
-        TrackSegment::straight(n[9], n[10]).spawn(commands),
-        TrackSegment::curved(n[10], n[12], n[11]).spawn(commands),
-        TrackSegment::straight(n[12], n[15]).spawn(commands), // 60
-        TrackSegment::straight(n[17], n[15]).spawn(commands), // 61
-        TrackSegment::curved(n[13], n[15], n[14]).spawn(commands), // 62
-        TrackSegment::straight(n[6], n[13]).spawn(commands),
-        TrackSegment::curved(n[17], n[0], n[16]).spawn(commands),
-    ];
-
-    commands.insert_resource(TrackStore {
-        nodes: n.to_vec(),
-        segments: t.to_vec(),
-    });
-    commands.trigger(TrackUpdated);
+    builder.flush();
 }
 
 fn setup_trains(
@@ -113,14 +99,6 @@ fn setup_trains(
     );
 }
 
-fn setup_blocks(
-    _done: On<SwitchesSpawned>,
-    mut commands: Commands,
-    store: Res<TrackStore>,
-    segments: Query<&TrackSegment>,
-) {
-}
-
 fn location_at(
     store: &Res<TrackStore>,
     segments: Query<&TrackSegment>,
@@ -133,7 +111,7 @@ fn location_at(
     let distance = match end {
         Direction::FacingA => {
             let segment = segments.get(e_segment).unwrap();
-            segment.length() - offset
+            segment.length - offset
         }
         Direction::FacingB => 0.0 + offset,
     };
