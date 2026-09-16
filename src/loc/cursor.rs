@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Direction, FacingLocation, Location, error::LocError},
+    loc::{Dir, FacingLocation, Loc, error::LocError},
     track::{TrackSegment, switch::TrackSwitch},
 };
 
@@ -54,11 +54,11 @@ impl<'w, 's> TrackCursor<'w, 's> {
         }
     }
 
-    pub fn next_track(&self, floc: &mut (Location, Direction)) -> Result<(), LocError> {
+    pub fn next_track(&self, floc: &mut (Loc, Dir)) -> Result<(), LocError> {
         let current_track = self.segments.get(floc.0.track).unwrap(); // CLEAN
         let e_switch = match floc.1 {
-            Direction::FacingA => current_track.nodes.0,
-            Direction::FacingB => current_track.nodes.1,
+            Dir::FacingA => current_track.nodes.0,
+            Dir::FacingB => current_track.nodes.1,
         };
         let switch = self.switches.get(e_switch).unwrap(); // CLEAN
         let e_next = match switch.next_segment(floc.0.track) {
@@ -76,7 +76,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
         Ok(())
     }
 
-    fn exited(&self, loc: &Location, track: &TrackSegment) -> Option<(Entity, f32)> {
+    fn exited(&self, loc: &Loc, track: &TrackSegment) -> Option<(Entity, f32)> {
         let length = track.length;
         if loc.distance < 0.0 {
             let node_a = track.nodes.0;
@@ -90,10 +90,10 @@ impl<'w, 's> TrackCursor<'w, 's> {
 }
 
 pub fn select_direction(
-    dir: Direction,
+    dir: Dir,
     current_track: &TrackSegment,
     next_track: &TrackSegment,
-) -> Direction {
+) -> Dir {
     if current_track.nodes.0 == next_track.nodes.0 {
         dir.flip()
     } else if current_track.nodes.1 == next_track.nodes.1 {

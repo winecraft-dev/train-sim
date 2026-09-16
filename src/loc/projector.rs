@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Location, error::LocError},
+    loc::{Loc, error::LocError},
     track::{TrackNode, TrackSegment, TrackVariant},
 };
 
@@ -12,7 +12,7 @@ pub struct Projector<'w, 's> {
 }
 
 impl<'w, 's> Projector<'w, 's> {
-    pub fn project(&self, loc: Location) -> Result<Vec3, LocError> {
+    pub fn project(&self, loc: Loc) -> Result<Vec3, LocError> {
         let segment = match self.segments.get(loc.track) {
             Ok(s) => s,
             Err(_) => return Err(LocError::BrokenSegmentReference(loc.track)),

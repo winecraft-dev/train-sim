@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     TrackStore,
     landmark::{Landmark, LandmarkPassed},
-    loc::FacingLocation,
+    loc::{FacingLocation, locator::Locator},
 };
 
 pub struct AxleCounterPlugin;
@@ -15,7 +15,7 @@ impl Plugin for AxleCounterPlugin {
 }
 
 #[derive(Component)]
-struct AxleCounter {
+pub struct AxleCounter {
     zone: Entity,
 }
 
@@ -32,27 +32,26 @@ pub enum ZoneStatus {
 
 #[derive(Component, Default)]
 pub struct Zone {
-    axle_count: usize,
+    pub axle_count: usize,
 }
 
 #[derive(SystemParam)]
 pub struct ZoneBuilder<'w, 's> {
     commands: Commands<'w, 's>,
-    // someday build it out so we can maybe pull up "locations" from here and not some jank
-    // method
-    store: Res<'w, TrackStore>,
 }
 
 impl<'w, 's> ZoneBuilder<'w, 's> {
-    pub fn spawn(&mut self) -> Entity {
-        self.commands.spawn(Zone::default()).id()
+    pub fn new(&mut self) -> Entity {
+        self.commands
+            .spawn((GlobalTransform::default(), Zone::default()))
+            .id()
     }
 
-    pub fn add_counter(&mut self, e_zone: Entity, floc: FacingLocation) {
-        let counter = AxleCounter { zone: e_zone };
+    pub fn add_counter(&mut self, zone: Entity, floc: FacingLocation) {
+        let counter = AxleCounter { zone: zone };
         let e_counter = self.commands.spawn((counter, Landmark, floc)).id();
 
-        self.commands.entity(e_zone).add_child(e_counter);
+        self.commands.entity(zone).add_child(e_counter);
     }
 }
 

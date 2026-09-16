@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{Direction, FacingLocation, Location, cursor::TrackCursor, projector::Projector},
+    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor, projector::Projector},
     track::TrackNode,
     train::{Derailed, Train, TrainCreated, TrainDerailed},
 };
@@ -28,10 +28,10 @@ impl Axle {
 
 pub const AXLE_DISTANCE: f32 = 50.0;
 
-fn axle_offset(facing: Direction, offset: f32) -> f32 {
+fn axle_offset(facing: Dir, offset: f32) -> f32 {
     match facing {
-        Direction::FacingA => offset,
-        Direction::FacingB => -offset,
+        Dir::FacingA => offset,
+        Dir::FacingB => -offset,
     }
 }
 
@@ -65,10 +65,10 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
         .add_child(e_rear);
 }
 
-fn train_speed(facing: Direction, speed: f32) -> f32 {
+fn train_speed(facing: Dir, speed: f32) -> f32 {
     match facing {
-        Direction::FacingA => -speed,
-        Direction::FacingB => speed,
+        Dir::FacingA => -speed,
+        Dir::FacingB => speed,
     }
 }
 
@@ -83,18 +83,18 @@ pub struct AxleMoved {
 fn speed_direction(old: &mut FacingLocation, new: &mut FacingLocation, speed: f32) {
     let flipped = old.1 != new.1;
     old.1 = if speed < 0.0 {
-        Direction::FacingA
+        Dir::FacingA
     } else {
-        Direction::FacingB
+        Dir::FacingB
     };
     new.1 = if !flipped { old.1 } else { old.1.flip() }
 }
 
 fn apply_train_speeds(
     mut commands: Commands,
-    trains: Query<(Entity, &Train, &Axle, &mut Location, &mut Direction), Without<Derailed>>,
+    trains: Query<(Entity, &Train, &Axle, &mut Loc, &mut Dir), Without<Derailed>>,
     children: Query<&Children>,
-    mut axles: Query<(&Axle, &mut Location, &mut Direction), Without<Train>>,
+    mut axles: Query<(&Axle, &mut Loc, &mut Dir), Without<Train>>,
     cursor: TrackCursor,
 ) {
     for (e_train, train, _, mut main_loc, mut main_dir) in trains {
@@ -143,7 +143,7 @@ fn apply_train_speeds(
 }
 
 fn project_axle_positions(
-    axles: Query<(Entity, &mut Transform, &Location), (With<Axle>, Without<TrackNode>)>,
+    axles: Query<(Entity, &mut Transform, &Loc), (With<Axle>, Without<TrackNode>)>,
     projector: Projector,
 ) {
     for (e_axle, mut transform, location) in axles {

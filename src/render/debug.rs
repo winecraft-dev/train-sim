@@ -1,17 +1,15 @@
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{color::palettes::css, math::VectorSpace, prelude::*};
 
 use crate::{
     landmark::Landmark,
-    loc::{Direction, Location},
-    signal::{
-        ObservableBound, Signal,
-        block::{Block, BlockBound, OccupiedBlock},
-    },
+    loc::{Dir, Loc},
+    signal::{ObservableBound, Signal, block::OccupiedBlock},
     track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
     train::{
         Train,
         axle::{AXLE_DISTANCE, Axle},
     },
+    zone::{AxleCounter, Zone},
 };
 
 pub struct DebugRenderPlugin;
@@ -24,9 +22,9 @@ impl Plugin for DebugRenderPlugin {
                 render_tracks,
                 render_trains,
                 render_signals,
+                render_zones,
                 render_facing.run_if(should_render_directions),
                 render_locations.run_if(should_render_locations),
-                render_blocks.run_if(should_render_blocks),
                 render_switches,
             )
                 .chain(),
@@ -47,10 +45,6 @@ fn should_render_directions(config: Res<RenderConfig>) -> bool {
 
 fn should_render_locations(config: Res<RenderConfig>) -> bool {
     config.locations
-}
-
-fn should_render_blocks(config: Res<RenderConfig>) -> bool {
-    config.blocks
 }
 
 fn init_config(mut commands: Commands) {
@@ -116,6 +110,7 @@ fn render_switches(
 ) {
     for (e_switch, transform, switch) in switches {
         let position = transform.translation.xy();
+        gizmos.circle_2d(position, 1.0, css::BLACK);
         match switch {
             TrackSwitch::Switch {
                 control,
@@ -151,7 +146,7 @@ fn render_switches(
 
 fn render_facing(
     mut gizmos: Gizmos,
-    facing: Query<(&Location, &Direction, &Transform)>,
+    facing: Query<(&Loc, &Dir, &Transform)>,
     segments: Query<&TrackSegment>,
     switches: Query<&Transform>,
 ) {
@@ -159,8 +154,8 @@ fn render_facing(
         let facing_pos = facing_pos.translation.xy();
         let segment = segments.get(loc.track).unwrap();
         let facing_switch = match facing {
-            Direction::FacingA => segment.nodes.0,
-            Direction::FacingB => segment.nodes.1,
+            Dir::FacingA => segment.nodes.0,
+            Dir::FacingB => segment.nodes.1,
         };
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
         let arrow_pos = (switch_pos - facing_pos).normalize() * 20.0 + facing_pos;
@@ -170,7 +165,7 @@ fn render_facing(
 
 fn render_locations(
     mut gizmos: Gizmos,
-    locations: Query<(&Transform, Option<&Landmark>), With<Location>>,
+    locations: Query<(&Transform, Option<&Landmark>), With<Loc>>,
 ) {
     for (transform, landmark) in locations {
         let color = match landmark {
@@ -178,30 +173,6 @@ fn render_locations(
             None => css::HOT_PINK,
         };
         gizmos.circle_2d(transform.translation.xy(), 1.0, color);
-    }
-}
-
-fn render_blocks(
-    mut gizmos: Gizmos,
-    blocks: Query<(Entity, &Block, Option<&OccupiedBlock>)>,
-    children: Query<&Children>,
-    bounds: Query<(&BlockBound, &Transform)>,
-) {
-    for (e_block, _, occupied) in blocks {
-        let bound_pos: Vec<Vec2> = children
-            .get(e_block)
-            .unwrap()
-            .iter()
-            .filter_map(|e| bounds.get(e).ok())
-            .map(|b| b.1.translation.xy())
-            .collect();
-
-        let color = match occupied {
-            Some(_) => css::ORANGE_RED,
-            None => css::YELLOW,
-        };
-        gizmos.circle_2d(bound_pos[0], 1.0, color);
-        gizmos.circle_2d(bound_pos[1], 1.0, color);
     }
 }
 
@@ -225,5 +196,35 @@ fn render_signals(
     for pos in obv_bounds {
         let pos = pos.translation.xy();
         gizmos.cross_2d(pos, 5.0, css::RED);
+    }
+}
+
+fn render_zones(
+    mut gizmos: Gizmos,
+    zones: Query<(Entity, &Zone)>,
+    counters: Query<&Transform, With<AxleCounter>>,
+    children: Query<&Children>,
+) {
+    for (e_zone, zone) in zones {
+        let Ok(children) = children.get(e_zone) else {
+            continue;
+        };
+        let counter_positions: Vec<Vec2> = children
+            .iter()
+            .filter_map(|e| counters.get(e).ok())
+            .map(|t| t.translation.xy())
+            .collect();
+
+        let center: Vec2 = counter_positions.iter().sum::<Vec2>() / counter_positions.len() as f32;
+        for cpos in counter_positions {
+            gizmos.line_2d(cpos, center, css::MEDIUM_PURPLE);
+        }
+        gizmos.text_2d(
+            center,
+            &format!("<{}>", zone.axle_count),
+            12.0,
+            Vec2::ZERO,
+            css::BLUE_VIOLET,
+        );
     }
 }

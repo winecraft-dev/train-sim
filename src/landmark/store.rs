@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     landmark::{IndexedLandmark, Landmark},
-    loc::{Direction, Location},
+    loc::{Dir, Loc},
 };
 
 pub struct LandmarksStorePlugin;
@@ -38,7 +38,7 @@ fn init_store(mut commands: Commands) {
 fn update_store(
     mut commands: Commands,
     mut store: ResMut<LandmarkStore>,
-    landmarks: Query<(Entity, &Location, &Direction), (With<Landmark>, Without<IndexedLandmark>)>,
+    landmarks: Query<(Entity, &Loc, &Dir), (With<Landmark>, Without<IndexedLandmark>)>,
 ) {
     for (e_landmark, loc, _) in landmarks {
         let e_track = loc.track;

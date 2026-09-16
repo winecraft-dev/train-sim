@@ -4,7 +4,7 @@ use block::BlockPlugin;
 
 use crate::{
     landmark::{Landmark, LandmarkPassed},
-    loc::{Direction, FacingLocation, Location, cursor::TrackCursor},
+    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor},
     signal::block::{Block, OccupiedBlock, TrainPassedBlock},
     train::effect::TrainEffect,
 };
@@ -64,7 +64,7 @@ pub fn create_signal(
 fn add_observable_bound(
     mut commands: Commands,
     cursor: TrackCursor,
-    signals: Query<(Entity, &Location, &Direction, &Signal), Without<SignalWithBound>>,
+    signals: Query<(Entity, &Loc, &Dir, &Signal), Without<SignalWithBound>>,
 ) {
     for (e_signal, loc, dir, signal) in signals {
         let obv_loc = match cursor.traverse((*loc, *dir), signal.stop_distance) {

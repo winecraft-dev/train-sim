@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 pub mod cursor;
 pub mod error;
+pub mod locator;
 pub mod projector;
 
 use crate::loc::projector::Projector;
@@ -14,31 +15,17 @@ impl Plugin for LocationPlugin {
     }
 }
 
-pub type FacingLocation = (Location, Direction);
+pub type FacingLocation = (Loc, Dir);
 
 #[derive(Component, Debug, Clone, Copy)]
-pub struct Location {
+pub struct Loc {
     pub track: Entity,
     pub distance: f32,
 }
 
-impl Location {
-    pub fn new(e_track: Entity) -> Self {
-        Self {
-            track: e_track,
-            distance: 0.0,
-        }
-    }
-
-    pub fn with_distance(mut self, distance: f32) -> Self {
-        self.distance = distance;
-        self
-    }
-}
-
 fn add_transforms(
     mut commands: Commands,
-    locations: Query<(Entity, &Location), Without<Transform>>,
+    locations: Query<(Entity, &Loc), Without<Transform>>,
     projector: Projector,
 ) {
     for (e, loc) in locations {
@@ -54,17 +41,17 @@ fn add_transforms(
 }
 
 #[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
-pub enum Direction {
+pub enum Dir {
     FacingA,
     #[default]
     FacingB,
 }
 
-impl Direction {
+impl Dir {
     pub fn flip(self) -> Self {
         match self {
-            Direction::FacingA => Direction::FacingB,
-            Direction::FacingB => Direction::FacingA,
+            Dir::FacingA => Dir::FacingB,
+            Dir::FacingB => Dir::FacingA,
         }
     }
 }

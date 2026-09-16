@@ -2,13 +2,13 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
     landmark::{Landmark, store::LandmarkStore},
-    loc::{Direction, FacingLocation, Location, cursor::TrackCursor, error::LocError},
+    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor, error::LocError},
 };
 
 #[derive(SystemParam)]
 pub struct Scanner<'w, 's> {
     cursor: TrackCursor<'w, 's>,
-    landmarks: Query<'w, 's, (Entity, &'static Location, &'static Direction), With<Landmark>>,
+    landmarks: Query<'w, 's, (Entity, &'static Loc, &'static Dir), With<Landmark>>,
 }
 
 type Passed = (Entity, bool);
@@ -31,24 +31,24 @@ impl<'w, 's> Scanner<'w, 's> {
             let e_landmarks = store.landmarks_on(&scan_pos.0.track);
             if e_landmarks.len() > 0 {
                 match scan_pos.1 {
-                    Direction::FacingA => {
+                    Dir::FacingA => {
                         let bound_b = if same_track { b.0.distance } else { 0.0 };
                         for e_landmark in e_landmarks.iter().rev() {
                             let landmark = self.landmarks.get(*e_landmark).unwrap(); // CLEAN UP
                             let ld = landmark.1.distance;
                             if bound_b <= ld && ld <= bound_a {
-                                let forward = *landmark.2 == Direction::FacingA;
+                                let forward = *landmark.2 == Dir::FacingA;
                                 passed.push((*e_landmark, forward));
                             }
                         }
                     }
-                    Direction::FacingB => {
+                    Dir::FacingB => {
                         let bound_b = if same_track { b.0.distance } else { f32::MAX };
                         for e_landmark in e_landmarks.iter() {
                             let landmark = self.landmarks.get(*e_landmark).unwrap();
                             let ld = landmark.1.distance;
                             if bound_b >= ld && ld >= bound_a {
-                                let forward = *landmark.2 == Direction::FacingB;
+                                let forward = *landmark.2 == Dir::FacingB;
                                 passed.push((*e_landmark, forward));
                             }
                         }
