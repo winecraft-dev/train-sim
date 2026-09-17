@@ -1,10 +1,13 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    TrackStore,
     landmark::{Landmark, LandmarkPassed},
-    loc::{FacingLocation, locator::Locator},
+    loc::FacingLocation,
+    zone::block::Block,
 };
+
+pub mod block;
+pub mod junction;
 
 pub struct AxleCounterPlugin;
 
@@ -19,10 +22,9 @@ pub struct AxleCounter {
     zone: Entity,
 }
 
-#[derive(Event)]
-pub struct ZoneStatusUpdate {
-    zone: Entity,
-    status: ZoneStatus,
+#[derive(Component, Default)]
+pub struct Zone {
+    pub count: usize,
 }
 
 pub enum ZoneStatus {
@@ -30,9 +32,28 @@ pub enum ZoneStatus {
     Occupied,
 }
 
-#[derive(Component, Default)]
-pub struct Zone {
-    pub axle_count: usize,
+impl Zone {
+    fn crossed(&mut self, forwards: bool) -> Option<ZoneStatus> {
+        if forwards {
+            self.count += 1;
+            if self.count == 1 {
+                return Some(ZoneStatus::Occupied);
+            }
+        } else if self.count > 0 {
+            self.count -= 1;
+            if self.count == 0 {
+                return Some(ZoneStatus::Clear);
+            }
+        }
+        None
+    }
+
+    fn status(&self) -> ZoneStatus {
+        match self.count {
+            0 => ZoneStatus::Clear,
+            _ => ZoneStatus::Occupied,
+        }
+    }
 }
 
 #[derive(SystemParam)]
@@ -53,6 +74,16 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
 
         self.commands.entity(zone).add_child(e_counter);
     }
+
+    pub fn block(&mut self, zone: Entity) {
+        self.commands.entity(zone).insert(Block);
+    }
+}
+
+#[derive(Event)]
+pub struct ZoneUpdate {
+    zone: Entity,
+    status: ZoneStatus,
 }
 
 fn axle_crossed(
@@ -78,23 +109,11 @@ fn axle_crossed(
         Err(_) => return,
     };
 
-    let axle_count = &mut zone.axle_count;
-
-    if forwards {
-        *axle_count += 1;
-        if *axle_count == 1 {
-            commands.trigger(ZoneStatusUpdate {
-                zone: e_zone,
-                status: ZoneStatus::Occupied,
-            });
-        }
-    } else if *axle_count > 0 {
-        *axle_count -= 1;
-        if *axle_count == 0 {
-            commands.trigger(ZoneStatusUpdate {
-                zone: e_zone,
-                status: ZoneStatus::Clear,
-            });
-        }
+    match zone.crossed(forwards) {
+        Some(s) => commands.trigger(ZoneUpdate {
+            zone: e_zone,
+            status: s,
+        }),
+        None => return,
     }
 }

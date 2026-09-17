@@ -1,4 +1,4 @@
-use bevy::{color::palettes::css, math::VectorSpace, prelude::*};
+use bevy::{color::palettes::css, prelude::*};
 
 use crate::{
     landmark::Landmark,
@@ -221,7 +221,7 @@ fn render_zones(
         }
         gizmos.text_2d(
             center,
-            &format!("<{}>", zone.axle_count),
+            &format!("<{}>", zone.count),
             12.0,
             Vec2::ZERO,
             css::BLUE_VIOLET,

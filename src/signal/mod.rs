@@ -1,32 +1,27 @@
 use bevy::prelude::*;
 
-use block::BlockPlugin;
-
 use crate::{
-    landmark::{Landmark, LandmarkPassed},
-    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor},
-    signal::block::{Block, OccupiedBlock, TrainPassedBlock},
-    train::effect::TrainEffect,
+    landmark::LandmarkPassed, signal::builder::add_observable_bounds, train::effect::TrainEffect,
+    zone::ZoneUpdate,
 };
 
-pub mod block;
+pub mod builder;
 pub mod error;
 
 pub struct SignalPlugin;
 
 impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(BlockPlugin)
-            .add_observer(train_passed)
+        app.add_observer(train_passed)
             .add_observer(train_exited)
-            .add_systems(Update, add_observable_bound);
+            .add_systems(PostStartup, add_observable_bounds);
     }
 }
 
 #[derive(Component)]
 pub struct Signal {
-    pub block: Entity,
-    stop_distance: f32,
+    pub zone: Entity,
+    pub observable_distance: f32,
 }
 
 #[derive(Component)]
@@ -35,53 +30,8 @@ pub struct HoldingSignal {
 }
 
 #[derive(Component)]
-pub struct SignalWithBound;
-
-#[derive(Component)]
 pub struct ObservableBound {
     pub signal: Entity,
-}
-
-pub fn create_signal(
-    commands: &mut Commands,
-    block: Entity,
-    stop_distance: f32,
-    location: FacingLocation,
-) -> Entity {
-    let e_signal = commands
-        .spawn((
-            Signal {
-                block,
-                stop_distance,
-            },
-            location,
-        ))
-        .id();
-    commands.entity(block).add_child(e_signal);
-    e_signal
-}
-
-fn add_observable_bound(
-    mut commands: Commands,
-    cursor: TrackCursor,
-    signals: Query<(Entity, &Loc, &Dir, &Signal), Without<SignalWithBound>>,
-) {
-    for (e_signal, loc, dir, signal) in signals {
-        let obv_loc = match cursor.traverse((*loc, *dir), signal.stop_distance) {
-            Ok(l) => l,
-            Err(e) => {
-                eprintln!("Problem adding observable bound: {}", e);
-                return;
-            }
-        };
-        let e_obv = commands
-            .spawn((Landmark, ObservableBound { signal: e_signal }, obv_loc))
-            .id();
-        commands
-            .entity(e_signal)
-            .add_child(e_obv)
-            .insert(SignalWithBound);
-    }
 }
 
 #[derive(Event)]
@@ -131,7 +81,7 @@ fn train_passed(
 }
 
 fn train_exited(
-    passed: On<TrainPassedBlock>,
+    passed: On<ZoneUpdate>,
     mut commands: Commands,
     signals: Query<(&HoldingSignal, &Signal)>,
     children: Query<&Children>,
