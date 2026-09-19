@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    landmark::LandmarkPassed, signal::builder::add_observable_bounds, train::effect::TrainEffect,
-    zone::ZoneUpdate,
+    control::TargetClicked, landmark::LandmarkPassed, signal::builder::add_observable_bounds,
+    train::effect::TrainEffect,
 };
 
 pub mod builder;
@@ -13,15 +13,23 @@ pub struct SignalPlugin;
 impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(train_passed)
-            .add_observer(train_exited)
-            .add_systems(PostStartup, add_observable_bounds);
+            .add_systems(PostStartup, add_observable_bounds)
+            .add_systems(Update, release_trains)
+            .add_observer(signal_clicked);
     }
 }
 
 #[derive(Component)]
 pub struct Signal {
-    pub zone: Entity,
+    pub aspect: Aspect,
     pub observable_distance: f32,
+}
+
+#[derive(Default)]
+pub enum Aspect {
+    Red,
+    #[default]
+    Green,
 }
 
 #[derive(Component)]
@@ -45,7 +53,6 @@ fn train_passed(
     mut commands: Commands,
     obv_bounds: Query<&ObservableBound>,
     signals: Query<&Signal>,
-    blocks: Query<Option<&OccupiedBlock>, With<Block>>,
 ) {
     let LandmarkPassed {
         forwards,
@@ -67,11 +74,9 @@ fn train_passed(
         Err(_) => return,
     };
 
-    let block_occupied = blocks.get(signal.block).unwrap().is_some();
-
-    if block_occupied {
+    if let Aspect::Red = signal.aspect {
         commands
-            .entity(e_landmark)
+            .entity(e_signal)
             .insert(HoldingSignal { train: e_train });
         commands.trigger(TrainSignaled {
             train: e_train,
@@ -80,35 +85,29 @@ fn train_passed(
     }
 }
 
-fn train_exited(
-    passed: On<ZoneUpdate>,
+fn release_trains(
     mut commands: Commands,
-    signals: Query<(&HoldingSignal, &Signal)>,
-    children: Query<&Children>,
+    holding_signals: Query<(Entity, &HoldingSignal, &Signal)>,
 ) {
-    let TrainPassedBlock {
-        entered,
-        block: e_block,
-        train: _,
-    } = *passed.event();
-
-    if entered {
-        return;
+    for (e_signal, holding, signal) in holding_signals {
+        if let Aspect::Green = signal.aspect {
+            commands.trigger(TrainSignaled {
+                train: holding.train,
+                effect: TrainEffect::Go,
+            });
+            commands.entity(e_signal).remove::<HoldingSignal>();
+        }
     }
+}
 
-    let signals: Vec<(&HoldingSignal, &Signal)> = children
-        .get(e_block)
-        .unwrap()
-        .iter()
-        .filter_map(|e| signals.get(e).ok())
-        .collect();
-
-    for (holding, _) in signals {
-        let e_release = holding.train;
-
-        commands.trigger(TrainSignaled {
-            train: e_release,
-            effect: TrainEffect::Go,
-        });
-    }
+fn signal_clicked(clicked: On<TargetClicked>, mut signals: Query<&mut Signal>) {
+    let e_signal = clicked.0;
+    let mut signal = match signals.get_mut(e_signal) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    signal.aspect = match signal.aspect {
+        Aspect::Red => Aspect::Green,
+        Aspect::Green => Aspect::Red,
+    };
 }

@@ -3,7 +3,7 @@ use bevy::{color::palettes::css, prelude::*};
 use crate::{
     landmark::Landmark,
     loc::{Dir, Loc},
-    signal::{ObservableBound, Signal, block::OccupiedBlock},
+    signal::{Aspect, ObservableBound, Signal},
     track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
     train::{
         Train,
@@ -180,14 +180,12 @@ fn render_signals(
     mut gizmos: Gizmos,
     signals: Query<(&Transform, &Signal)>,
     obv_bounds: Query<&Transform, With<ObservableBound>>,
-    blocks: Query<Option<&OccupiedBlock>>,
 ) {
     for (pos, signal) in signals {
         let pos = pos.translation.xy();
-        let occupied = blocks.get(signal.block).unwrap();
-        let color = match occupied {
-            Some(_) => css::RED,
-            None => css::GREEN,
+        let color = match signal.aspect {
+            Aspect::Red => css::RED,
+            Aspect::Green => css::GREEN,
         };
 
         gizmos.circle_2d(pos, 10.0, color);

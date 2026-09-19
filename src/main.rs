@@ -14,13 +14,16 @@ use crate::{
     landmark::LandmarkPlugin,
     loc::{Dir, LocationPlugin, locator::Locator},
     render::debug::DebugRenderPlugin,
-    signal::SignalPlugin,
+    signal::{SignalPlugin, builder::SignalBuilder},
     track::{
         SwitchesSpawned, TrackPlugin,
         builder::{TrackBuilder, TrackStore},
     },
     train::{TrainPlugin, create_train},
-    zone::{AxleCounterPlugin, ZoneBuilder},
+    zone::{
+        AxleCounterPlugin,
+        builder::{ZoneBuilder, ZoneStore, ZonesBuilt},
+    },
 };
 
 fn main() {
@@ -37,6 +40,7 @@ fn main() {
         .add_systems(Startup, (config, setup_nodes, setup_tracks).chain())
         .add_observer(setup_blocks)
         .add_observer(setup_trains)
+        .add_observer(setup_signals)
         .run();
 }
 
@@ -46,6 +50,7 @@ fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
 
     commands.spawn((Camera2d, Camera::default()));
     commands.insert_resource(TrackStore::default());
+    commands.insert_resource(ZoneStore::default());
 }
 
 fn setup_nodes(mut builder: TrackBuilder) {
@@ -109,4 +114,10 @@ fn setup_blocks(_done: On<SwitchesSpawned>, mut builder: ZoneBuilder, locator: L
     builder.add_counter(ez3, locator.on_end(9, Dir::FacingA, 20.0, Dir::FacingB));
     builder.add_counter(ez3, locator.on_end(11, Dir::FacingA, 20.0, Dir::FacingB));
     builder.add_counter(ez3, locator.on_end(8, Dir::FacingA, 100.0, Dir::FacingB));
+
+    builder.flush();
+}
+
+fn setup_signals(_: On<ZonesBuilt>, mut builder: SignalBuilder, locator: Locator) {
+    let s1 = builder.new(locator.on_end(2, Dir::FacingA, 25.0, Dir::FacingB), -50.0);
 }

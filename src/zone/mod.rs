@@ -7,6 +7,7 @@ use crate::{
 };
 
 pub mod block;
+pub mod builder;
 pub mod junction;
 
 pub struct AxleCounterPlugin;
@@ -53,30 +54,6 @@ impl Zone {
             0 => ZoneStatus::Clear,
             _ => ZoneStatus::Occupied,
         }
-    }
-}
-
-#[derive(SystemParam)]
-pub struct ZoneBuilder<'w, 's> {
-    commands: Commands<'w, 's>,
-}
-
-impl<'w, 's> ZoneBuilder<'w, 's> {
-    pub fn new(&mut self) -> Entity {
-        self.commands
-            .spawn((GlobalTransform::default(), Zone::default()))
-            .id()
-    }
-
-    pub fn add_counter(&mut self, zone: Entity, floc: FacingLocation) {
-        let counter = AxleCounter { zone: zone };
-        let e_counter = self.commands.spawn((counter, Landmark, floc)).id();
-
-        self.commands.entity(zone).add_child(e_counter);
-    }
-
-    pub fn block(&mut self, zone: Entity) {
-        self.commands.entity(zone).insert(Block);
     }
 }
 

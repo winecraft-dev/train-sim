@@ -1,9 +1,10 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
+    control::ClickTarget,
     landmark::Landmark,
     loc::{Dir, FacingLocation, Loc, cursor::TrackCursor},
-    signal::{ObservableBound, Signal},
+    signal::{Aspect, ObservableBound, Signal},
 };
 
 #[derive(SystemParam)]
@@ -14,23 +15,18 @@ pub struct SignalBuilder<'w, 's> {
 }
 
 impl<'w, 's> SignalBuilder<'w, 's> {
-    pub fn new(
-        &mut self,
-        zone: Entity,
-        floc: FacingLocation,
-        observable_distance: f32,
-    ) -> Option<Entity> {
+    pub fn new(&mut self, floc: FacingLocation, observable_distance: f32) -> Option<Entity> {
         let e_signal = self
             .commands
             .spawn((
                 Signal {
-                    zone,
+                    aspect: Aspect::default(),
                     observable_distance,
                 },
+                ClickTarget,
                 floc,
             ))
             .id();
-        self.commands.entity(zone).add_child(e_signal);
 
         Some(e_signal)
     }
