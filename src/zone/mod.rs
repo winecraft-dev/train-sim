@@ -1,10 +1,6 @@
-use bevy::{ecs::system::SystemParam, prelude::*};
+use bevy::prelude::*;
 
-use crate::{
-    landmark::{Landmark, LandmarkPassed},
-    loc::FacingLocation,
-    zone::block::Block,
-};
+use crate::{landmark::LandmarkPassed, zone::block::BlockPlugin};
 
 pub mod block;
 pub mod builder;
@@ -14,7 +10,7 @@ pub struct AxleCounterPlugin;
 
 impl Plugin for AxleCounterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(axle_crossed);
+        app.add_plugins(BlockPlugin).add_observer(axle_crossed);
     }
 }
 

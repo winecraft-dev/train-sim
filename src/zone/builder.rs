@@ -39,7 +39,7 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
     }
 
     pub fn block(&mut self, zone: Entity) {
-        self.commands.entity(zone).insert(Block);
+        self.commands.entity(zone).insert(Block::default());
     }
 
     pub fn flush(&mut self) {

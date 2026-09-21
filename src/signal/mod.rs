@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
 use crate::{
-    control::TargetClicked, landmark::LandmarkPassed, signal::builder::add_observable_bounds,
+    control::TargetClicked,
+    landmark::LandmarkPassed,
+    signal::{builder::add_observable_bounds, control::signal_controlled},
     train::effect::TrainEffect,
 };
 
 pub mod builder;
-pub mod error;
+pub mod control;
 
 pub struct SignalPlugin;
 
@@ -15,6 +17,7 @@ impl Plugin for SignalPlugin {
         app.add_observer(train_passed)
             .add_systems(PostStartup, add_observable_bounds)
             .add_systems(Update, release_trains)
+            .add_observer(signal_controlled)
             .add_observer(signal_clicked);
     }
 }
@@ -25,7 +28,7 @@ pub struct Signal {
     pub observable_distance: f32,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub enum Aspect {
     Red,
     #[default]
@@ -85,6 +88,7 @@ fn train_passed(
     }
 }
 
+// TODO: update so SignalControl triggers a check for releasing trains
 fn release_trains(
     mut commands: Commands,
     holding_signals: Query<(Entity, &HoldingSignal, &Signal)>,
