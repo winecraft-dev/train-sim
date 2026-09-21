@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    control::TargetClicked,
-    landmark::LandmarkPassed,
-    signal::{builder::add_observable_bounds, control::signal_controlled},
+    control::TargetClicked, landmark::LandmarkPassed, signal::control::signal_controlled,
     train::effect::TrainEffect,
 };
 
@@ -15,7 +13,6 @@ pub struct SignalPlugin;
 impl Plugin for SignalPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(train_passed)
-            .add_systems(PostStartup, add_observable_bounds)
             .add_systems(Update, release_trains)
             .add_observer(signal_controlled)
             .add_observer(signal_clicked);
@@ -25,7 +22,6 @@ impl Plugin for SignalPlugin {
 #[derive(Component)]
 pub struct Signal {
     pub aspect: Aspect,
-    pub observable_distance: f32,
 }
 
 #[derive(Default, Clone, Copy)]

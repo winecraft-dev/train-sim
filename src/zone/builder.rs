@@ -3,6 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     landmark::Landmark,
     loc::{FacingLocation, cursor::TrackCursor},
+    signal::builder::SignalBuilder,
     zone::{AxleCounter, Zone, block::Block, junction::Junction},
 };
 
@@ -16,6 +17,7 @@ pub struct ZoneBuilder<'w, 's> {
     store: ResMut<'w, ZoneStore>,
     commands: Commands<'w, 's>,
     cursor: TrackCursor<'w, 's>,
+    signal_builder: SignalBuilder<'w, 's>,
 }
 
 #[derive(Default)]
@@ -70,8 +72,6 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
             e_exits.push(e_exit);
         }
 
-        let signal_loc = self.cursor.traverse(zone.entry_locs[0], -15.0).unwrap();
-
         e_zone
     }
 
@@ -80,5 +80,9 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         let e_counter = self.commands.spawn((counter, Landmark, floc)).id();
 
         self.commands.entity(zone).add_child(e_counter);
+    }
+
+    pub fn done(&mut self) {
+        self.commands.trigger(ZonesBuilt);
     }
 }
