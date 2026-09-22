@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{landmark::LandmarkPassed, zone::block::BlockPlugin};
+use crate::{
+    landmark::LandmarkPassed,
+    zone::{block::BlockPlugin, builder::init_zone_store, junction::JunctionPlugin},
+};
 
 pub mod block;
 pub mod builder;
@@ -10,7 +13,10 @@ pub struct AxleCounterPlugin;
 
 impl Plugin for AxleCounterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(BlockPlugin).add_observer(axle_crossed);
+        app.add_plugins(BlockPlugin)
+            .add_plugins(JunctionPlugin)
+            .add_systems(PreStartup, init_zone_store)
+            .add_observer(axle_crossed);
     }
 }
 
@@ -43,13 +49,6 @@ impl Zone {
             }
         }
         None
-    }
-
-    fn status(&self) -> ZoneStatus {
-        match self.count {
-            0 => ZoneStatus::Clear,
-            _ => ZoneStatus::Occupied,
-        }
     }
 }
 

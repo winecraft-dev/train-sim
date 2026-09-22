@@ -13,9 +13,9 @@ impl Plugin for BlockPlugin {
     }
 }
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct Block {
-    pub entry_signal: Option<Entity>,
+    pub entry_signal: Entity,
 }
 
 pub fn zone_updated(update: On<ZoneUpdate>, mut commands: Commands, blocks: Query<&Block>) {
@@ -31,10 +31,7 @@ pub fn zone_updated(update: On<ZoneUpdate>, mut commands: Commands, blocks: Quer
         }
     };
 
-    let Some(e_signal) = block.entry_signal else {
-        return;
-    };
-
+    let e_signal = block.entry_signal;
     match status {
         ZoneStatus::Clear => commands.trigger(SignalControl {
             signal: e_signal,

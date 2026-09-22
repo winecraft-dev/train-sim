@@ -155,7 +155,11 @@ fn split_ports<const OUTLET_N: usize>(
     }
 }
 
-fn switch_clicked(clicked: On<TargetClicked>, mut switches: Query<&mut TrackSwitch>) {
+fn switch_clicked(
+    clicked: On<TargetClicked>,
+    mut commands: Commands,
+    mut switches: Query<&mut TrackSwitch>,
+) {
     let e_switch = clicked.event().0;
     if let Ok(mut switch) = switches.get_mut(e_switch) {
         match &mut *switch {
@@ -163,13 +167,32 @@ fn switch_clicked(clicked: On<TargetClicked>, mut switches: Query<&mut TrackSwit
                 control,
                 inlet: _,
                 outlet: _,
-            } => *control = (*control + 1) % 2,
+            } => {
+                *control = (*control + 1) % 2;
+                commands.trigger(SwitchUpdate {
+                    switch: e_switch,
+                    control: *control,
+                });
+            }
             TrackSwitch::ThreewayTurnout {
                 control,
                 inlet: _,
                 outlet: _,
-            } => *control = (*control + 1) % 3,
+            } => {
+                *control = (*control + 1) % 3;
+                commands.trigger(SwitchUpdate {
+                    switch: e_switch,
+                    control: *control,
+                });
+            }
             _ => {}
         }
     }
+}
+
+// TEST, DELETE SOON
+#[derive(Event)]
+pub struct SwitchUpdate {
+    switch: Entity,
+    control: usize,
 }

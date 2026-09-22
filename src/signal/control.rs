@@ -24,3 +24,17 @@ pub fn signal_controlled(control: On<SignalControl>, mut signals: Query<&mut Sig
 
     signal.aspect = *aspect;
 }
+
+#[derive(Event)]
+pub struct SignalCommand {
+    pub effect: Effect,
+
+    pub signal: Entity, // use this eventually for junction decisioning
+    pub train: Entity,
+}
+
+#[derive(Event, Clone, Copy)]
+pub enum Effect {
+    Stop,
+    Go,
+}

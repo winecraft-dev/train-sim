@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    control::TargetClicked, landmark::LandmarkPassed, signal::control::signal_controlled,
-    train::effect::TrainEffect,
+    control::TargetClicked,
+    landmark::LandmarkPassed,
+    signal::control::{Effect, SignalCommand, signal_controlled},
 };
 
 pub mod builder;
@@ -41,12 +42,6 @@ pub struct ObservableBound {
     pub signal: Entity,
 }
 
-#[derive(Event)]
-pub struct TrainSignaled {
-    pub train: Entity,
-    pub effect: TrainEffect,
-}
-
 fn train_passed(
     passed: On<LandmarkPassed>,
     mut commands: Commands,
@@ -77,9 +72,10 @@ fn train_passed(
         commands
             .entity(e_signal)
             .insert(HoldingSignal { train: e_train });
-        commands.trigger(TrainSignaled {
+        commands.trigger(SignalCommand {
+            effect: Effect::Stop,
+            signal: e_signal,
             train: e_train,
-            effect: TrainEffect::Stop,
         });
     }
 }
@@ -91,9 +87,10 @@ fn release_trains(
 ) {
     for (e_signal, holding, signal) in holding_signals {
         if let Aspect::Green = signal.aspect {
-            commands.trigger(TrainSignaled {
+            commands.trigger(SignalCommand {
+                effect: Effect::Go,
+                signal: e_signal,
                 train: holding.train,
-                effect: TrainEffect::Go,
             });
             commands.entity(e_signal).remove::<HoldingSignal>();
         }

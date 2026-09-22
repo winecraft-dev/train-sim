@@ -1,15 +1,13 @@
 use bevy::prelude::*;
 
 pub mod axle;
-pub mod effect;
 
 use axle::AxlePlugin;
 
 use crate::{
     control::{ClickTarget, TargetClicked},
     loc::FacingLocation,
-    signal::TrainSignaled,
-    train::effect::{StoppedTrain, TrainEffect},
+    signal::control::{Effect, SignalCommand},
 };
 
 pub struct TrainPlugin;
@@ -46,6 +44,9 @@ pub fn create_train(commands: &mut Commands, speed: f32, floc: FacingLocation) -
 pub struct TrainDerailed(Entity);
 
 #[derive(Component)]
+pub struct StoppedTrain(pub f32);
+
+#[derive(Component)]
 pub struct Derailed;
 
 fn train_derailed(
@@ -70,23 +71,24 @@ fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {
 }
 
 fn train_signaled(
-    signaled: On<TrainSignaled>,
+    signaled: On<SignalCommand>,
     mut commands: Commands,
     mut trains: Query<(&mut Train, Option<&StoppedTrain>)>,
 ) {
-    let TrainSignaled {
-        train: e_train,
+    let SignalCommand {
         effect,
+        train: e_train,
+        signal: _,
     } = *signaled.event();
 
     let (mut train, stopped) = trains.get_mut(e_train).unwrap();
     match effect {
-        TrainEffect::Stop => {
+        Effect::Stop => {
             let old_speed = train.speed;
             commands.entity(e_train).insert(StoppedTrain(old_speed));
             train.speed = 0.0;
         }
-        TrainEffect::Go => {
+        Effect::Go => {
             let old_speed = match stopped {
                 Some(s) => s.0,
                 None => return,

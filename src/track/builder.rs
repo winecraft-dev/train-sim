@@ -10,6 +10,10 @@ pub struct TrackStore {
     pub segments: Vec<Entity>,
 }
 
+pub fn init_track_store(mut commands: Commands) {
+    commands.insert_resource(TrackStore::default());
+}
+
 #[derive(SystemParam)]
 pub struct TrackBuilder<'w, 's> {
     store: ResMut<'w, TrackStore>,

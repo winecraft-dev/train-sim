@@ -23,7 +23,7 @@ use crate::{
     train::{TrainPlugin, create_train},
     zone::{
         AxleCounterPlugin,
-        builder::{ZoneBuilder, ZoneStore, ZonesBuilt},
+        builder::{ZoneBuilder, ZoneConstructor, ZoneStore, ZonesBuilt},
     },
 };
 
@@ -41,7 +41,6 @@ fn main() {
         .add_systems(Startup, (config, setup_nodes, setup_tracks).chain())
         .add_observer(setup_blocks)
         .add_observer(setup_trains)
-        .add_observer(setup_signals)
         .run();
 }
 
@@ -50,8 +49,6 @@ fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     config.line.width = 4.0;
 
     commands.spawn((Camera2d, Camera::default()));
-    commands.insert_resource(TrackStore::default());
-    commands.insert_resource(ZoneStore::default());
 }
 
 fn setup_nodes(mut builder: TrackBuilder) {
@@ -97,13 +94,6 @@ fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, locator: Loc
     let locs = [
         locator.on_progress(0, 0.5, Dir::FacingB),
         locator.on_progress(1, 0.5, Dir::FacingB),
-        locator.on_progress(2, 0.5, Dir::FacingB),
-        locator.on_progress(3, 0.5, Dir::FacingB),
-        locator.on_progress(4, 0.5, Dir::FacingB),
-        locator.on_progress(5, 0.5, Dir::FacingB),
-        locator.on_progress(6, 0.5, Dir::FacingB),
-        locator.on_progress(7, 0.5, Dir::FacingB),
-        locator.on_progress(8, 0.5, Dir::FacingB),
     ];
 
     for loc in locs {
@@ -113,36 +103,24 @@ fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, locator: Loc
 }
 
 fn setup_blocks(_done: On<SwitchesSpawned>, mut builder: ZoneBuilder, locator: Locator) {
-    // let ez0 = builder.new();
-    // builder.add_counter(ez0, locator.on_end(0, Dir::FacingA, 10.0, Dir::FacingA));
-    // builder.add_counter(ez0, locator.on_end(0, Dir::FacingB, 10.0, Dir::FacingB));
-    // builder.block(ez0);
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(0, Dir::FacingB, 10.0, Dir::FacingB))
+        .with_exit(locator.on_end(0, Dir::FacingA, 10.0, Dir::FacingA))
+        .build(&mut builder);
 
-    // let ez1 = builder.new();
-    // builder.add_counter(ez1, locator.on_end(2, Dir::FacingA, 20.0, Dir::FacingB));
-    // builder.add_counter(ez1, locator.on_end(11, Dir::FacingB, 20.0, Dir::FacingA));
-    // builder.add_counter(ez1, locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingA));
-    // builder.block(ez1);
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(2, Dir::FacingA, 20.0, Dir::FacingB))
+        .with_exit(locator.on_end(11, Dir::FacingB, 20.0, Dir::FacingA))
+        .with_exit(locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingA))
+        .with_switch(4)
+        .build(&mut builder);
 
-    // let ez2 = builder.new();
-    // builder.add_counter(ez2, locator.on_end(9, Dir::FacingA, 20.0, Dir::FacingB));
-    // builder.add_counter(ez2, locator.on_end(11, Dir::FacingA, 20.0, Dir::FacingB));
-    // builder.add_counter(ez2, locator.on_end(8, Dir::FacingA, 100.0, Dir::FacingB));
-    // builder.block(ez2);
+    ZoneConstructor::new()
+        .with_exit(locator.on_end(9, Dir::FacingA, 20.0, Dir::FacingB))
+        .with_entry(locator.on_end(8, Dir::FacingA, 100.0, Dir::FacingB))
+        .with_entry(locator.on_end(11, Dir::FacingA, 20.0, Dir::FacingB))
+        .with_switch(15)
+        .build(&mut builder);
 
     builder.done();
-}
-
-fn setup_signals(_: On<ZonesBuilt>, mut builder: SignalBuilder, locator: Locator) {
-    let s0 = builder.new(locator.on_end(0, Dir::FacingB, 0.0, Dir::FacingB), -50.0);
-    // builder.block_entry_signal(s0, 0);
-
-    let s1 = builder.new(locator.on_end(2, Dir::FacingA, 25.0, Dir::FacingB), -50.0);
-    // builder.block_entry_signal(s1, 1);
-
-    let s2 = builder.new(locator.on_end(8, Dir::FacingA, 110.0, Dir::FacingB), -50.0);
-    // builder.block_entry_signal(s2, 2);
-
-    let s3 = builder.new(locator.on_end(11, Dir::FacingA, 30.0, Dir::FacingB), -50.0);
-    // builder.block_entry_signal(s3, 2);
 }

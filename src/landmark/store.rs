@@ -9,7 +9,7 @@ pub struct LandmarksStorePlugin;
 
 impl Plugin for LandmarksStorePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init_store)
+        app.add_systems(PreStartup, init_store)
             .add_systems(Update, update_store);
     }
 }
