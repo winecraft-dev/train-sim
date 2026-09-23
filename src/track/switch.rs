@@ -4,7 +4,7 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::{NodeNeighborsComputed, TrackNode, TrackSegment},
+    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment},
 };
 
 pub struct SwitchPlugin;
@@ -115,6 +115,8 @@ pub fn spawn_switches(
         };
         commands.entity(e_origin).insert((switch, ClickTarget));
     }
+    println!("Done Spawning Switches");
+    commands.trigger(SwitchesSpawned);
 }
 
 fn split_ports<const OUTLET_N: usize>(
@@ -127,24 +129,25 @@ fn split_ports<const OUTLET_N: usize>(
 
     for e_neighbor in origin.neighbors.iter() {
         let segment = segments.get(e_neighbor).unwrap();
-        let out_angle = segment.angle_from(e_origin).unwrap().clamp(-PI, PI);
+        let out_angle = segment.angle_from(e_origin).unwrap();
         let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 
         match end {
             None => {
                 end = Some(out_angle);
-                groups.0.add(e_neighbor);
+                groups.0.push(e_neighbor);
             }
             Some(end_angle) => {
                 let diff = out_angle - end_angle;
                 if diff > PI / -2.0 && diff < PI / 2.0 {
-                    groups.0.add(e_neighbor);
+                    groups.0.push(e_neighbor);
                 } else {
-                    groups.1.add(e_neighbor);
+                    groups.1.push(e_neighbor);
                 }
             }
         }
     }
+
     if groups.0.len() == 1 {
         (*groups.0.first().unwrap(), *groups.1.as_array().unwrap())
     } else {
@@ -152,7 +155,11 @@ fn split_ports<const OUTLET_N: usize>(
     }
 }
 
-fn switch_clicked(clicked: On<TargetClicked>, mut switches: Query<&mut TrackSwitch>) {
+fn switch_clicked(
+    clicked: On<TargetClicked>,
+    mut commands: Commands,
+    mut switches: Query<&mut TrackSwitch>,
+) {
     let e_switch = clicked.event().0;
     if let Ok(mut switch) = switches.get_mut(e_switch) {
         match &mut *switch {
@@ -160,13 +167,32 @@ fn switch_clicked(clicked: On<TargetClicked>, mut switches: Query<&mut TrackSwit
                 control,
                 inlet: _,
                 outlet: _,
-            } => *control = (*control + 1) % 2,
+            } => {
+                *control = (*control + 1) % 2;
+                commands.trigger(SwitchUpdate {
+                    switch: e_switch,
+                    control: *control,
+                });
+            }
             TrackSwitch::ThreewayTurnout {
                 control,
                 inlet: _,
                 outlet: _,
-            } => *control = (*control + 1) % 3,
+            } => {
+                *control = (*control + 1) % 3;
+                commands.trigger(SwitchUpdate {
+                    switch: e_switch,
+                    control: *control,
+                });
+            }
             _ => {}
         }
     }
+}
+
+// TEST, DELETE SOON
+#[derive(Event)]
+pub struct SwitchUpdate {
+    pub switch: Entity,
+    pub control: usize,
 }

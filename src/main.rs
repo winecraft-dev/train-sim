@@ -1,85 +1,213 @@
 mod control;
+mod landmark;
+mod loc;
 mod render;
-mod switch;
+mod signal;
 mod track;
 mod train;
+mod zone;
 
 use bevy::prelude::*;
+use rand::RngExt;
 
-use control::ControlPlugin;
-use render::debug::DebugRenderPlugin;
-use switch::SwitchPlugin;
-use track::*;
-use train::{Train, TrainPlugin};
+use crate::{
+    control::ControlPlugin,
+    landmark::LandmarkPlugin,
+    loc::{Dir, LocationPlugin, locator::Locator},
+    render::debug::DebugRenderPlugin,
+    signal::SignalPlugin,
+    track::{SwitchesSpawned, TrackPlugin, builder::TrackBuilder},
+    train::{TrainPlugin, create_train},
+    zone::{
+        AxleCounterPlugin,
+        builder::{ZoneBuilder, ZoneConstructor},
+    },
+};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(TrackPlugin)
+        .add_plugins(LocationPlugin)
         .add_plugins(TrainPlugin)
-        .add_plugins(SwitchPlugin)
+        .add_plugins(LandmarkPlugin)
         .add_plugins(ControlPlugin)
+        .add_plugins(SignalPlugin)
         .add_plugins(DebugRenderPlugin)
-        .add_systems(Startup, setup)
+        .add_plugins(AxleCounterPlugin)
+        .add_systems(Startup, (config, setup_nodes, setup_tracks).chain())
+        .add_observer(setup_blocks)
+        .add_observer(setup_trains)
         .run();
 }
 
-fn setup(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
+fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     let (config, _) = config.config_mut::<DefaultGizmoConfigGroup>();
     config.line.width = 4.0;
 
     commands.spawn((Camera2d, Camera::default()));
+}
 
-    let center_a = commands.spawn(TrackNode::bundle(-300.0, 50.0)).id();
-    let node_a = commands.spawn(TrackNode::bundle(-300.0, 0.0)).id();
-    let node_b = commands.spawn(TrackNode::bundle(-350.0, 50.0)).id();
-    let node_c = commands.spawn(TrackNode::bundle(-350.0, 300.0)).id();
-    let center_b = commands.spawn(TrackNode::bundle(-300.0, 300.0)).id();
-    let node_d = commands.spawn(TrackNode::bundle(-300.0, 350.0)).id();
-    let node_e = commands.spawn(TrackNode::bundle(-50.0, 350.0)).id();
-    let center_c = commands.spawn(TrackNode::bundle(-50.0, 300.0)).id();
-    let node_f = commands.spawn(TrackNode::bundle(0.0, 300.0)).id();
-    let node_g = commands.spawn(TrackNode::bundle(0.0, 50.0)).id();
-    let center_d = commands.spawn(TrackNode::bundle(-50.0, 50.0)).id();
-    let node_h = commands.spawn(TrackNode::bundle(-50.0, 0.0)).id();
-    let node_far_a = commands.spawn(TrackNode::bundle(300.0, 0.0)).id();
-    let center_far = commands.spawn(TrackNode::bundle(-50.0, -50.0)).id();
-    let node_far_b = commands.spawn(TrackNode::bundle(0.0, -50.0)).id();
+fn setup_nodes(mut builder: TrackBuilder) {
+    builder.node(-300.0, 300.0);
+    builder.node(300.0, 300.0);
+    builder.node(300.0, 250.0); // CENTER
+    builder.node(350.0, 250.0);
+    builder.node(350.0, 0.0);
+    builder.node(300.0, 0.0); // CENTER
+    builder.node(300.0, -50.0);
+    builder.node(350.0, -250.0);
+    builder.node(300.0, -250.0); // CENTER
+    builder.node(300.0, -300.0);
+    builder.node(-300.0, -300.0);
+    builder.node(-300.0, -250.0); // CENTER
+    builder.node(-350.0, -250.0);
+    builder.node(-300.0, -50.0);
+    builder.node(-300.0, 0.0); // CENTER
+    builder.node(-350.0, 0.0);
+    builder.node(-300.0, 250.0); // CENTER
+    builder.node(-350.0, 250.0);
+}
 
-    let tracks = [
-        commands
-            .spawn(TrackSegment::straight((node_b, node_c)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_a, node_b), center_a))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_c, node_d), center_b))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_d, node_e)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_e, node_f), center_c))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_f, node_g)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_g, node_h), center_d))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_h, node_a)))
-            .id(),
-        commands
-            .spawn(TrackSegment::straight((node_h, node_far_a)))
-            .id(),
-        commands
-            .spawn(TrackSegment::curved((node_h, node_far_b), center_far))
-            .id(),
+fn setup_tracks(mut builder: TrackBuilder) {
+    builder.straight(0, 1);
+    builder.curved(1, 3, 2);
+    builder.straight(3, 4);
+    builder.curved(4, 6, 5);
+    builder.straight(4, 7);
+    builder.curved(7, 9, 8);
+    builder.straight(9, 10);
+    builder.curved(10, 12, 11);
+    builder.straight(12, 15);
+    builder.straight(17, 15);
+    builder.curved(13, 15, 14);
+    builder.straight(6, 13);
+    builder.curved(17, 0, 16);
+
+    builder.flush();
+}
+
+fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, locator: Locator) {
+    let locs = [
+        locator.on_progress(0, 0.5, Dir::FacingB),
+        locator.on_progress(1, 0.5, Dir::FacingB),
+        locator.on_progress(2, 0.5, Dir::FacingB),
+        locator.on_progress(3, 0.5, Dir::FacingB),
+        locator.on_progress(4, 0.5, Dir::FacingB),
+        locator.on_progress(5, 0.5, Dir::FacingB),
+        locator.on_progress(6, 0.5, Dir::FacingB),
+        locator.on_progress(7, 0.5, Dir::FacingB),
+        locator.on_progress(8, 0.5, Dir::FacingB),
     ];
 
-    commands.trigger(TrackUpdated);
+    for loc in locs {
+        let mut rng = rand::rng();
+        create_train(&mut commands, rng.random_range(1.0..2.0), loc);
+    }
+}
 
-    Train::new(1.0).create(commands, tracks[7]);
+fn setup_blocks(_done: On<SwitchesSpawned>, mut builder: ZoneBuilder, locator: Locator) {
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(0, Dir::FacingB, 10.0, Dir::FacingB))
+        .with_exit(locator.on_end(0, Dir::FacingB, 200.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(0, Dir::FacingB, 210.0, Dir::FacingB))
+        .with_exit(locator.on_end(0, Dir::FacingB, 400.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(0, Dir::FacingB, 410.0, Dir::FacingB))
+        .with_exit(locator.on_end(0, Dir::FacingA, 10.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(1, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(1, Dir::FacingA, 0.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(2, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(2, Dir::FacingB, 200.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(2, Dir::FacingA, 20.0, Dir::FacingB))
+        .with_exit(locator.on_end(11, Dir::FacingB, 0.0, Dir::FacingA))
+        .with_exit(locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingA))
+        .with_switch(4)
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(11, Dir::FacingB, 10.0, Dir::FacingB))
+        .with_exit(locator.on_end(11, Dir::FacingB, 200.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(11, Dir::FacingB, 210.0, Dir::FacingB))
+        .with_exit(locator.on_end(11, Dir::FacingB, 400.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(11, Dir::FacingB, 410.0, Dir::FacingB))
+        .with_exit(locator.on_end(11, Dir::FacingA, 10.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_exit(locator.on_end(9, Dir::FacingA, 40.0, Dir::FacingB))
+        .with_entry(locator.on_end(8, Dir::FacingA, 100.0, Dir::FacingB))
+        .with_entry(locator.on_end(11, Dir::FacingA, 0.0, Dir::FacingB))
+        .with_switch(15)
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(9, Dir::FacingA, 60.0, Dir::FacingA))
+        .with_exit(locator.on_end(9, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_signal_distance(15.0)
+        .with_observable_distance(20.0)
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(12, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(12, Dir::FacingA, 0.0, Dir::FacingA))
+        .with_observable_distance(20.0)
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingB))
+        .with_exit(locator.on_end(4, Dir::FacingA, 0.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(5, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(5, Dir::FacingA, 0.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(6, Dir::FacingB, 10.0, Dir::FacingB))
+        .with_exit(locator.on_end(6, Dir::FacingB, 200.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(6, Dir::FacingB, 210.0, Dir::FacingB))
+        .with_exit(locator.on_end(6, Dir::FacingB, 400.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(6, Dir::FacingB, 410.0, Dir::FacingB))
+        .with_exit(locator.on_end(6, Dir::FacingA, 10.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(7, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(7, Dir::FacingA, 0.0, Dir::FacingA))
+        .build(&mut builder);
+
+    ZoneConstructor::new()
+        .with_entry(locator.on_end(8, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(8, Dir::FacingA, 110.0, Dir::FacingA))
+        .build(&mut builder);
+
+    builder.done();
 }
