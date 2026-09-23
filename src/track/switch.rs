@@ -193,6 +193,6 @@ fn switch_clicked(
 // TEST, DELETE SOON
 #[derive(Event)]
 pub struct SwitchUpdate {
-    switch: Entity,
-    control: usize,
+    pub switch: Entity,
+    pub control: usize,
 }

@@ -30,6 +30,7 @@ pub struct Zone {
     pub count: usize,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub enum ZoneStatus {
     Clear,
     Occupied,
@@ -49,6 +50,13 @@ impl Zone {
             }
         }
         None
+    }
+
+    pub fn status(&self) -> ZoneStatus {
+        match self.count {
+            0 => ZoneStatus::Clear,
+            _ => ZoneStatus::Occupied,
+        }
     }
 }
 

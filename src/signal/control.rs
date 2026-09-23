@@ -29,6 +29,7 @@ pub fn signal_controlled(control: On<SignalControl>, mut signals: Query<&mut Sig
 pub struct SignalCommand {
     pub effect: Effect,
 
+    #[allow(unused)]
     pub signal: Entity, // use this eventually for junction decisioning
     pub train: Entity,
 }

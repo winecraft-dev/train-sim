@@ -6,7 +6,6 @@ use crate::{
     signal::control::{Effect, SignalCommand, signal_controlled},
 };
 
-pub mod builder;
 pub mod control;
 
 pub struct SignalPlugin;
