@@ -2,12 +2,28 @@ use std::f32::consts::PI;
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::track::{TrackNode, TrackSegment, TrackUpdated, TrackVariant};
+use crate::track::{TrackNode, TrackSegment, TrackUpdated, TrackVariant, error::TrackError};
 
 #[derive(Resource, Default, Debug)]
 pub struct TrackStore {
     pub nodes: Vec<Entity>,
     pub segments: Vec<Entity>,
+}
+
+impl TrackStore {
+    pub fn node(&self, i: usize) -> Option<Entity> {
+        if i < self.nodes.len() {
+            return Some(self.nodes[i]);
+        }
+        None
+    }
+
+    pub fn segment(&self, i: usize) -> Option<Entity> {
+        if i < self.segments.len() {
+            return Some(self.segments[i]);
+        }
+        None
+    }
 }
 
 pub fn init_track_store(mut commands: Commands) {
@@ -31,12 +47,22 @@ impl<'w, 's> TrackBuilder<'w, 's> {
         e_node
     }
 
-    pub fn straight(&mut self, a: usize, b: usize) -> Entity {
-        let ea = self.store.nodes[a];
-        let eb = self.store.nodes[b];
+    pub fn straight(&mut self, a: usize, b: usize) -> Result<Entity, TrackError> {
+        let Some(ea) = self.store.node(a) else {
+            return Err(TrackError::NodeNotInStore(a));
+        };
+        let Some(eb) = self.store.node(b) else {
+            return Err(TrackError::NodeNotInStore(b));
+        };
 
-        let a = self.nodes.get(ea).unwrap().translation.xy();
-        let b = self.nodes.get(eb).unwrap().translation.xy();
+        let a = match self.nodes.get(ea) {
+            Ok(transform) => transform.translation.xy(),
+            Err(_) => return Err(TrackError::BrokenNodeReference(ea)),
+        };
+        let b = match self.nodes.get(eb) {
+            Ok(transform) => transform.translation.xy(),
+            Err(_) => return Err(TrackError::BrokenNodeReference(eb)),
+        };
 
         let length = self.calculate_straight_length(a, b);
         let node_angles = self.calculate_straight_node_angles(a, b);
@@ -52,17 +78,32 @@ impl<'w, 's> TrackBuilder<'w, 's> {
             })
             .id();
         self.store.segments.push(e_segment);
-        e_segment
+        Ok(e_segment)
     }
 
-    pub fn curved(&mut self, a: usize, b: usize, c: usize) -> Entity {
-        let ea = self.store.nodes[a];
-        let eb = self.store.nodes[b];
-        let ec = self.store.nodes[c];
+    pub fn curved(&mut self, a: usize, b: usize, c: usize) -> Result<Entity, TrackError> {
+        let Some(ea) = self.store.node(a) else {
+            return Err(TrackError::NodeNotInStore(a));
+        };
+        let Some(eb) = self.store.node(b) else {
+            return Err(TrackError::NodeNotInStore(b));
+        };
+        let Some(ec) = self.store.node(c) else {
+            return Err(TrackError::NodeNotInStore(c));
+        };
 
-        let a = self.nodes.get(ea).unwrap().translation.xy();
-        let b = self.nodes.get(eb).unwrap().translation.xy();
-        let c = self.nodes.get(ec).unwrap().translation.xy();
+        let a = match self.nodes.get(ea) {
+            Ok(transform) => transform.translation.xy(),
+            Err(_) => return Err(TrackError::BrokenNodeReference(ea)),
+        };
+        let b = match self.nodes.get(eb) {
+            Ok(transform) => transform.translation.xy(),
+            Err(_) => return Err(TrackError::BrokenNodeReference(eb)),
+        };
+        let c = match self.nodes.get(ec) {
+            Ok(transform) => transform.translation.xy(),
+            Err(_) => return Err(TrackError::BrokenNodeReference(ec)),
+        };
 
         let (angle, radius, length) = self.calculate_curved_data(a, b, c);
         let node_angles = self.calculate_curved_node_angles(a, b, c, angle);
@@ -82,7 +123,7 @@ impl<'w, 's> TrackBuilder<'w, 's> {
             .id();
 
         self.store.segments.push(e_segment);
-        e_segment
+        Ok(e_segment)
     }
 
     pub fn flush(&mut self) {

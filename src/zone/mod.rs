@@ -7,6 +7,7 @@ use crate::{
 
 pub mod block;
 pub mod builder;
+pub mod error;
 pub mod junction;
 
 pub struct AxleCounterPlugin;

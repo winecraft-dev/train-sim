@@ -55,17 +55,26 @@ impl<'w, 's> TrackCursor<'w, 's> {
     }
 
     pub fn next_track(&self, floc: &mut (Loc, Dir)) -> Result<(), LocError> {
-        let current_track = self.segments.get(floc.0.track).unwrap(); // CLEAN
-        let e_switch = match floc.1 {
-            Dir::FacingA => current_track.nodes.0,
-            Dir::FacingB => current_track.nodes.1,
+        let current_track = match self.segments.get(floc.0.track) {
+            Ok(s) => s,
+            Err(_) => return Err(LocError::BrokenSegmentReference(floc.0.track)),
         };
-        let switch = self.switches.get(e_switch).unwrap(); // CLEAN
+        let e_switch = match floc.1 {
+            Dir::ToA => current_track.nodes.0,
+            Dir::ToB => current_track.nodes.1,
+        };
+        let switch = match self.switches.get(e_switch) {
+            Ok(n) => n,
+            Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
+        };
         let e_next = match switch.next_segment(floc.0.track) {
             Some(s) => s,
             None => return Err(LocError::NoNeighborSegment),
         };
-        let next_track = self.segments.get(e_next).unwrap(); // CLEAN
+        let next_track = match self.segments.get(e_next) {
+            Ok(s) => s,
+            Err(_) => return Err(LocError::BrokenSegmentReference(e_next)),
+        };
         floc.0.track = e_next;
         floc.1 = select_direction(floc.1, current_track, next_track);
         floc.0.distance = if next_track.nodes.0 == e_switch {
@@ -89,11 +98,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
     }
 }
 
-pub fn select_direction(
-    dir: Dir,
-    current_track: &TrackSegment,
-    next_track: &TrackSegment,
-) -> Dir {
+pub fn select_direction(dir: Dir, current_track: &TrackSegment, next_track: &TrackSegment) -> Dir {
     if current_track.nodes.0 == next_track.nodes.0 {
         dir.flip()
     } else if current_track.nodes.1 == next_track.nodes.1 {

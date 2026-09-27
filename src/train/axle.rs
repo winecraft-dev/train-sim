@@ -30,8 +30,8 @@ pub const AXLE_DISTANCE: f32 = 50.0;
 
 fn axle_offset(facing: Dir, offset: f32) -> f32 {
     match facing {
-        Dir::FacingA => offset,
-        Dir::FacingB => -offset,
+        Dir::ToA => offset,
+        Dir::ToB => -offset,
     }
 }
 
@@ -67,8 +67,8 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
 
 fn train_speed(facing: Dir, speed: f32) -> f32 {
     match facing {
-        Dir::FacingA => -speed,
-        Dir::FacingB => speed,
+        Dir::ToA => -speed,
+        Dir::ToB => speed,
     }
 }
 
@@ -82,11 +82,7 @@ pub struct AxleMoved {
 
 fn speed_direction(old: &mut FacingLocation, new: &mut FacingLocation, speed: f32) {
     let flipped = old.1 != new.1;
-    old.1 = if speed < 0.0 {
-        Dir::FacingA
-    } else {
-        Dir::FacingB
-    };
+    old.1 = if speed < 0.0 { Dir::ToA } else { Dir::ToB };
     new.1 = if !flipped { old.1 } else { old.1.flip() }
 }
 

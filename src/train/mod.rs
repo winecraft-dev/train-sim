@@ -5,7 +5,6 @@ pub mod axle;
 use axle::AxlePlugin;
 
 use crate::{
-    control::{ClickTarget, TargetClicked},
     loc::FacingLocation,
     signal::control::{Effect, SignalCommand},
 };
@@ -34,7 +33,7 @@ pub struct Train {
 
 pub fn create_train(commands: &mut Commands, speed: f32, floc: FacingLocation) -> Entity {
     let train = commands
-        .spawn((GlobalTransform::default(), ClickTarget, Train { speed }))
+        .spawn((GlobalTransform::default(), Train { speed }))
         .id();
     commands.trigger(TrainCreated { train, f_loc: floc });
     train
@@ -59,15 +58,6 @@ fn train_derailed(
 
     train.speed = 0.0;
     commands.entity(e_train).insert(Derailed);
-}
-
-fn train_clicked(clicked: On<TargetClicked>, mut trains: Query<&mut Train>) {
-    let e_train = clicked.0;
-    let mut train = match trains.get_mut(e_train) {
-        Ok(t) => t,
-        Err(_) => return,
-    };
-    train.speed *= -1.0;
 }
 
 fn train_signaled(

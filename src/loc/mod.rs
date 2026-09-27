@@ -42,16 +42,16 @@ fn add_transforms(
 
 #[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
 pub enum Dir {
-    FacingA,
+    ToA,
     #[default]
-    FacingB,
+    ToB,
 }
 
 impl Dir {
     pub fn flip(self) -> Self {
         match self {
-            Dir::FacingA => Dir::FacingB,
-            Dir::FacingB => Dir::FacingA,
+            Dir::ToA => Dir::ToB,
+            Dir::ToB => Dir::ToA,
         }
     }
 }
