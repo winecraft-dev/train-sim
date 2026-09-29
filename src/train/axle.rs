@@ -96,7 +96,10 @@ fn apply_train_speeds(
     for (e_train, train, _, mut main_loc, mut main_dir) in trains {
         let mut old_train_floc = (*main_loc, *main_dir);
         let speed = train_speed(old_train_floc.1, train.speed);
-        let children = children.get(e_train).unwrap();
+        let children: Vec<Entity> = match children.get(e_train) {
+            Ok(c) => c.to_vec(),
+            Err(_) => Vec::default(),
+        };
 
         let mut new_train_floc = match cursor.traverse(old_train_floc, speed) {
             Ok(l) => l,
@@ -111,7 +114,13 @@ fn apply_train_speeds(
 
         let mut axle_floc = new_train_floc;
         for e_axle in children {
-            let (next_axle, mut next_loc, mut next_dir) = axles.get_mut(*e_axle).unwrap();
+            let (next_axle, mut next_loc, mut next_dir) = match axles.get_mut(e_axle) {
+                Ok(a) => a,
+                Err(_) => {
+                    eprintln!("Problem getting child axle[{}]", e_axle);
+                    continue;
+                }
+            };
 
             let offset = axle_offset(axle_floc.1, next_axle.offset);
             axle_floc = match cursor.traverse(axle_floc, offset) {

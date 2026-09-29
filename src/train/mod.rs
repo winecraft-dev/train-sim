@@ -54,7 +54,13 @@ fn train_derailed(
     mut trains: Query<&mut Train>,
 ) {
     let e_train = derailed.0;
-    let mut train = trains.get_mut(e_train).unwrap();
+    let mut train = match trains.get_mut(e_train) {
+        Ok(t) => t,
+        Err(_) => {
+            eprintln!("Problem getting train[{}] to derail", e_train);
+            return;
+        }
+    };
 
     train.speed = 0.0;
     commands.entity(e_train).insert(Derailed);
@@ -71,7 +77,14 @@ fn train_signaled(
         signal: _,
     } = *signaled.event();
 
-    let (mut train, stopped) = trains.get_mut(e_train).unwrap();
+    let (mut train, stopped) = match trains.get_mut(e_train) {
+        Ok(t) => t,
+        Err(_) => {
+            eprintln!("Problem getting train[{}] to signal", e_train);
+            return;
+        }
+    };
+
     match effect {
         Effect::Stop => {
             let old_speed = train.speed;

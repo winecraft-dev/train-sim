@@ -87,13 +87,13 @@ pub fn spawn_switches(
                 continue;
             }
             1 => {
-                let e_terminating_track = origin.neighbors.get(0).unwrap();
-                TrackSwitch::Terminus(*e_terminating_track)
+                let e_terminating_track = origin.neighbors[0];
+                TrackSwitch::Terminus(e_terminating_track)
             }
             2 => {
-                let e_segment_a = origin.neighbors.get(0).unwrap();
-                let e_segment_b = origin.neighbors.get(1).unwrap();
-                TrackSwitch::Track(*e_segment_a, *e_segment_b)
+                let e_segment_a = origin.neighbors[0];
+                let e_segment_b = origin.neighbors[1];
+                TrackSwitch::Track(e_segment_a, e_segment_b)
             }
             3 => {
                 let (inlet, outlet) = split_ports::<2>(e_origin, origin, segments);
@@ -123,36 +123,20 @@ fn split_ports<const OUTLET_N: usize>(
     e_origin: Entity,
     origin: &TrackNode,
     segments: Query<&TrackSegment>,
-) -> (Entity, [Entity; OUTLET_N]) {
-    let mut end: Option<f32> = None;
-    let mut groups: (Vec<Entity>, Vec<Entity>) = (Vec::default(), Vec::default());
+) -> Result<(Entity, [Entity; OUTLET_N]), ()> {
+    let mut inlet_angle: Option<f32> = None;
+    let mut inlet: Entity;
+    let mut outlets: [Entity; OUTLET_N];
 
     for e_neighbor in origin.neighbors.iter() {
         let segment = segments.get(e_neighbor).unwrap();
         let out_angle = segment.angle_from(e_origin).unwrap();
         let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 
-        match end {
-            None => {
-                end = Some(out_angle);
-                groups.0.push(e_neighbor);
-            }
-            Some(end_angle) => {
-                let diff = out_angle - end_angle;
-                if diff > PI / -2.0 && diff < PI / 2.0 {
-                    groups.0.push(e_neighbor);
-                } else {
-                    groups.1.push(e_neighbor);
-                }
-            }
-        }
+        // CLEAN UP
     }
 
-    if groups.0.len() == 1 {
-        (*groups.0.first().unwrap(), *groups.1.as_array().unwrap())
-    } else {
-        (*groups.1.first().unwrap(), *groups.0.as_array().unwrap())
-    }
+    Err(())
 }
 
 fn switch_clicked(
