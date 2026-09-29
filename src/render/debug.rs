@@ -57,7 +57,7 @@ fn render_tracks(
     segments: Query<&TrackSegment>,
 ) {
     for segment in segments {
-        let a = nodes.get(segment.nodes.0).unwrap().translation;
+        let a = nodes.get(segment.nodes.0).unwrap().translation; // pretty common use case to get a node's position, maybe make a SystemParam
         let b = nodes.get(segment.nodes.1).unwrap().translation;
         match segment.variant {
             TrackVariant::Straight => {

@@ -40,9 +40,7 @@ impl<'w, 's> Scanner<'w, 's> {
                         for e_landmark in e_landmarks.iter().rev() {
                             let landmark = match self.landmarks.get(*e_landmark) {
                                 Ok(l) => l,
-                                Err(_) => {
-                                    return Err(BrokenLandmarkReference(*e_landmark));
-                                }
+                                Err(_) => return Err(BrokenLandmarkReference(*e_landmark)),
                             };
                             let ld = landmark.1.distance;
                             if bound_b <= ld && ld <= bound_a {
