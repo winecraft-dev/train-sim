@@ -70,144 +70,163 @@ fn setup_nodes(mut builder: TrackBuilder) {
 }
 
 fn setup_tracks(mut builder: TrackBuilder) {
-    builder.straight(0, 1);
-    builder.curved(1, 3, 2);
-    builder.straight(3, 4);
-    builder.curved(4, 6, 5);
-    builder.straight(4, 7);
-    builder.curved(7, 9, 8);
-    builder.straight(9, 10);
-    builder.curved(10, 12, 11);
-    builder.straight(12, 15);
-    builder.straight(17, 15);
-    builder.curved(13, 15, 14);
-    builder.straight(6, 13);
-    builder.curved(17, 0, 16);
+    builder.straight(0, 1).unwrap();
+    builder.curved(1, 3, 2).unwrap();
+    builder.straight(3, 4).unwrap();
+    builder.curved(4, 6, 5).unwrap();
+    builder.straight(4, 7).unwrap();
+    builder.curved(7, 9, 8).unwrap();
+    builder.straight(9, 10).unwrap();
+    builder.curved(10, 12, 11).unwrap();
+    builder.straight(12, 15).unwrap();
+    builder.straight(17, 15).unwrap();
+    builder.curved(13, 15, 14).unwrap();
+    builder.straight(6, 13).unwrap();
+    builder.curved(17, 0, 16).unwrap();
 
     builder.flush();
 }
 
 fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, locator: Locator) {
     let locs = [
-        locator.on_progress(0, 0.5, Dir::FacingB),
-        locator.on_progress(1, 0.5, Dir::FacingB),
-        locator.on_progress(2, 0.5, Dir::FacingB),
-        locator.on_progress(3, 0.5, Dir::FacingB),
-        locator.on_progress(4, 0.5, Dir::FacingB),
-        locator.on_progress(5, 0.5, Dir::FacingB),
-        locator.on_progress(6, 0.5, Dir::FacingB),
-        locator.on_progress(7, 0.5, Dir::FacingB),
-        locator.on_progress(8, 0.5, Dir::FacingB),
+        locator.on_progress(0, 0.5, Dir::ToB),
+        locator.on_progress(1, 0.5, Dir::ToB),
+        locator.on_progress(2, 0.5, Dir::ToB),
+        locator.on_progress(3, 0.5, Dir::ToB),
+        locator.on_progress(4, 0.5, Dir::ToB),
+        locator.on_progress(5, 0.5, Dir::ToB),
+        locator.on_progress(6, 0.5, Dir::ToB),
+        locator.on_progress(7, 0.5, Dir::ToB),
+        locator.on_progress(8, 0.5, Dir::ToB),
     ];
 
     for loc in locs {
         let mut rng = rand::rng();
-        create_train(&mut commands, rng.random_range(1.0..2.0), loc);
+        create_train(&mut commands, rng.random_range(1.0..2.0), loc.unwrap());
     }
 }
 
 fn setup_blocks(_done: On<SwitchesSpawned>, mut builder: ZoneBuilder, locator: Locator) {
     ZoneConstructor::new()
-        .with_entry(locator.on_end(0, Dir::FacingB, 10.0, Dir::FacingB))
-        .with_exit(locator.on_end(0, Dir::FacingB, 200.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(0, Dir::ToB, 10.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(0, Dir::ToB, 200.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(0, Dir::FacingB, 210.0, Dir::FacingB))
-        .with_exit(locator.on_end(0, Dir::FacingB, 400.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(0, Dir::ToB, 210.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(0, Dir::ToB, 400.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(0, Dir::FacingB, 410.0, Dir::FacingB))
-        .with_exit(locator.on_end(0, Dir::FacingA, 10.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(0, Dir::ToB, 410.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(0, Dir::ToA, 10.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(1, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(1, Dir::FacingA, 0.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(1, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(1, Dir::ToA, 0.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(2, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(2, Dir::FacingB, 200.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(2, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(2, Dir::ToB, 200.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(2, Dir::FacingA, 20.0, Dir::FacingB))
-        .with_exit(locator.on_end(11, Dir::FacingB, 0.0, Dir::FacingA))
-        .with_exit(locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingA))
+        .with_entry(locator.on_end(2, Dir::ToA, 20.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(11, Dir::ToB, 0.0, Dir::ToA).unwrap())
+        .with_exit(locator.on_end(4, Dir::ToB, 100.0, Dir::ToA).unwrap())
         .with_switch(4)
-        .build(&mut builder);
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(11, Dir::FacingB, 10.0, Dir::FacingB))
-        .with_exit(locator.on_end(11, Dir::FacingB, 200.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(11, Dir::ToB, 10.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(11, Dir::ToB, 200.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(11, Dir::FacingB, 210.0, Dir::FacingB))
-        .with_exit(locator.on_end(11, Dir::FacingB, 400.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(11, Dir::ToB, 210.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(11, Dir::ToB, 400.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(11, Dir::FacingB, 410.0, Dir::FacingB))
-        .with_exit(locator.on_end(11, Dir::FacingA, 10.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(11, Dir::ToB, 410.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(11, Dir::ToA, 10.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_exit(locator.on_end(9, Dir::FacingA, 40.0, Dir::FacingB))
-        .with_entry(locator.on_end(8, Dir::FacingA, 100.0, Dir::FacingB))
-        .with_entry(locator.on_end(11, Dir::FacingA, 0.0, Dir::FacingB))
+        .with_exit(locator.on_end(9, Dir::ToA, 40.0, Dir::ToB).unwrap())
+        .with_entry(locator.on_end(8, Dir::ToA, 100.0, Dir::ToB).unwrap())
+        .with_entry(locator.on_end(11, Dir::ToA, 0.0, Dir::ToB).unwrap())
         .with_switch(15)
-        .build(&mut builder);
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(9, Dir::FacingA, 60.0, Dir::FacingA))
-        .with_exit(locator.on_end(9, Dir::FacingB, 0.0, Dir::FacingB))
+        .with_entry(locator.on_end(9, Dir::ToA, 60.0, Dir::ToA).unwrap())
+        .with_exit(locator.on_end(9, Dir::ToB, 0.0, Dir::ToB).unwrap())
         .with_signal_distance(15.0)
         .with_observable_distance(20.0)
-        .build(&mut builder);
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(12, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(12, Dir::FacingA, 0.0, Dir::FacingA))
+        .with_entry(locator.on_end(12, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(12, Dir::ToA, 0.0, Dir::ToA).unwrap())
         .with_observable_distance(20.0)
-        .build(&mut builder);
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(4, Dir::FacingB, 100.0, Dir::FacingB))
-        .with_exit(locator.on_end(4, Dir::FacingA, 0.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(4, Dir::ToB, 100.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(4, Dir::ToA, 0.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(5, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(5, Dir::FacingA, 0.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(5, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(5, Dir::ToA, 0.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(6, Dir::FacingB, 10.0, Dir::FacingB))
-        .with_exit(locator.on_end(6, Dir::FacingB, 200.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(6, Dir::ToB, 10.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(6, Dir::ToB, 200.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(6, Dir::FacingB, 210.0, Dir::FacingB))
-        .with_exit(locator.on_end(6, Dir::FacingB, 400.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(6, Dir::ToB, 210.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(6, Dir::ToB, 400.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(6, Dir::FacingB, 410.0, Dir::FacingB))
-        .with_exit(locator.on_end(6, Dir::FacingA, 10.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(6, Dir::ToB, 410.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(6, Dir::ToA, 10.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(7, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(7, Dir::FacingA, 0.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(7, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(7, Dir::ToA, 0.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     ZoneConstructor::new()
-        .with_entry(locator.on_end(8, Dir::FacingB, 0.0, Dir::FacingB))
-        .with_exit(locator.on_end(8, Dir::FacingA, 110.0, Dir::FacingA))
-        .build(&mut builder);
+        .with_entry(locator.on_end(8, Dir::ToB, 0.0, Dir::ToB).unwrap())
+        .with_exit(locator.on_end(8, Dir::ToA, 110.0, Dir::ToA).unwrap())
+        .build(&mut builder)
+        .unwrap();
 
     builder.done();
 }

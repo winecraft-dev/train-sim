@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub mod error;
 pub mod scanner;
 pub mod store;
 

@@ -37,7 +37,10 @@ impl<'w, 's> Projector<'w, 's> {
                 angle,
                 radius,
             } => {
-                let center = self.nodes.get(center).unwrap().translation.xy();
+                let center = match self.nodes.get(center) {
+                    Ok(transform) => transform.translation.xy(),
+                    Err(_) => return Err(LocError::BrokenSegmentReference(center)),
+                };
                 let start_angle = (a - center).to_angle();
 
                 let delta_angle = 0.0.lerp(angle, loc.distance / segment.length);

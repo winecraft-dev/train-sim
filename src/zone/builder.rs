@@ -9,6 +9,7 @@ use crate::{
     zone::{
         AxleCounter, Zone,
         block::Block,
+        error::ZoneError,
         junction::{Junction, SwitchJunctionLookup},
     },
 };
@@ -72,8 +73,8 @@ impl ZoneConstructor {
         self
     }
 
-    pub fn build(self, builder: &mut ZoneBuilder) {
-        builder.new(self);
+    pub fn build(self, builder: &mut ZoneBuilder) -> Result<Entity, ZoneError> {
+        builder.new(self)
     }
 }
 
@@ -81,30 +82,31 @@ impl ZoneConstructor {
 pub struct ZonesBuilt;
 
 impl<'w, 's> ZoneBuilder<'w, 's> {
-    pub fn new(&mut self, zone: ZoneConstructor) -> Entity {
+    pub fn new(&mut self, zone: ZoneConstructor) -> Result<Entity, ZoneError> {
         let e_zone = self
             .commands
             .spawn((GlobalTransform::default(), Zone::default()))
             .id();
 
-        let (e_signals, entry_n) = self.spawn_entries(
+        let e_signals = self.spawn_entries(
             e_zone,
             zone.signal_distance,
             zone.observable_distance,
             zone.entry_locs,
-        );
+        )?;
+        let entry_n = e_signals.len();
         let exit_n = self.spawn_exits(e_zone, zone.exit_locs);
         let e_switches = self.fetch_switches(zone.switches);
 
         // count entrys to exits to gather the type of Block/Junction
-        if let (1, 1) = (entry_n, entry_n) {
+        if let (1, 1) = (entry_n, exit_n) {
             self.setup_block(e_zone, e_signals[0]);
         } else {
             self.setup_junction(e_zone, entry_n, exit_n, e_signals, e_switches);
         }
 
         self.store.push(e_zone);
-        e_zone
+        Ok(e_zone)
     }
 
     fn setup_block(&mut self, zone: Entity, signal: Entity) {
@@ -144,12 +146,20 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         signal_distance: f32,
         observable_distance: f32,
         locs: Vec<FacingLocation>,
-    ) -> (Vec<Entity>, usize) {
+    ) -> Result<Vec<Entity>, ZoneError> {
         let mut e_signals: Vec<Entity> = Vec::new();
         let mut e_entrys: Vec<Entity> = Vec::new(); // misspelled for alignment
         for entry_loc in locs.iter() {
-            let signal_loc = self.cursor.traverse(*entry_loc, signal_distance).unwrap();
-            let e_signal = self.spawn_signal(signal_loc, observable_distance);
+            let signal_loc = match self.cursor.traverse(*entry_loc, signal_distance) {
+                Ok(loc) => loc,
+                Err(e) => return Err(ZoneError::InvalidSignalLoc(e)),
+            };
+            let obv_loc = match self.cursor.traverse(signal_loc, observable_distance) {
+                Ok(loc) => loc,
+                Err(e) => return Err(ZoneError::InvalidObservableLoc(e)),
+            };
+
+            let e_signal = self.spawn_signal(signal_loc, obv_loc);
             let e_entry = self
                 .commands
                 .spawn((AxleCounter { zone }, Landmark, *entry_loc))
@@ -161,10 +171,9 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         self.commands
             .entity(zone)
             .add_children(&e_entrys)
-            .add_children(&e_signals); // BREAKS THINGS, Don't include for now but maybe we need to bring signal building into
-        // here
+            .add_children(&e_signals);
 
-        (e_signals, e_entrys.len())
+        Ok(e_signals)
     }
 
     fn spawn_exits(&mut self, zone: Entity, locs: Vec<FacingLocation>) -> usize {
@@ -190,7 +199,11 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         e_switches
     }
 
-    fn spawn_signal(&mut self, floc: FacingLocation, observable_distance: f32) -> Entity {
+    fn spawn_signal(
+        &mut self,
+        signal_loc: FacingLocation,
+        observable_loc: FacingLocation,
+    ) -> Entity {
         let e_signal = self
             .commands
             .spawn((
@@ -198,17 +211,17 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
                     aspect: Aspect::default(),
                 },
                 ClickTarget,
-                floc,
+                signal_loc,
             ))
             .id();
 
-        let obv_loc = self
-            .cursor
-            .traverse((floc.0, floc.1), observable_distance)
-            .unwrap();
         let e_obv = self
             .commands
-            .spawn((ObservableBound { signal: e_signal }, Landmark, obv_loc))
+            .spawn((
+                ObservableBound { signal: e_signal },
+                Landmark,
+                observable_loc,
+            ))
             .id();
 
         self.commands.entity(e_signal).add_child(e_obv);

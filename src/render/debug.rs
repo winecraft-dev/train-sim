@@ -4,7 +4,7 @@ use crate::{
     landmark::Landmark,
     loc::{Dir, Loc},
     signal::{Aspect, ObservableBound, Signal},
-    track::{TrackNode, TrackSegment, TrackVariant, switch::TrackSwitch},
+    track::{TrackNode, TrackSegment, TrackVariant, switch::NodeVariant},
     train::{
         Train,
         axle::{AXLE_DISTANCE, Axle},
@@ -57,7 +57,7 @@ fn render_tracks(
     segments: Query<&TrackSegment>,
 ) {
     for segment in segments {
-        let a = nodes.get(segment.nodes.0).unwrap().translation;
+        let a = nodes.get(segment.nodes.0).unwrap().translation; // pretty common use case to get a node's position, maybe make a SystemParam
         let b = nodes.get(segment.nodes.1).unwrap().translation;
         match segment.variant {
             TrackVariant::Straight => {
@@ -105,32 +105,19 @@ fn render_trains(
 fn render_switches(
     mut gizmos: Gizmos,
     segments: Query<&TrackSegment>,
-    switches: Query<(Entity, &Transform, &TrackSwitch)>,
+    switches: Query<(Entity, &Transform, &NodeVariant)>,
     nodes: Query<&Transform, With<TrackNode>>,
 ) {
     for (e_switch, transform, switch) in switches {
         let position = transform.translation.xy();
         gizmos.circle_2d(position, 1.0, css::BLACK);
         match switch {
-            TrackSwitch::Switch {
+            NodeVariant::Switch {
                 control,
                 inlet: _,
                 outlet,
             } => {
                 // repeated block of code :3
-                let active = outlet[*control];
-                let active_segment = segments.get(active).unwrap();
-                let select_node = active_segment.opposite(e_switch).unwrap();
-                let select_pos = nodes.get(select_node).unwrap().translation.xy();
-                let direction = (select_pos - position).normalize() * 55.0;
-                gizmos.rounded_rect_2d(position, Vec2::new(5.0, 5.0), css::DARK_CYAN);
-                gizmos.arrow_2d(position, position + direction, css::BLUE);
-            }
-            TrackSwitch::ThreewayTurnout {
-                control,
-                inlet: _,
-                outlet,
-            } => {
                 let active = outlet[*control];
                 let active_segment = segments.get(active).unwrap();
                 let select_node = active_segment.opposite(e_switch).unwrap();
@@ -154,8 +141,8 @@ fn render_facing(
         let facing_pos = facing_pos.translation.xy();
         let segment = segments.get(loc.track).unwrap();
         let facing_switch = match facing {
-            Dir::FacingA => segment.nodes.0,
-            Dir::FacingB => segment.nodes.1,
+            Dir::ToA => segment.nodes.0,
+            Dir::ToB => segment.nodes.1,
         };
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
         let arrow_pos = (switch_pos - facing_pos).normalize() * 20.0 + facing_pos;

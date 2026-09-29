@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::track::{builder::init_track_store, switch::SwitchPlugin};
 
 pub mod builder;
+pub mod error;
 pub mod switch;
 
 pub struct TrackPlugin;
@@ -79,7 +80,16 @@ pub fn compute_node_neighbors(
     for (entity, segment) in segments {
         let a = segment.nodes.0;
         let b = segment.nodes.1;
-        let segment_nodes = nodes.get_many_mut([a, b]).unwrap();
+        let segment_nodes = match nodes.get_many_mut([a, b]) {
+            Ok(n) => n,
+            Err(_) => {
+                eprintln!(
+                    "computing node neighbors, could not find: a:{} or b:{}",
+                    a, b
+                );
+                continue;
+            }
+        };
         for mut s_node in segment_nodes {
             s_node.neighbors.push(entity);
         }
