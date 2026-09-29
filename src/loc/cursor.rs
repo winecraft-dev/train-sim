@@ -2,13 +2,13 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
     loc::{Dir, FacingLocation, Loc, error::LocError},
-    track::{TrackSegment, switch::TrackSwitch},
+    track::{TrackSegment, switch::NodeVariant},
 };
 
 #[derive(SystemParam)]
 pub struct TrackCursor<'w, 's> {
     segments: Query<'w, 's, &'static TrackSegment>,
-    switches: Query<'w, 's, &'static TrackSwitch>,
+    nodes: Query<'w, 's, &'static NodeVariant>,
 }
 
 impl<'w, 's> TrackCursor<'w, 's> {
@@ -30,7 +30,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
                 None => return Ok((loc, facing)),
             };
 
-            let switch = match self.switches.get(e_switch) {
+            let switch = match self.nodes.get(e_switch) {
                 Ok(s) => s,
                 Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
             };
@@ -63,7 +63,7 @@ impl<'w, 's> TrackCursor<'w, 's> {
             Dir::ToA => current_track.nodes.0,
             Dir::ToB => current_track.nodes.1,
         };
-        let switch = match self.switches.get(e_switch) {
+        let switch = match self.nodes.get(e_switch) {
             Ok(n) => n,
             Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
         };

@@ -4,7 +4,7 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment},
+    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment, error::TrackError},
 };
 
 pub struct SwitchPlugin;
@@ -17,7 +17,7 @@ impl Plugin for SwitchPlugin {
 }
 
 #[derive(Default, Debug, Component)]
-pub enum TrackSwitch {
+pub enum NodeVariant {
     #[default]
     None,
 
@@ -27,45 +27,29 @@ pub enum TrackSwitch {
     Switch {
         control: usize,
         inlet: Entity,
-        outlet: [Entity; 2],
-    },
-    ThreewayTurnout {
-        control: usize,
-        inlet: Entity,
-        outlet: [Entity; 3],
+        outlet: Vec<Entity>,
     },
 }
 
-impl TrackSwitch {
+impl NodeVariant {
     pub fn next_segment(&self, current: Entity) -> Option<Entity> {
-        match *self {
-            TrackSwitch::Track(a, b) => {
-                if a == current {
-                    return Some(b);
-                } else if b == current {
-                    return Some(a);
+        match self {
+            NodeVariant::Track(a, b) => {
+                if *a == current {
+                    return Some(*b);
+                } else if *b == current {
+                    return Some(*a);
                 }
             }
-            TrackSwitch::Switch {
+            NodeVariant::Switch {
                 control,
                 inlet,
                 outlet,
             } => {
-                if inlet == current {
-                    return Some(outlet[control]);
+                if *inlet == current {
+                    return Some(outlet[*control].clone());
                 } else {
-                    return Some(inlet);
-                }
-            }
-            TrackSwitch::ThreewayTurnout {
-                control,
-                inlet,
-                outlet,
-            } => {
-                if inlet == current {
-                    return Some(outlet[control]);
-                } else {
-                    return Some(inlet);
+                    return Some(*inlet);
                 }
             }
             _ => {}
@@ -83,29 +67,26 @@ pub fn spawn_switches(
     for (e_origin, origin) in nodes {
         let switch = match origin.neighbors.len() {
             0 => {
-                println!("Node[{}] with no neighbors!", e_origin);
                 continue;
             }
             1 => {
                 let e_terminating_track = origin.neighbors[0];
-                TrackSwitch::Terminus(e_terminating_track)
+                NodeVariant::Terminus(e_terminating_track)
             }
             2 => {
                 let e_segment_a = origin.neighbors[0];
                 let e_segment_b = origin.neighbors[1];
-                TrackSwitch::Track(e_segment_a, e_segment_b)
+                NodeVariant::Track(e_segment_a, e_segment_b)
             }
-            3 => {
-                let (inlet, outlet) = split_ports::<2>(e_origin, origin, segments);
-                TrackSwitch::Switch {
-                    control: 0,
-                    inlet,
-                    outlet: outlet,
-                }
-            }
-            4 => {
-                let (inlet, outlet) = split_ports::<3>(e_origin, origin, segments);
-                TrackSwitch::ThreewayTurnout {
+            3 | 4 => {
+                let (inlet, outlet) = match split_ports(e_origin, origin, segments) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        eprintln!("problem splitting ports: {:?}", e);
+                        continue;
+                    }
+                };
+                NodeVariant::Switch {
                     control: 0,
                     inlet,
                     outlet: outlet,
@@ -119,51 +100,60 @@ pub fn spawn_switches(
     commands.trigger(SwitchesSpawned);
 }
 
-fn split_ports<const OUTLET_N: usize>(
+fn split_ports(
     e_origin: Entity,
     origin: &TrackNode,
     segments: Query<&TrackSegment>,
-) -> Result<(Entity, [Entity; OUTLET_N]), ()> {
-    let mut inlet_angle: Option<f32> = None;
-    let mut inlet: Entity;
-    let mut outlets: [Entity; OUTLET_N];
+) -> Result<(Entity, Vec<Entity>), TrackError> {
+    let mut end: Option<f32> = None;
+    let mut groups: (Vec<Entity>, Vec<Entity>) = (Vec::default(), Vec::default());
 
     for e_neighbor in origin.neighbors.iter() {
-        let segment = segments.get(e_neighbor).unwrap();
-        let out_angle = segment.angle_from(e_origin).unwrap();
+        let Ok(segment) = segments.get(e_neighbor) else {
+            return Err(TrackError::BrokenSegmentReference(e_neighbor));
+        };
+        let Some(out_angle) = segment.angle_from(e_origin) else {
+            return Err(TrackError::NodeNotOfSegment(e_origin, e_neighbor));
+        };
         let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 
-        // CLEAN UP
+        match end {
+            None => {
+                end = Some(out_angle);
+                groups.0.push(e_neighbor);
+            }
+            Some(end_angle) => {
+                let diff = out_angle - end_angle;
+                if diff > PI / -2.0 && diff < PI / 2.0 {
+                    groups.0.push(e_neighbor);
+                } else {
+                    groups.1.push(e_neighbor);
+                }
+            }
+        }
     }
 
-    Err(())
+    if groups.0.len() == 1 {
+        Ok((groups.0[0], groups.1))
+    } else {
+        Ok((groups.1[0], groups.0))
+    }
 }
 
 fn switch_clicked(
     clicked: On<TargetClicked>,
     mut commands: Commands,
-    mut switches: Query<&mut TrackSwitch>,
+    mut switches: Query<&mut NodeVariant>,
 ) {
     let e_switch = clicked.event().0;
     if let Ok(mut switch) = switches.get_mut(e_switch) {
         match &mut *switch {
-            TrackSwitch::Switch {
+            NodeVariant::Switch {
                 control,
                 inlet: _,
-                outlet: _,
+                outlet,
             } => {
-                *control = (*control + 1) % 2;
-                commands.trigger(SwitchUpdate {
-                    switch: e_switch,
-                    control: *control,
-                });
-            }
-            TrackSwitch::ThreewayTurnout {
-                control,
-                inlet: _,
-                outlet: _,
-            } => {
-                *control = (*control + 1) % 3;
+                *control = (*control + 1) % outlet.len();
                 commands.trigger(SwitchUpdate {
                     switch: e_switch,
                     control: *control,
