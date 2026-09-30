@@ -1,5 +1,6 @@
 mod control;
 mod landmark;
+mod loader;
 mod loc;
 mod render;
 mod signal;
@@ -13,10 +14,11 @@ use rand::RngExt;
 use crate::{
     control::ControlPlugin,
     landmark::LandmarkPlugin,
+    loader::LoaderPlugin,
     loc::{Dir, LocationPlugin, locator::Locator},
     render::debug::DebugRenderPlugin,
     signal::SignalPlugin,
-    track::{SwitchesSpawned, TrackPlugin, builder::TrackBuilder},
+    track::{SwitchesSpawned, TrackPlugin},
     train::{TrainPlugin, create_train},
     zone::{
         AxleCounterPlugin,
@@ -33,11 +35,12 @@ fn main() {
         .add_plugins(LandmarkPlugin)
         .add_plugins(ControlPlugin)
         .add_plugins(SignalPlugin)
+        .add_plugins(LoaderPlugin)
         .add_plugins(DebugRenderPlugin)
         .add_plugins(AxleCounterPlugin)
-        .add_systems(Startup, (config, setup_nodes, setup_tracks).chain())
-        .add_observer(setup_blocks)
-        .add_observer(setup_trains)
+        .add_systems(Startup, config)
+        // .add_observer(setup_blocks)
+        // .add_observer(setup_trains)
         .run();
 }
 
@@ -46,45 +49,6 @@ fn config(mut config: ResMut<GizmoConfigStore>, mut commands: Commands) {
     config.line.width = 4.0;
 
     commands.spawn((Camera2d, Camera::default()));
-}
-
-fn setup_nodes(mut builder: TrackBuilder) {
-    builder.node(-300.0, 300.0);
-    builder.node(300.0, 300.0);
-    builder.node(300.0, 250.0); // CENTER
-    builder.node(350.0, 250.0);
-    builder.node(350.0, 0.0);
-    builder.node(300.0, 0.0); // CENTER
-    builder.node(300.0, -50.0);
-    builder.node(350.0, -250.0);
-    builder.node(300.0, -250.0); // CENTER
-    builder.node(300.0, -300.0);
-    builder.node(-300.0, -300.0);
-    builder.node(-300.0, -250.0); // CENTER
-    builder.node(-350.0, -250.0);
-    builder.node(-300.0, -50.0);
-    builder.node(-300.0, 0.0); // CENTER
-    builder.node(-350.0, 0.0);
-    builder.node(-300.0, 250.0); // CENTER
-    builder.node(-350.0, 250.0);
-}
-
-fn setup_tracks(mut builder: TrackBuilder) {
-    builder.straight(0, 1).unwrap();
-    builder.curved(1, 3, 2).unwrap();
-    builder.straight(3, 4).unwrap();
-    builder.curved(4, 6, 5).unwrap();
-    builder.straight(4, 7).unwrap();
-    builder.curved(7, 9, 8).unwrap();
-    builder.straight(9, 10).unwrap();
-    builder.curved(10, 12, 11).unwrap();
-    builder.straight(12, 15).unwrap();
-    builder.straight(17, 15).unwrap();
-    builder.curved(13, 15, 14).unwrap();
-    builder.straight(6, 13).unwrap();
-    builder.curved(17, 0, 16).unwrap();
-
-    builder.flush();
 }
 
 fn setup_trains(_done: On<SwitchesSpawned>, mut commands: Commands, locator: Locator) {

@@ -1,10 +1,14 @@
 use bevy::prelude::*;
 
-use crate::track::{builder::init_track_store, switch::SwitchPlugin};
+use crate::track::{
+    builder::{TrackBuilt, init_track_store},
+    switch::SwitchPlugin,
+};
 
 pub mod builder;
 pub mod error;
 pub mod switch;
+pub mod wire;
 
 pub struct TrackPlugin;
 
@@ -15,9 +19,6 @@ impl Plugin for TrackPlugin {
             .add_observer(compute_node_neighbors);
     }
 }
-
-#[derive(Event)]
-pub struct TrackUpdated;
 
 #[derive(Event)]
 pub struct NodeNeighborsComputed;
@@ -72,7 +73,7 @@ impl TrackSegment {
 }
 
 pub fn compute_node_neighbors(
-    _track_updated: On<TrackUpdated>,
+    _track_updated: On<TrackBuilt>,
     mut commands: Commands,
     mut nodes: Query<&mut TrackNode>,
     segments: Query<(Entity, &TrackSegment)>,

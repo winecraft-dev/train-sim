@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 
-use crate::track::{TrackNode, TrackSegment, TrackUpdated, TrackVariant, error::TrackError};
+use crate::track::{TrackNode, TrackSegment, TrackVariant, error::TrackError};
 
 #[derive(Resource, Default, Debug)]
 pub struct TrackStore {
@@ -29,6 +29,12 @@ impl TrackStore {
 pub fn init_track_store(mut commands: Commands) {
     commands.insert_resource(TrackStore::default());
 }
+
+#[derive(Event)]
+pub struct TrackNodesBuilt;
+
+#[derive(Event)]
+pub struct TrackBuilt;
 
 #[derive(SystemParam)]
 pub struct TrackBuilder<'w, 's> {
@@ -126,8 +132,12 @@ impl<'w, 's> TrackBuilder<'w, 's> {
         Ok(e_segment)
     }
 
-    pub fn flush(&mut self) {
-        self.commands.trigger(TrackUpdated);
+    pub fn nodes_built(&mut self) {
+        self.commands.trigger(TrackNodesBuilt);
+    }
+
+    pub fn built(&mut self) {
+        self.commands.trigger(TrackBuilt);
     }
 
     fn calculate_straight_length(&mut self, a: Vec2, b: Vec2) -> f32 {

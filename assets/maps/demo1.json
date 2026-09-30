@@ -1,0 +1,39 @@
+{
+  "tracks": {
+    "nodes": [
+        { "x": -300.0, "y": 300.0 },
+        { "x": 300.0, "y": 300.0 },
+        { "x": 300.0, "y": 250.0 },
+        { "x": 350.0, "y": 250.0 },
+        { "x": 350.0, "y": 0.0 },
+        { "x": 300.0, "y": 0.0 },
+        { "x": 300.0, "y": -50.0 },
+        { "x": 350.0, "y": -250.0 },
+        { "x": 300.0, "y": -250.0 },
+        { "x": 300.0, "y": -300.0 },
+        { "x": -300.0, "y": -300.0 },
+        { "x": -300.0, "y": -250.0 },
+        { "x": -350.0, "y": -250.0 },
+        { "x": -300.0, "y": -50.0 },
+        { "x": -300.0, "y": 0.0 },
+        { "x": -350.0, "y": 0.0 },
+        { "x": -300.0, "y": 250.0 },
+        { "x": -350.0, "y": 250.0 }
+    ],
+    "segments": [
+      { "nodes": [ 0, 1 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 1, 3 ], "variant": {"type": "Curved", "center": 2 }},
+      { "nodes": [ 3, 4 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 4, 6 ], "variant": {"type": "Curved", "center": 5 }},
+      { "nodes": [ 4, 7 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 7, 9 ], "variant": {"type": "Curved", "center": 8 }},
+      { "nodes": [ 9, 10 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 10, 12 ], "variant": {"type": "Curved", "center": 11 }},
+      { "nodes": [ 12, 15 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 17, 15 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 13, 15 ], "variant": {"type": "Curved", "center": 14 }},
+      { "nodes": [ 6, 13 ], "variant": {"type": "Straight" }},
+      { "nodes": [ 17, 0 ], "variant": {"type": "Curved", "center": 16 }}
+    ]
+  }
+}
