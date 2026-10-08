@@ -2,14 +2,15 @@ use bevy::prelude::*;
 use bevy_common_assets::json::JsonAssetPlugin;
 
 use crate::{
-    loader::wire::Railway,
+    loader::wire::{Railway, TrackVariant},
     track::{
+        SwitchesSpawned,
         builder::{TrackBuilder, TrackNodesBuilt},
-        wire::TrackVariant,
     },
+    zone::builder::ZoneBuilder,
 };
 
-mod wire;
+pub mod wire;
 
 pub struct LoaderPlugin;
 
@@ -19,7 +20,8 @@ impl Plugin for LoaderPlugin {
             .add_systems(PreStartup, load_railway)
             .add_systems(Update, railway_loaded)
             .add_observer(spawn_track_nodes)
-            .add_observer(spawn_track_segments);
+            .add_observer(spawn_track_segments)
+            .add_observer(spawn_zones);
     }
 }
 
@@ -81,6 +83,29 @@ fn spawn_track_segments(
             Ok(_) => {}
             Err(e) => {
                 eprintln!("Failed to spawn segment {:?}: {:?}", segment, e);
+                continue;
+            }
+        };
+    }
+
+    builder.built();
+}
+
+fn spawn_zones(
+    _done: On<SwitchesSpawned>,
+    mut builder: ZoneBuilder,
+    handle: Res<RailwayHandle>,
+    railways: Res<Assets<Railway>>,
+) {
+    let Some(railway) = railways.get(&handle.0) else {
+        return;
+    };
+
+    for zone in railway.zones.iter() {
+        match builder.from_wire(zone) {
+            Ok(_) => todo!(),
+            Err(e) => {
+                eprintln!("Failed to spawn zone {:?}: {:?}", zone, e);
                 continue;
             }
         };

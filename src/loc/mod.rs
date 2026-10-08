@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::Deserialize;
 
 pub mod cursor;
 pub mod error;
@@ -15,7 +16,7 @@ impl Plugin for LocationPlugin {
     }
 }
 
-pub type FacingLocation = (Loc, Dir);
+pub type FLoc = (Loc, Dir);
 
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Loc {
@@ -40,18 +41,18 @@ fn add_transforms(
     }
 }
 
-#[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Default, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Dir {
-    ToA,
+    A,
     #[default]
-    ToB,
+    B,
 }
 
 impl Dir {
     pub fn flip(self) -> Self {
         match self {
-            Dir::ToA => Dir::ToB,
-            Dir::ToB => Dir::ToA,
+            Dir::A => Dir::B,
+            Dir::B => Dir::A,
         }
     }
 }

@@ -141,8 +141,8 @@ fn render_facing(
         let facing_pos = facing_pos.translation.xy();
         let segment = segments.get(loc.track).unwrap();
         let facing_switch = match facing {
-            Dir::ToA => segment.nodes.0,
-            Dir::ToB => segment.nodes.1,
+            Dir::A => segment.nodes.0,
+            Dir::B => segment.nodes.1,
         };
         let switch_pos = switches.get(facing_switch).unwrap().translation.xy();
         let arrow_pos = (switch_pos - facing_pos).normalize() * 20.0 + facing_pos;

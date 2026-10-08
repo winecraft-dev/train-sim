@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor, projector::Projector},
+    loc::{Dir, FLoc, Loc, cursor::TrackCursor, projector::Projector},
     track::TrackNode,
     train::{Derailed, Train, TrainCreated, TrainDerailed},
 };
@@ -30,8 +30,8 @@ pub const AXLE_DISTANCE: f32 = 50.0;
 
 fn axle_offset(facing: Dir, offset: f32) -> f32 {
     match facing {
-        Dir::ToA => offset,
-        Dir::ToB => -offset,
+        Dir::A => offset,
+        Dir::B => -offset,
     }
 }
 
@@ -67,8 +67,8 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
 
 fn train_speed(facing: Dir, speed: f32) -> f32 {
     match facing {
-        Dir::ToA => -speed,
-        Dir::ToB => speed,
+        Dir::A => -speed,
+        Dir::B => speed,
     }
 }
 
@@ -76,13 +76,13 @@ fn train_speed(facing: Dir, speed: f32) -> f32 {
 pub struct AxleMoved {
     pub train: Entity,
     // facing direction refers to the direction the Axle moved, not just which direction it is facing
-    pub from: FacingLocation,
-    pub to: FacingLocation,
+    pub from: FLoc,
+    pub to: FLoc,
 }
 
-fn speed_direction(old: &mut FacingLocation, new: &mut FacingLocation, speed: f32) {
+fn speed_direction(old: &mut FLoc, new: &mut FLoc, speed: f32) {
     let flipped = old.1 != new.1;
-    old.1 = if speed < 0.0 { Dir::ToA } else { Dir::ToB };
+    old.1 = if speed < 0.0 { Dir::A } else { Dir::B };
     new.1 = if !flipped { old.1 } else { old.1.flip() }
 }
 

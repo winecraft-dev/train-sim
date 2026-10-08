@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Dir, FacingLocation, Loc, error::LocError},
+    loc::{Dir, FLoc, Loc, error::LocError},
     track::{TrackSegment, builder::TrackStore},
 };
 
@@ -17,7 +17,7 @@ impl<'w, 's> Locator<'w, 's> {
         segment: usize,
         progress: f32,
         facing: Dir,
-    ) -> Result<FacingLocation, LocError> {
+    ) -> Result<FLoc, LocError> {
         let Some(e_segment) = self.store.segment(segment) else {
             return Err(LocError::SegmentNotInStore(segment));
         };
@@ -41,7 +41,7 @@ impl<'w, 's> Locator<'w, 's> {
         end: Dir,
         offset: f32,
         facing: Dir,
-    ) -> Result<FacingLocation, LocError> {
+    ) -> Result<FLoc, LocError> {
         let Some(e_segment) = self.store.segment(segment) else {
             return Err(LocError::SegmentNotInStore(segment));
         };
@@ -50,8 +50,8 @@ impl<'w, 's> Locator<'w, 's> {
         };
 
         let distance = match end {
-            Dir::ToA => segment.length - offset,
-            Dir::ToB => offset,
+            Dir::A => segment.length - offset,
+            Dir::B => offset,
         };
 
         Ok((

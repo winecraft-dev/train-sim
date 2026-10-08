@@ -8,7 +8,6 @@ use crate::track::{
 pub mod builder;
 pub mod error;
 pub mod switch;
-pub mod wire;
 
 pub struct TrackPlugin;
 
