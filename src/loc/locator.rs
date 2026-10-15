@@ -1,7 +1,8 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Dir, FLoc, Loc, error::LocError},
+    error::SimError::{self, BrokenSegmentReference, SegmentNotInStore},
+    loc::{Dir, FLoc, Loc},
     track::{TrackSegment, builder::TrackStore},
 };
 
@@ -17,12 +18,10 @@ impl<'w, 's> Locator<'w, 's> {
         segment: usize,
         progress: f32,
         facing: Dir,
-    ) -> Result<FLoc, LocError> {
-        let Some(e_segment) = self.store.segment(segment) else {
-            return Err(LocError::SegmentNotInStore(segment));
-        };
+    ) -> Result<FLoc, SimError> {
+        let e_segment = self.store.segment(segment)?;
         let Ok(segment) = self.segments.get(e_segment) else {
-            return Err(LocError::BrokenSegmentReference(e_segment));
+            return Err(BrokenSegmentReference(e_segment));
         };
 
         let distance = progress * segment.length;
@@ -41,12 +40,10 @@ impl<'w, 's> Locator<'w, 's> {
         end: Dir,
         offset: f32,
         facing: Dir,
-    ) -> Result<FLoc, LocError> {
-        let Some(e_segment) = self.store.segment(segment) else {
-            return Err(LocError::SegmentNotInStore(segment));
-        };
+    ) -> Result<FLoc, SimError> {
+        let e_segment = self.store.segment(segment)?;
         let Ok(segment) = self.segments.get(e_segment) else {
-            return Err(LocError::BrokenSegmentReference(e_segment));
+            return Err(BrokenSegmentReference(e_segment));
         };
 
         let distance = match end {

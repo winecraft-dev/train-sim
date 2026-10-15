@@ -4,7 +4,8 @@ use bevy::{ecs::relationship::RelationshipSourceCollection, prelude::*};
 
 use crate::{
     control::{ClickTarget, TargetClicked},
-    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment, error::TrackError},
+    error::SimError::{self, BrokenSegmentReference, NodeNotOfSegment},
+    track::{NodeNeighborsComputed, SwitchesSpawned, TrackNode, TrackSegment},
 };
 
 pub struct SwitchPlugin;
@@ -104,16 +105,16 @@ fn split_ports(
     e_origin: Entity,
     origin: &TrackNode,
     segments: Query<&TrackSegment>,
-) -> Result<(Entity, Vec<Entity>), TrackError> {
+) -> Result<(Entity, Vec<Entity>), SimError> {
     let mut end: Option<f32> = None;
     let mut groups: (Vec<Entity>, Vec<Entity>) = (Vec::default(), Vec::default());
 
     for e_neighbor in origin.neighbors.iter() {
         let Ok(segment) = segments.get(e_neighbor) else {
-            return Err(TrackError::BrokenSegmentReference(e_neighbor));
+            return Err(BrokenSegmentReference(e_neighbor));
         };
         let Some(out_angle) = segment.angle_from(e_origin) else {
-            return Err(TrackError::NodeNotOfSegment(e_origin, e_neighbor));
+            return Err(NodeNotOfSegment(e_origin, e_neighbor));
         };
         let out_angle = ((out_angle + PI) % (2.0 * PI)) - PI;
 

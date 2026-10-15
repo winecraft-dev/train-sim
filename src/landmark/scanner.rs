@@ -1,11 +1,8 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    landmark::{
-        Landmark,
-        error::LandmarkError::{self, BrokenLandmarkReference, CursorError},
-        store::LandmarkStore,
-    },
+    error::SimError::{self, BrokenLandmarkReference},
+    landmark::{Landmark, store::LandmarkStore},
     loc::{Dir, FLoc, Loc, cursor::TrackCursor},
 };
 
@@ -23,7 +20,7 @@ impl<'w, 's> Scanner<'w, 's> {
         a: FLoc,
         b: FLoc,
         store: Res<LandmarkStore>,
-    ) -> Result<Vec<Passed>, LandmarkError> {
+    ) -> Result<Vec<Passed>, SimError> {
         let mut scan_pos = a;
         let mut passed: Vec<Passed> = Vec::new();
 
@@ -69,9 +66,7 @@ impl<'w, 's> Scanner<'w, 's> {
             if same_track {
                 break;
             }
-            if let Err(e) = self.cursor.next_track(&mut scan_pos) {
-                return Err(CursorError(e));
-            };
+            self.cursor.next_track(&mut scan_pos)?;
         }
         Ok(passed)
     }

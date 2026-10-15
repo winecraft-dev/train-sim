@@ -35,5 +35,25 @@
       { "nodes": [ 6, 13 ], "variant": {"type": "Straight" }},
       { "nodes": [ 17, 0 ], "variant": {"type": "Curved", "center": 16 }}
     ]
-  }
+  },
+  "zones": [{
+    "entrys": [
+      {
+        "loc": {
+          "track": 0,
+          "distance": 10.0
+        },
+        "dir": "B"
+      }
+    ],
+    "exits": [
+      {
+        "loc": {
+          "track": 0,
+          "distance": 200.0
+        },
+        "dir": "A"
+      }
+    ]
+  }]
 }

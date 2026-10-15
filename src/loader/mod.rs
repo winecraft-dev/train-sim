@@ -103,7 +103,7 @@ fn spawn_zones(
 
     for zone in railway.zones.iter() {
         match builder.from_wire(zone) {
-            Ok(_) => todo!(),
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("Failed to spawn zone {:?}: {:?}", zone, e);
                 continue;

@@ -1,4 +1,5 @@
 mod control;
+mod error;
 mod landmark;
 mod loader;
 mod loc;

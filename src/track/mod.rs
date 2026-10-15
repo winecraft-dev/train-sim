@@ -6,7 +6,6 @@ use crate::track::{
 };
 
 pub mod builder;
-pub mod error;
 pub mod switch;
 
 pub struct TrackPlugin;

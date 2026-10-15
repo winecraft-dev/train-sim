@@ -2,6 +2,7 @@ use bevy::{asset::Asset, prelude::*, reflect::TypePath};
 use serde::Deserialize;
 
 use crate::{
+    error::SimError::{self, WireConversionFailed},
     loc::{self, Dir},
     track::builder::TrackStore,
 };
@@ -16,8 +17,9 @@ pub struct Railway {
 pub struct Zone {
     pub signal_distance: Option<f32>,
     pub observable_distance: Option<f32>,
-    pub entry_locs: Vec<FLoc>,
-    pub exit_locs: Vec<FLoc>,
+    pub entrys: Vec<FLoc>,
+    pub exits: Vec<FLoc>,
+    pub switches: Option<Vec<usize>>,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -33,9 +35,13 @@ pub struct Loc {
 }
 
 impl FLoc {
-    pub fn convert(self, store: Res<TrackStore>) -> Option<loc::FLoc> {
-        let e_segment = store.segment(self.loc.track)?;
-        Some((
+    pub fn convert(self, store: &Res<TrackStore>) -> Result<loc::FLoc, SimError> {
+        let e_segment = match store.segment(self.loc.track) {
+            Ok(s) => s,
+            Err(e) => return Err(WireConversionFailed(Box::new(e))),
+        };
+
+        Ok((
             loc::Loc {
                 track: e_segment,
                 distance: self.loc.distance,

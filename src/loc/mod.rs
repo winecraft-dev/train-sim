@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use serde::Deserialize;
 
 pub mod cursor;
-pub mod error;
 pub mod locator;
 pub mod projector;
 

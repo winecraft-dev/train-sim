@@ -1,7 +1,8 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Dir, FLoc, Loc, error::LocError},
+    error::SimError::{self, BrokenNodeReference, BrokenSegmentReference, NoNeighborSegment},
+    loc::{Dir, FLoc, Loc},
     track::{TrackSegment, switch::NodeVariant},
 };
 
@@ -12,14 +13,14 @@ pub struct TrackCursor<'w, 's> {
 }
 
 impl<'w, 's> TrackCursor<'w, 's> {
-    pub fn traverse(&self, f_loc: FLoc, distance: f32) -> Result<FLoc, LocError> {
+    pub fn traverse(&self, f_loc: FLoc, distance: f32) -> Result<FLoc, SimError> {
         let (mut loc, mut facing) = f_loc;
         loc.distance += distance;
 
         loop {
             let current_track = match self.segments.get(loc.track) {
                 Ok(s) => s,
-                Err(_) => return Err(LocError::BrokenSegmentReference(loc.track)),
+                Err(_) => return Err(BrokenSegmentReference(loc.track)),
             };
             let (e_switch, overflow_distance) = match self.exited(&loc, current_track) {
                 Some(exit) => exit,
@@ -28,16 +29,16 @@ impl<'w, 's> TrackCursor<'w, 's> {
 
             let switch = match self.nodes.get(e_switch) {
                 Ok(s) => s,
-                Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
+                Err(_) => return Err(BrokenNodeReference(e_switch)),
             };
             let e_next = match switch.next_segment(loc.track) {
                 Some(segment) => segment,
-                None => return Err(LocError::NoNeighborSegment),
+                None => return Err(NoNeighborSegment),
             };
 
             let next_track = match self.segments.get(e_next) {
                 Ok(s) => s,
-                Err(_) => return Err(LocError::BrokenSegmentReference(e_next)),
+                Err(_) => return Err(BrokenSegmentReference(e_next)),
             };
 
             loc.track = e_next;
@@ -50,10 +51,10 @@ impl<'w, 's> TrackCursor<'w, 's> {
         }
     }
 
-    pub fn next_track(&self, floc: &mut (Loc, Dir)) -> Result<(), LocError> {
+    pub fn next_track(&self, floc: &mut (Loc, Dir)) -> Result<(), SimError> {
         let current_track = match self.segments.get(floc.0.track) {
             Ok(s) => s,
-            Err(_) => return Err(LocError::BrokenSegmentReference(floc.0.track)),
+            Err(_) => return Err(BrokenSegmentReference(floc.0.track)),
         };
         let e_switch = match floc.1 {
             Dir::A => current_track.nodes.0,
@@ -61,15 +62,15 @@ impl<'w, 's> TrackCursor<'w, 's> {
         };
         let switch = match self.nodes.get(e_switch) {
             Ok(n) => n,
-            Err(_) => return Err(LocError::BrokenNodeReference(e_switch)),
+            Err(_) => return Err(BrokenNodeReference(e_switch)),
         };
         let e_next = match switch.next_segment(floc.0.track) {
             Some(s) => s,
-            None => return Err(LocError::NoNeighborSegment),
+            None => return Err(NoNeighborSegment),
         };
         let next_track = match self.segments.get(e_next) {
             Ok(s) => s,
-            Err(_) => return Err(LocError::BrokenSegmentReference(e_next)),
+            Err(_) => return Err(BrokenSegmentReference(e_next)),
         };
         floc.0.track = e_next;
         floc.1 = select_direction(floc.1, current_track, next_track);

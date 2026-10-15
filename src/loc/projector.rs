@@ -1,7 +1,8 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    loc::{Loc, error::LocError},
+    error::SimError::{self, BrokenSegmentReference},
+    loc::Loc,
     track::{TrackNode, TrackSegment, TrackVariant},
 };
 
@@ -12,19 +13,19 @@ pub struct Projector<'w, 's> {
 }
 
 impl<'w, 's> Projector<'w, 's> {
-    pub fn project(&self, loc: Loc) -> Result<Vec3, LocError> {
+    pub fn project(&self, loc: Loc) -> Result<Vec3, SimError> {
         let segment = match self.segments.get(loc.track) {
             Ok(s) => s,
-            Err(_) => return Err(LocError::BrokenSegmentReference(loc.track)),
+            Err(_) => return Err(BrokenSegmentReference(loc.track)),
         };
 
         let a = match self.nodes.get(segment.nodes.0) {
             Ok(transform) => transform.translation.xy(),
-            Err(_) => return Err(LocError::BrokenSegmentReference(segment.nodes.0)),
+            Err(_) => return Err(BrokenSegmentReference(segment.nodes.0)),
         };
         let b = match self.nodes.get(segment.nodes.1) {
             Ok(transform) => transform.translation.xy(),
-            Err(_) => return Err(LocError::BrokenSegmentReference(segment.nodes.0)),
+            Err(_) => return Err(BrokenSegmentReference(segment.nodes.0)),
         };
 
         match segment.variant {
@@ -39,7 +40,7 @@ impl<'w, 's> Projector<'w, 's> {
             } => {
                 let center = match self.nodes.get(center) {
                     Ok(transform) => transform.translation.xy(),
-                    Err(_) => return Err(LocError::BrokenSegmentReference(center)),
+                    Err(_) => return Err(BrokenSegmentReference(center)),
                 };
                 let start_angle = (a - center).to_angle();
 
