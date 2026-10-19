@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_common_assets::json::JsonAssetPlugin;
+use bevy_common_assets::yaml::YamlAssetPlugin;
 
 use crate::{
     loader::wire::{Railway, TrackVariant},
@@ -16,7 +16,7 @@ pub struct LoaderPlugin;
 
 impl Plugin for LoaderPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(JsonAssetPlugin::<Railway>::new(&["maps/demo1.json"]))
+        app.add_plugins(YamlAssetPlugin::<Railway>::new(&["maps/demo1.yaml"]))
             .add_systems(PreStartup, load_railway)
             .add_systems(Update, railway_loaded)
             .add_observer(spawn_track_nodes)
@@ -29,7 +29,7 @@ impl Plugin for LoaderPlugin {
 struct RailwayHandle(Handle<Railway>);
 
 fn load_railway(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let railway = RailwayHandle(asset_server.load::<Railway>("maps/demo1.json"));
+    let railway = RailwayHandle(asset_server.load::<Railway>("maps/demo1.yaml"));
 
     commands.insert_resource(railway);
 }

@@ -5,7 +5,7 @@ use crate::{
     error::SimError::{self, InvalidObservableBoundLoc, InvalidSignalLoc},
     landmark::Landmark,
     loader::wire,
-    loc::{FLoc, cursor::TrackCursor},
+    loc::{FLoc, cursor::TrackCursor, locator::Locator},
     signal::{ObservableBound, Signal},
     track::builder::TrackStore,
     zone::{
@@ -28,14 +28,15 @@ pub struct ZoneBuilder<'w, 's> {
     junction_lookup: ResMut<'w, SwitchJunctionLookup>,
     commands: Commands<'w, 's>,
     cursor: TrackCursor<'w, 's>,
+    locator: Locator<'w, 's>,
     track_store: Res<'w, TrackStore>,
 }
 
 #[derive(Event)]
 pub struct ZonesBuilt;
 
-const DEFAULT_SIGNAL_DISTANCE: f32 = -50.0;
-const DEFAULT_OBS_DISTANCE: f32 = -35.0;
+const DEFAULT_SIGNAL_DISTANCE: f32 = -15.0;
+const DEFAULT_OBS_DISTANCE: f32 = -50.0;
 
 impl<'w, 's> ZoneBuilder<'w, 's> {
     pub fn from_wire(&mut self, zone: &wire::Zone) -> Result<Entity, SimError> {
@@ -94,7 +95,7 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         let mut e_entrys: Vec<Entity> = Vec::new();
 
         for entry_loc in zone.entrys.iter() {
-            let entry_loc = entry_loc.convert(&self.track_store)?;
+            let entry_loc = self.locator.convert(*entry_loc)?;
             let e_signal = self.spawn_signal(zone, entry_loc)?;
             let e_entry = self
                 .commands
@@ -149,7 +150,7 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
     fn spawn_exits(&mut self, e_zone: Entity, zone: &wire::Zone) -> Result<usize, SimError> {
         let mut e_exits: Vec<Entity> = Vec::new();
         for exit_loc in zone.exits.iter() {
-            let exit_loc = exit_loc.convert(&self.track_store)?;
+            let exit_loc = self.locator.convert(*exit_loc)?;
             let e_exit = self
                 .commands
                 .spawn((AxleCounter { zone: e_zone }, Landmark, exit_loc))
