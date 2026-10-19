@@ -1,12 +1,9 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    landmark::{
-        Landmark,
-        error::LandmarkError::{self, BrokenLandmarkReference, CursorError},
-        store::LandmarkStore,
-    },
-    loc::{Dir, FacingLocation, Loc, cursor::TrackCursor},
+    error::SimError::{self, BrokenLandmarkReference},
+    landmark::{Landmark, store::LandmarkStore},
+    loc::{Dir, FLoc, Loc, cursor::TrackCursor},
 };
 
 #[derive(SystemParam)]
@@ -20,10 +17,10 @@ type Passed = (Entity, bool);
 impl<'w, 's> Scanner<'w, 's> {
     pub fn scan(
         &self,
-        a: FacingLocation,
-        b: FacingLocation,
+        a: FLoc,
+        b: FLoc,
         store: Res<LandmarkStore>,
-    ) -> Result<Vec<Passed>, LandmarkError> {
+    ) -> Result<Vec<Passed>, SimError> {
         let mut scan_pos = a;
         let mut passed: Vec<Passed> = Vec::new();
 
@@ -35,7 +32,7 @@ impl<'w, 's> Scanner<'w, 's> {
             let e_landmarks = store.landmarks_on(&scan_pos.0.track);
             if e_landmarks.len() > 0 {
                 match scan_pos.1 {
-                    Dir::ToA => {
+                    Dir::A => {
                         let bound_b = if same_track { b.0.distance } else { 0.0 };
                         for e_landmark in e_landmarks.iter().rev() {
                             let landmark = match self.landmarks.get(*e_landmark) {
@@ -44,12 +41,12 @@ impl<'w, 's> Scanner<'w, 's> {
                             };
                             let ld = landmark.1.distance;
                             if bound_b <= ld && ld <= bound_a {
-                                let forward = *landmark.2 == Dir::ToA;
+                                let forward = *landmark.2 == Dir::A;
                                 passed.push((*e_landmark, forward));
                             }
                         }
                     }
-                    Dir::ToB => {
+                    Dir::B => {
                         let bound_b = if same_track { b.0.distance } else { f32::MAX };
                         for e_landmark in e_landmarks.iter() {
                             let landmark = match self.landmarks.get(*e_landmark) {
@@ -58,7 +55,7 @@ impl<'w, 's> Scanner<'w, 's> {
                             };
                             let ld = landmark.1.distance;
                             if bound_b >= ld && ld >= bound_a {
-                                let forward = *landmark.2 == Dir::ToB;
+                                let forward = *landmark.2 == Dir::B;
                                 passed.push((*e_landmark, forward));
                             }
                         }
@@ -69,9 +66,7 @@ impl<'w, 's> Scanner<'w, 's> {
             if same_track {
                 break;
             }
-            if let Err(e) = self.cursor.next_track(&mut scan_pos) {
-                return Err(CursorError(e));
-            };
+            self.cursor.next_track(&mut scan_pos)?;
         }
         Ok(passed)
     }

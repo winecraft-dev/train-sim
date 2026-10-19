@@ -1,0 +1,136 @@
+tracks:
+  nodes:
+    - { x: -300.0, y: 300.0 }
+    - { x: 300.0, y: 300.0 }
+    - { x: 300.0, y: 250.0 }
+    - { x: 350.0, y: 250.0 }
+    - { x: 350.0, y: 0.0 }
+    - { x: 300.0, y: 0.0 }
+    - { x: 300.0, y: -50.0 }
+    - { x: 350.0, y: -250.0 }
+    - { x: 300.0, y: -250.0 }
+    - { x: 300.0, y: -300.0 }
+    - { x: -300.0, y: -300.0 }
+    - { x: -300.0, y: -250.0 }
+    - { x: -350.0, y: -250.0 }
+    - { x: -300.0, y: -50.0 }
+    - { x: -300.0, y: 0.0 }
+    - { x: -350.0, y: 0.0 }
+    - { x: -300.0, y: 250.0 }
+    - { x: -350.0, y: 250.0 }
+  segments:
+    - nodes: [0, 1]
+      type: Straight
+    - nodes: [1, 3]
+      type: Curved
+      center: 2
+    - nodes: [3, 4]
+      type: Straight
+    - nodes: [4, 6]
+      type: Curved
+      center: 5
+    - nodes: [4, 7]
+      type: Straight
+    - nodes: [7, 9]
+      type: Curved
+      center: 8
+    - nodes: [9, 10]
+      type: Straight
+    - nodes: [10, 12]
+      type: Curved
+      center: 11
+    - nodes: [12, 15]
+      type: Straight
+    - nodes: [17, 15]
+      type: Straight
+    - nodes: [13, 15]
+      type: Curved
+      center: 14
+    - nodes: [6, 13]
+      type: Straight
+    - nodes: [17, 0]
+      type: Curved
+      center: 16
+zones:
+  - entrys:
+      - { track: 0, offset: 10, dir: B }
+    exits:
+      - { track: 0, offset: 200, dir: A }
+  - entrys:
+      - { track: 0, offset: 210, dir: B }
+    exits:
+      - { track: 0, offset: 400, dir: A }
+  - entrys:
+      - { track: 0, offset: 410, dir: B }
+    exits:
+      - { track: 0, end: A, offset: 10, dir: A }
+  - entrys:
+      - { track: 1, offset: 0.0, dir: B }
+    exits:
+      - { track: 1, end: A, offset: 0.0, dir: A }
+  - entrys:
+      - { track: 2, offset: 0.0, dir: B }
+    exits:
+      - { track: 2, offset: 200, dir: A }
+  - entrys:
+      - { track: 2, end: A, offset: 20, dir: B }
+    exits:
+      - { track: 11, offset: 0, dir: A }
+      - { track: 4, offset: 100, dir: A }
+  - entrys:
+      - { track: 11, offset: 10, dir: B }
+    exits:
+      - { track: 11, offset: 200, dir: A }
+  - entrys:
+      - { track: 11, offset: 210, dir: B }
+    exits:
+      - { track: 11, offset: 400, dir: A }
+  - entrys:
+      - { track: 11, offset: 410, dir: B }
+    exits:
+      - { track: 11, end: A, offset: 10, dir: A }
+  - entrys:
+      - { track: 8, end: A, offset: 100, dir: B }
+      - { track: 11, end: A, offset: 0, dir: B }
+    exits:
+      - { track: 9, end: A, offset: 40, dir: B }
+    switches: [15]
+  - entrys:
+      - { track: 9, end: A, offset: 60, dir: A }
+    exits:
+      - { track: 9, offset: 0, dir: B }
+    signal_distance: 15
+    observable_distance: 20
+  - entrys:
+      - { track: 12, offset: 0, dir: B }
+    exits:
+      - { track: 12, end: A, offset: 0, dir: A }
+    observable_distance: 20
+  - entrys:
+      - { track: 4, offset: 100, dir: B }
+    exits:
+      - { track: 4, end: A, offset: 0, dir: A }
+  - entrys:
+      - { track: 5, offset: 0, dir: B }
+    exits:
+      - { track: 5, end: A, offset: 0, dir: A }
+  - entrys:
+      - { track: 6, offset: 10, dir: B }
+    exits:
+      - { track: 6, offset: 200, dir: A }
+  - entrys:
+      - { track: 6, offset: 210, dir: B }
+    exits:
+      - { track: 6, offset: 400, dir: A }
+  - entrys:
+      - { track: 6, offset: 410, dir: B }
+    exits:
+      - { track: 6, end: A, offset: 10, dir: A }
+  - entrys:
+      - { track: 7, offset: 0, dir: B }
+    exits:
+      - { track: 7, end: A, offset: 0, dir: A }
+  - entrys:
+      - { track: 8, offset: 0, dir: B }
+    exits:
+      - { track: 8, end: A, offset: 110, dir: A }

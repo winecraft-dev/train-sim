@@ -19,7 +19,7 @@ impl Plugin for SignalPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Signal {
     pub aspect: Aspect,
 }

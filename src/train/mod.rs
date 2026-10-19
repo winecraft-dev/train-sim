@@ -5,7 +5,7 @@ pub mod axle;
 use axle::AxlePlugin;
 
 use crate::{
-    loc::FacingLocation,
+    loc::FLoc,
     signal::control::{Effect, SignalCommand},
 };
 
@@ -23,7 +23,7 @@ impl Plugin for TrainPlugin {
 #[derive(Event)]
 pub struct TrainCreated {
     train: Entity,
-    f_loc: FacingLocation,
+    f_loc: FLoc,
 }
 
 #[derive(Component, Default, Debug)]
@@ -31,7 +31,7 @@ pub struct Train {
     speed: f32,
 }
 
-pub fn create_train(commands: &mut Commands, speed: f32, floc: FacingLocation) -> Entity {
+pub fn create_train(commands: &mut Commands, speed: f32, floc: FLoc) -> Entity {
     let train = commands
         .spawn((GlobalTransform::default(), Train { speed }))
         .id();

@@ -2,14 +2,15 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
     control::ClickTarget,
+    error::SimError::{self, InvalidObservableBoundLoc, InvalidSignalLoc},
     landmark::Landmark,
-    loc::{FacingLocation, cursor::TrackCursor},
-    signal::{Aspect, ObservableBound, Signal},
+    loader::wire,
+    loc::{FLoc, cursor::TrackCursor, locator::Locator},
+    signal::{ObservableBound, Signal},
     track::builder::TrackStore,
     zone::{
         AxleCounter, Zone,
         block::Block,
-        error::ZoneError,
         junction::{Junction, SwitchJunctionLookup},
     },
 };
@@ -27,103 +28,48 @@ pub struct ZoneBuilder<'w, 's> {
     junction_lookup: ResMut<'w, SwitchJunctionLookup>,
     commands: Commands<'w, 's>,
     cursor: TrackCursor<'w, 's>,
+    locator: Locator<'w, 's>,
     track_store: Res<'w, TrackStore>,
-}
-
-#[derive(Default)]
-pub struct ZoneConstructor {
-    signal_distance: f32,
-    observable_distance: f32,
-    entry_locs: Vec<FacingLocation>,
-    exit_locs: Vec<FacingLocation>,
-    switches: Vec<usize>,
-}
-
-impl ZoneConstructor {
-    pub fn new() -> Self {
-        Self {
-            signal_distance: -15.0,
-            observable_distance: -50.0,
-            ..default()
-        }
-    }
-
-    pub fn with_entry(mut self, floc: FacingLocation) -> Self {
-        self.entry_locs.push(floc);
-        self
-    }
-
-    pub fn with_exit(mut self, floc: FacingLocation) -> Self {
-        self.exit_locs.push(floc);
-        self
-    }
-
-    pub fn with_switch(mut self, switch: usize) -> Self {
-        self.switches.push(switch);
-        self
-    }
-
-    pub fn with_signal_distance(mut self, distance: f32) -> Self {
-        self.signal_distance = distance;
-        self
-    }
-
-    pub fn with_observable_distance(mut self, distance: f32) -> Self {
-        self.observable_distance = distance;
-        self
-    }
-
-    pub fn build(self, builder: &mut ZoneBuilder) -> Result<Entity, ZoneError> {
-        builder.new(self)
-    }
 }
 
 #[derive(Event)]
 pub struct ZonesBuilt;
 
+const DEFAULT_SIGNAL_DISTANCE: f32 = -15.0;
+const DEFAULT_OBS_DISTANCE: f32 = -50.0;
+
 impl<'w, 's> ZoneBuilder<'w, 's> {
-    pub fn new(&mut self, zone: ZoneConstructor) -> Result<Entity, ZoneError> {
+    pub fn from_wire(&mut self, zone: &wire::Zone) -> Result<Entity, SimError> {
         let e_zone = self
             .commands
             .spawn((GlobalTransform::default(), Zone::default()))
             .id();
 
-        let e_signals = self.spawn_entries(
-            e_zone,
-            zone.signal_distance,
-            zone.observable_distance,
-            zone.entry_locs,
-        )?;
-        let entry_n = e_signals.len();
-        let exit_n = self.spawn_exits(e_zone, zone.exit_locs);
-        let e_switches = self.fetch_switches(zone.switches);
+        let e_signals = self.spawn_signals(e_zone, zone)?;
+        let e_switches = self.fetch_switches(zone)?;
+        let exit_n = self.spawn_exits(e_zone, zone)?;
 
-        // count entrys to exits to gather the type of Block/Junction
-        if let (1, 1) = (entry_n, exit_n) {
-            self.setup_block(e_zone, e_signals[0]);
-        } else {
-            self.setup_junction(e_zone, entry_n, exit_n, e_signals, e_switches);
-        }
-
+        self.classify_zone(e_zone, e_signals, e_switches, exit_n);
         self.store.push(e_zone);
+
         Ok(e_zone)
     }
 
-    fn setup_block(&mut self, zone: Entity, signal: Entity) {
-        self.commands.entity(zone).insert(Block {
-            entry_signal: signal,
-        });
-        self.store.push(zone);
-    }
-
-    fn setup_junction(
+    fn classify_zone(
         &mut self,
         zone: Entity,
-        entry_n: usize,
-        exit_n: usize,
         e_signals: Vec<Entity>,
         e_switches: Vec<Entity>,
+        exit_n: usize,
     ) {
+        let entry_n = e_signals.len();
+
+        if (entry_n, exit_n) == (1, 1) {
+            self.commands.entity(zone).insert(Block {
+                entry_signal: e_signals[0],
+            });
+            return;
+        }
         let junction = match (entry_n, exit_n) {
             (1, 2) => Junction::Split1_2 {
                 signal: e_signals[0],
@@ -140,96 +86,95 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         self.commands.entity(zone).insert(junction);
     }
 
-    fn spawn_entries(
+    pub fn spawn_signals(
         &mut self,
-        zone: Entity,
-        signal_distance: f32,
-        observable_distance: f32,
-        locs: Vec<FacingLocation>,
-    ) -> Result<Vec<Entity>, ZoneError> {
+        e_zone: Entity,
+        zone: &wire::Zone,
+    ) -> Result<Vec<Entity>, SimError> {
         let mut e_signals: Vec<Entity> = Vec::new();
-        let mut e_entrys: Vec<Entity> = Vec::new(); // misspelled for alignment
-        for entry_loc in locs.iter() {
-            let signal_loc = match self.cursor.traverse(*entry_loc, signal_distance) {
-                Ok(loc) => loc,
-                Err(e) => return Err(ZoneError::InvalidSignalLoc(e)),
-            };
-            let obv_loc = match self.cursor.traverse(signal_loc, observable_distance) {
-                Ok(loc) => loc,
-                Err(e) => return Err(ZoneError::InvalidObservableLoc(e)),
-            };
+        let mut e_entrys: Vec<Entity> = Vec::new();
 
-            let e_signal = self.spawn_signal(signal_loc, obv_loc);
+        for entry_loc in zone.entrys.iter() {
+            let entry_loc = self.locator.convert(*entry_loc)?;
+            let e_signal = self.spawn_signal(zone, entry_loc)?;
             let e_entry = self
                 .commands
-                .spawn((AxleCounter { zone }, Landmark, *entry_loc))
+                .spawn((AxleCounter { zone: e_zone }, Landmark, entry_loc))
                 .id();
+
             e_signals.push(e_signal);
             e_entrys.push(e_entry);
         }
 
         self.commands
-            .entity(zone)
-            .add_children(&e_entrys)
-            .add_children(&e_signals);
+            .entity(e_zone)
+            .add_children(&e_signals)
+            .add_children(&e_entrys);
 
         Ok(e_signals)
     }
 
-    fn spawn_exits(&mut self, zone: Entity, locs: Vec<FacingLocation>) -> usize {
-        let mut e_exits: Vec<Entity> = Vec::new();
-        for exit_loc in locs.iter() {
-            let e_exit = self
-                .commands
-                .spawn((AxleCounter { zone }, Landmark, *exit_loc))
-                .id();
-            e_exits.push(e_exit);
-        }
+    pub fn spawn_signal(&mut self, zone: &wire::Zone, entry_loc: FLoc) -> Result<Entity, SimError> {
+        let signal_distance = match zone.signal_distance {
+            Some(d) => d,
+            None => DEFAULT_SIGNAL_DISTANCE,
+        };
+        let obv_distance = match zone.observable_distance {
+            Some(d) => d,
+            None => DEFAULT_OBS_DISTANCE,
+        };
+        let signal_loc = match self.cursor.traverse(entry_loc, signal_distance) {
+            Ok(loc) => loc,
+            Err(e) => return Err(InvalidSignalLoc(Box::new(e))),
+        };
+        let obv_loc = match self.cursor.traverse(signal_loc, obv_distance) {
+            Ok(loc) => loc,
+            Err(e) => return Err(InvalidObservableBoundLoc(Box::new(e))),
+        };
 
-        self.commands.entity(zone).add_children(&e_exits);
-        e_exits.len()
-    }
-
-    fn fetch_switches(&mut self, u_switches: Vec<usize>) -> Vec<Entity> {
-        let mut e_switches: Vec<Entity> = Vec::new();
-        for u_switch in u_switches {
-            let e_switch = self.track_store.nodes[u_switch];
-            e_switches.push(e_switch);
-        }
-        e_switches
-    }
-
-    fn spawn_signal(
-        &mut self,
-        signal_loc: FacingLocation,
-        observable_loc: FacingLocation,
-    ) -> Entity {
         let e_signal = self
             .commands
-            .spawn((
-                Signal {
-                    aspect: Aspect::default(),
-                },
-                ClickTarget,
-                signal_loc,
-            ))
+            .spawn((Signal::default(), ClickTarget, signal_loc))
             .id();
 
         let e_obv = self
             .commands
-            .spawn((
-                ObservableBound { signal: e_signal },
-                Landmark,
-                observable_loc,
-            ))
+            .spawn((ObservableBound { signal: e_signal }, Landmark, obv_loc))
             .id();
 
         self.commands.entity(e_signal).add_child(e_obv);
 
-        e_signal
+        Ok(e_signal)
     }
 
-    pub fn done(&mut self) {
+    fn spawn_exits(&mut self, e_zone: Entity, zone: &wire::Zone) -> Result<usize, SimError> {
+        let mut e_exits: Vec<Entity> = Vec::new();
+        for exit_loc in zone.exits.iter() {
+            let exit_loc = self.locator.convert(*exit_loc)?;
+            let e_exit = self
+                .commands
+                .spawn((AxleCounter { zone: e_zone }, Landmark, exit_loc))
+                .id();
+            e_exits.push(e_exit);
+        }
+
+        self.commands.entity(e_zone).add_children(&e_exits);
+        Ok(e_exits.len())
+    }
+
+    fn fetch_switches(&mut self, zone: &wire::Zone) -> Result<Vec<Entity>, SimError> {
+        let mut e_switches: Vec<Entity> = Vec::new();
+        let Some(ref switches) = zone.switches else {
+            return Ok(e_switches);
+        };
+        for i in switches.iter() {
+            let e_switch = self.track_store.node(*i)?;
+            e_switches.push(e_switch);
+        }
+        Ok(e_switches)
+    }
+
+    pub fn built(&mut self) {
         self.commands.trigger(ZonesBuilt);
     }
 }
