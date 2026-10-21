@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.19.1", features=["debug", "track_location"]}
+bevy = { version = "0.19.1", features=["debug", "track_location", "file_watcher"]}
 bevy_common_assets = { version = "0.17.0", features=["yaml"]}
 rand = "0.10.3"
 serde = "1.0.229"
