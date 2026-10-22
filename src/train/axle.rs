@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     loc::{Dir, FLoc, Loc, cursor::TrackCursor, projector::Projector},
     track::TrackNode,
-    train::{Derailed, Train, TrainCreated, TrainDerailed},
+    train::{Derailed, Train, TrainCreated, TrainDerailed, store::AxleStore},
 };
 
 pub struct AxlePlugin;
@@ -35,7 +35,12 @@ fn axle_offset(facing: Dir, offset: f32) -> f32 {
     }
 }
 
-fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: TrackCursor) {
+fn add_axles(
+    train_created: On<TrainCreated>,
+    mut commands: Commands,
+    cursor: TrackCursor,
+    mut store: ResMut<AxleStore>,
+) {
     let TrainCreated {
         train: e_train,
         f_loc,
@@ -63,6 +68,9 @@ fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: Tr
         .entity(*e_train)
         .insert((main_floc, main_axle))
         .add_child(e_rear);
+
+    store.push(e_rear);
+    store.push(*e_train)
 }
 
 fn train_speed(facing: Dir, speed: f32) -> f32 {

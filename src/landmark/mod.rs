@@ -4,10 +4,7 @@ pub mod scanner;
 pub mod store;
 
 use crate::{
-    landmark::{
-        scanner::Scanner,
-        store::{LandmarkStore, LandmarksStorePlugin},
-    },
+    landmark::{scanner::Scanner, store::LandmarkStore},
     train::axle::AxleMoved,
 };
 
@@ -15,8 +12,9 @@ pub struct LandmarkPlugin;
 
 impl Plugin for LandmarkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(LandmarksStorePlugin)
-            .add_observer(check_landmarks_passed);
+        app.add_observer(check_landmarks_passed)
+            .add_systems(PreStartup, LandmarkStore::init)
+            .add_systems(Update, LandmarkStore::update);
     }
 }
 
