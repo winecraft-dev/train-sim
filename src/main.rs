@@ -37,7 +37,6 @@ fn main() {
         .add_plugins(DebugRenderPlugin)
         .add_plugins(AxleCounterPlugin)
         .add_systems(Startup, config)
-        // .add_observer(setup_blocks)
         .add_observer(setup_trains)
         .run();
 }

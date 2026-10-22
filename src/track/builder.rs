@@ -3,35 +3,12 @@ use std::f32::consts::PI;
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    error::SimError::{self, BrokenNodeReference, NodeNotInStore, SegmentNotInStore},
-    track::{TrackNode, TrackSegment, TrackVariant},
+    error::SimError::{self, BrokenNodeReference},
+    track::{
+        TrackNode, TrackSegment, TrackVariant,
+        store::{NodeStore, SegmentStore},
+    },
 };
-
-#[derive(Resource, Default, Debug)]
-pub struct TrackStore {
-    pub nodes: Vec<Entity>,
-    pub segments: Vec<Entity>,
-}
-
-impl TrackStore {
-    pub fn node(&self, i: usize) -> Result<Entity, SimError> {
-        if i < self.nodes.len() {
-            return Ok(self.nodes[i]);
-        }
-        Err(NodeNotInStore(i))
-    }
-
-    pub fn segment(&self, i: usize) -> Result<Entity, SimError> {
-        if i < self.segments.len() {
-            return Ok(self.segments[i]);
-        }
-        Err(SegmentNotInStore(i))
-    }
-}
-
-pub fn init_track_store(mut commands: Commands) {
-    commands.insert_resource(TrackStore::default());
-}
 
 #[derive(Event)]
 pub struct TrackNodesBuilt;
@@ -41,7 +18,8 @@ pub struct TrackBuilt;
 
 #[derive(SystemParam)]
 pub struct TrackBuilder<'w, 's> {
-    store: ResMut<'w, TrackStore>,
+    node_store: ResMut<'w, NodeStore>,
+    segment_store: ResMut<'w, SegmentStore>,
     commands: Commands<'w, 's>,
     nodes: Query<'w, 's, &'static Transform, With<TrackNode>>,
 }
@@ -52,13 +30,13 @@ impl<'w, 's> TrackBuilder<'w, 's> {
             .commands
             .spawn((TrackNode::default(), Transform::from_xyz(x, y, 0.0)))
             .id();
-        self.store.nodes.push(e_node);
+        self.node_store.push(e_node);
         e_node
     }
 
     pub fn straight(&mut self, a: usize, b: usize) -> Result<Entity, SimError> {
-        let ea = self.store.node(a)?;
-        let eb = self.store.node(b)?;
+        let ea = self.node_store.node(a)?;
+        let eb = self.node_store.node(b)?;
 
         let a = match self.nodes.get(ea) {
             Ok(transform) => transform.translation.xy(),
@@ -82,14 +60,14 @@ impl<'w, 's> TrackBuilder<'w, 's> {
                 node_angles,
             })
             .id();
-        self.store.segments.push(e_segment);
+        self.segment_store.push(e_segment);
         Ok(e_segment)
     }
 
     pub fn curved(&mut self, a: usize, b: usize, c: usize) -> Result<Entity, SimError> {
-        let ea = self.store.node(a)?;
-        let eb = self.store.node(b)?;
-        let ec = self.store.node(c)?;
+        let ea = self.node_store.node(a)?;
+        let eb = self.node_store.node(b)?;
+        let ec = self.node_store.node(c)?;
 
         let a = match self.nodes.get(ea) {
             Ok(transform) => transform.translation.xy(),
@@ -121,7 +99,7 @@ impl<'w, 's> TrackBuilder<'w, 's> {
             })
             .id();
 
-        self.store.segments.push(e_segment);
+        self.segment_store.push(e_segment);
         Ok(e_segment)
     }
 
