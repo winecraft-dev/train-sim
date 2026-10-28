@@ -7,6 +7,7 @@ use crate::loc::Dir;
 pub struct Railway {
     pub tracks: TrackData,
     pub zones: Vec<Zone>,
+    pub trains: Vec<Train>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -57,4 +58,10 @@ pub struct TrackSegment {
 pub enum TrackVariant {
     Straight,
     Curved { center: usize },
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Train {
+    pub floc: FLoc,
+    pub speed: Option<f32>,
 }

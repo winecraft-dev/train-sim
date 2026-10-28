@@ -45,25 +45,4 @@ impl<'w, 's> Locator<'w, 's> {
             input.dir,
         ))
     }
-
-    pub fn on_progress(
-        &self,
-        segment: usize,
-        progress: f32,
-        facing: Dir,
-    ) -> Result<FLoc, SimError> {
-        let e_segment = self.segment_store.segment(segment)?;
-        let Ok(segment) = self.segments.get(e_segment) else {
-            return Err(BrokenSegmentReference(e_segment));
-        };
-
-        let distance = progress * segment.length;
-        Ok((
-            Loc {
-                track: e_segment,
-                distance,
-            },
-            facing,
-        ))
-    }
 }

@@ -9,9 +9,9 @@ use crate::{
         builder::{TrackBuilder, TrackNodesBuilt},
         store::{NodeStore, SegmentStore},
     },
-    train::store::AxleStore,
+    train::{builder::TrainBuilder, store::AxleStore},
     zone::{
-        builder::ZoneBuilder,
+        builder::{ZoneBuilder, ZonesBuilt},
         store::{SwitchJunctionLookup, ZoneStore},
     },
 };
@@ -28,7 +28,8 @@ impl Plugin for LoaderPlugin {
             .add_observer(reset_railroad)
             .add_observer(load_track_nodes)
             .add_observer(load_track_segments)
-            .add_observer(load_zones);
+            .add_observer(load_zones)
+            .add_observer(load_trains);
     }
 }
 
@@ -142,4 +143,25 @@ fn load_zones(
     }
 
     builder.built();
+}
+
+fn load_trains(
+    _done: On<ZonesBuilt>,
+    mut builder: TrainBuilder,
+    handle: Res<RailwayHandle>,
+    railways: Res<Assets<Railway>>,
+) {
+    let Some(railway) = railways.get(&handle.0) else {
+        return;
+    };
+
+    for train in railway.trains.iter() {
+        match builder.from_wire(train) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to spawn train {:?}: {:?}", train, e);
+                continue;
+            }
+        };
+    }
 }
