@@ -30,6 +30,9 @@ pub enum SimError {
     #[error("invalid observable bound location: {0:?}")]
     InvalidObservableBoundLoc(Box<SimError>),
 
+    #[error("invalid train location: {0:?}")]
+    InvalidTrainLoc(Box<SimError>),
+
     #[error("conversion from wire format failed: {0:?}")]
     WireConversionFailed(Box<SimError>),
 }

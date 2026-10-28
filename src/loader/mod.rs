@@ -2,12 +2,18 @@ use bevy::prelude::*;
 use bevy_common_assets::yaml::YamlAssetPlugin;
 
 use crate::{
+    landmark::store::LandmarkStore,
     loader::wire::{Railway, TrackVariant},
     track::{
         SwitchesSpawned,
         builder::{TrackBuilder, TrackNodesBuilt},
+        store::{NodeStore, SegmentStore},
     },
-    zone::builder::ZoneBuilder,
+    train::{builder::TrainBuilder, store::AxleStore},
+    zone::{
+        builder::{ZoneBuilder, ZonesBuilt},
+        store::{SwitchJunctionLookup, ZoneStore},
+    },
 };
 
 pub mod wire;
@@ -19,9 +25,11 @@ impl Plugin for LoaderPlugin {
         app.add_plugins(YamlAssetPlugin::<Railway>::new(&["maps/demo1.yaml"]))
             .add_systems(PreStartup, load_railway)
             .add_systems(Update, railway_loaded)
-            .add_observer(spawn_track_nodes)
-            .add_observer(spawn_track_segments)
-            .add_observer(spawn_zones);
+            .add_observer(reset_railroad)
+            .add_observer(load_track_nodes)
+            .add_observer(load_track_segments)
+            .add_observer(load_zones)
+            .add_observer(load_trains);
     }
 }
 
@@ -39,14 +47,37 @@ fn railway_loaded(mut commands: Commands, mut events: MessageReader<AssetEvent<R
         let AssetEvent::LoadedWithDependencies { id: _ } = event else {
             continue;
         };
-        commands.trigger(RailwayLoaded);
+        commands.trigger(RailwayReloaded);
     }
+}
+
+#[derive(Event)]
+pub struct RailwayReloaded;
+
+fn reset_railroad(
+    _reloaded: On<RailwayReloaded>,
+    mut commands: Commands,
+    node_store: ResMut<NodeStore>,
+    segment_store: ResMut<SegmentStore>,
+    landmark_store: ResMut<LandmarkStore>,
+    zone_store: ResMut<ZoneStore>,
+    junction_lookup: ResMut<SwitchJunctionLookup>,
+    axle_store: ResMut<AxleStore>,
+) {
+    NodeStore::reset(&mut commands, node_store);
+    SegmentStore::reset(&mut commands, segment_store);
+    LandmarkStore::reset(landmark_store);
+    ZoneStore::reset(&mut commands, zone_store);
+    SwitchJunctionLookup::reset(junction_lookup);
+    AxleStore::reset(&mut commands, axle_store);
+
+    commands.trigger(RailwayLoaded);
 }
 
 #[derive(Event)]
 pub struct RailwayLoaded;
 
-fn spawn_track_nodes(
+fn load_track_nodes(
     _loaded: On<RailwayLoaded>,
     mut builder: TrackBuilder,
     handle: Res<RailwayHandle>,
@@ -63,7 +94,7 @@ fn spawn_track_nodes(
     builder.nodes_built();
 }
 
-fn spawn_track_segments(
+fn load_track_segments(
     _done: On<TrackNodesBuilt>,
     mut builder: TrackBuilder,
     handle: Res<RailwayHandle>,
@@ -91,7 +122,7 @@ fn spawn_track_segments(
     builder.built();
 }
 
-fn spawn_zones(
+fn load_zones(
     _done: On<SwitchesSpawned>,
     mut builder: ZoneBuilder,
     handle: Res<RailwayHandle>,
@@ -112,4 +143,25 @@ fn spawn_zones(
     }
 
     builder.built();
+}
+
+fn load_trains(
+    _done: On<ZonesBuilt>,
+    mut builder: TrainBuilder,
+    handle: Res<RailwayHandle>,
+    railways: Res<Assets<Railway>>,
+) {
+    let Some(railway) = railways.get(&handle.0) else {
+        return;
+    };
+
+    for train in railway.trains.iter() {
+        match builder.from_wire(train) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to spawn train {:?}: {:?}", train, e);
+                continue;
+            }
+        };
+    }
 }

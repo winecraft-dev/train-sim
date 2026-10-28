@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 
 use crate::track::{
-    builder::{TrackBuilt, init_track_store},
+    builder::TrackBuilt,
+    store::{NodeStore, SegmentStore},
     switch::SwitchPlugin,
 };
 
 pub mod builder;
+pub mod store;
 pub mod switch;
 
 pub struct TrackPlugin;
@@ -13,7 +15,7 @@ pub struct TrackPlugin;
 impl Plugin for TrackPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(SwitchPlugin)
-            .add_systems(PreStartup, init_track_store)
+            .add_systems(PreStartup, (NodeStore::init, SegmentStore::init))
             .add_observer(compute_node_neighbors);
     }
 }

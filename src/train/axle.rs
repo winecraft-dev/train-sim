@@ -3,73 +3,20 @@ use bevy::prelude::*;
 use crate::{
     loc::{Dir, FLoc, Loc, cursor::TrackCursor, projector::Projector},
     track::TrackNode,
-    train::{Derailed, Train, TrainCreated, TrainDerailed},
+    train::{Derailed, Train, TrainDerailed},
 };
 
 pub struct AxlePlugin;
 
 impl Plugin for AxlePlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(add_axles)
-            .add_systems(Update, (apply_train_speeds, project_axle_positions).chain());
+        app.add_systems(Update, (apply_train_speeds, project_axle_positions).chain());
     }
 }
 
 #[derive(Component, Clone, Debug)]
 pub struct Axle {
-    offset: f32,
-}
-
-impl Axle {
-    fn new(offset: f32) -> Self {
-        Self { offset }
-    }
-}
-
-pub const AXLE_DISTANCE: f32 = 50.0;
-
-fn axle_offset(facing: Dir, offset: f32) -> f32 {
-    match facing {
-        Dir::A => offset,
-        Dir::B => -offset,
-    }
-}
-
-fn add_axles(train_created: On<TrainCreated>, mut commands: Commands, cursor: TrackCursor) {
-    let TrainCreated {
-        train: e_train,
-        f_loc,
-    } = train_created.event();
-
-    let main_floc = *f_loc;
-
-    let main_axle = Axle::new(0.0);
-    let rear_axle = Axle::new(AXLE_DISTANCE);
-
-    let offset = axle_offset(main_floc.1, AXLE_DISTANCE);
-    let rear_floc = match cursor.traverse(main_floc, offset) {
-        Ok(a) => a,
-        Err(e) => {
-            eprintln!(
-                "Skipping train[{}], problem with Track Cursor {:?}",
-                e_train, e,
-            );
-            return;
-        }
-    };
-
-    let e_rear = commands.spawn((rear_floc, rear_axle)).id();
-    commands
-        .entity(*e_train)
-        .insert((main_floc, main_axle))
-        .add_child(e_rear);
-}
-
-fn train_speed(facing: Dir, speed: f32) -> f32 {
-    match facing {
-        Dir::A => -speed,
-        Dir::B => speed,
-    }
+    pub offset: f32,
 }
 
 #[derive(Event)]
@@ -95,7 +42,7 @@ fn apply_train_speeds(
 ) {
     for (e_train, train, _, mut main_loc, mut main_dir) in trains {
         let mut old_train_floc = (*main_loc, *main_dir);
-        let speed = train_speed(old_train_floc.1, train.speed);
+        let speed = -old_train_floc.1.vector(train.speed);
         let children: Vec<Entity> = match children.get(e_train) {
             Ok(c) => c.to_vec(),
             Err(_) => Vec::default(),
@@ -122,7 +69,7 @@ fn apply_train_speeds(
                 }
             };
 
-            let offset = axle_offset(axle_floc.1, next_axle.offset);
+            let offset = axle_floc.1.vector(next_axle.offset);
             axle_floc = match cursor.traverse(axle_floc, offset) {
                 Ok(loc) => loc,
                 Err(_) => {

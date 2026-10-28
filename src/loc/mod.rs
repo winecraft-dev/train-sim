@@ -54,4 +54,11 @@ impl Dir {
             Dir::B => Dir::A,
         }
     }
+
+    pub fn vector(self, scalar: f32) -> f32 {
+        match self {
+            Dir::A => scalar,
+            Dir::B => -scalar,
+        }
+    }
 }

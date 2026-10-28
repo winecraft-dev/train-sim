@@ -7,20 +7,14 @@ use crate::{
     loader::wire,
     loc::{FLoc, cursor::TrackCursor, locator::Locator},
     signal::{ObservableBound, Signal},
-    track::builder::TrackStore,
+    track::store::NodeStore,
     zone::{
         AxleCounter, Zone,
         block::Block,
-        junction::{Junction, SwitchJunctionLookup},
+        junction::Junction,
+        store::{SwitchJunctionLookup, ZoneStore},
     },
 };
-
-#[derive(Resource, Default, Debug, Deref, DerefMut)]
-pub struct ZoneStore(Vec<Entity>);
-
-pub fn init_zone_store(mut commands: Commands) {
-    commands.insert_resource(ZoneStore::default());
-}
 
 #[derive(SystemParam)]
 pub struct ZoneBuilder<'w, 's> {
@@ -29,7 +23,7 @@ pub struct ZoneBuilder<'w, 's> {
     commands: Commands<'w, 's>,
     cursor: TrackCursor<'w, 's>,
     locator: Locator<'w, 's>,
-    track_store: Res<'w, TrackStore>,
+    node_store: Res<'w, NodeStore>,
 }
 
 #[derive(Event)]
@@ -168,7 +162,7 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
             return Ok(e_switches);
         };
         for i in switches.iter() {
-            let e_switch = self.track_store.node(*i)?;
+            let e_switch = self.node_store.node(*i)?;
             e_switches.push(e_switch);
         }
         Ok(e_switches)

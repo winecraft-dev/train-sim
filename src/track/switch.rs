@@ -97,7 +97,6 @@ pub fn spawn_switches(
         };
         commands.entity(e_origin).insert((switch, ClickTarget));
     }
-    println!("Done Spawning Switches");
     commands.trigger(SwitchesSpawned);
 }
 

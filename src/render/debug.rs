@@ -5,10 +5,7 @@ use crate::{
     loc::{Dir, Loc},
     signal::{Aspect, ObservableBound, Signal},
     track::{TrackNode, TrackSegment, TrackVariant, switch::NodeVariant},
-    train::{
-        Train,
-        axle::{AXLE_DISTANCE, Axle},
-    },
+    train::{Train, axle::Axle, builder::DEFAULT_AXLE_DISTANCE},
     zone::{AxleCounter, Zone},
 };
 
@@ -95,10 +92,10 @@ fn render_trains(
                 center, // position
                 Rot2::radians(angle),
             ),
-            Vec2::new(AXLE_DISTANCE + 20.0, 20.0),
+            Vec2::new(DEFAULT_AXLE_DISTANCE + 20.0, 20.0),
             css::GRAY,
         );
-        gizmos.arrow_2d(center, arrow_pos, css::LIGHT_BLUE);
+        gizmos.arrow_2d(center, arrow_pos, css::ORANGE_RED);
     }
 }
 

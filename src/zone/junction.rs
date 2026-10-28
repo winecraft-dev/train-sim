@@ -1,28 +1,19 @@
-use std::collections::HashMap;
-
 use bevy::prelude::*;
 
 use crate::{
     signal::{Aspect, control::SignalControl},
     track::switch::SwitchUpdate,
-    zone::{Zone, ZoneStatus, ZoneUpdate},
+    zone::{Zone, ZoneStatus, ZoneUpdate, store::SwitchJunctionLookup},
 };
 
 pub struct JunctionPlugin;
 
 impl Plugin for JunctionPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreStartup, init_lookup)
+        app.add_systems(PreStartup, SwitchJunctionLookup::init)
             .add_observer(zone_updated)
             .add_observer(switch_updated);
     }
-}
-
-#[derive(Resource, Default, DerefMut, Deref)]
-pub struct SwitchJunctionLookup(HashMap<Entity, Entity>);
-
-fn init_lookup(mut commands: Commands) {
-    commands.insert_resource(SwitchJunctionLookup::default());
 }
 
 #[derive(Component, Debug)]

@@ -1,12 +1,14 @@
 use bevy::prelude::*;
 
 pub mod axle;
+pub mod builder;
+pub mod store;
 
 use axle::AxlePlugin;
 
 use crate::{
-    loc::FLoc,
     signal::control::{Effect, SignalCommand},
+    train::store::AxleStore,
 };
 
 pub struct TrainPlugin;
@@ -14,29 +16,16 @@ pub struct TrainPlugin;
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
+            .add_systems(PreStartup, AxleStore::init)
             .add_observer(train_derailed)
             // .add_observer(train_clicked)
             .add_observer(train_signaled);
     }
 }
 
-#[derive(Event)]
-pub struct TrainCreated {
-    train: Entity,
-    f_loc: FLoc,
-}
-
 #[derive(Component, Default, Debug)]
 pub struct Train {
     speed: f32,
-}
-
-pub fn create_train(commands: &mut Commands, speed: f32, floc: FLoc) -> Entity {
-    let train = commands
-        .spawn((GlobalTransform::default(), Train { speed }))
-        .id();
-    commands.trigger(TrainCreated { train, f_loc: floc });
-    train
 }
 
 #[derive(Event)]

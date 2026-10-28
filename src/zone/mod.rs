@@ -2,12 +2,13 @@ use bevy::prelude::*;
 
 use crate::{
     landmark::LandmarkPassed,
-    zone::{block::BlockPlugin, builder::init_zone_store, junction::JunctionPlugin},
+    zone::{block::BlockPlugin, junction::JunctionPlugin, store::ZoneStore},
 };
 
 pub mod block;
 pub mod builder;
 pub mod junction;
+pub mod store;
 
 pub struct AxleCounterPlugin;
 
@@ -15,7 +16,7 @@ impl Plugin for AxleCounterPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(BlockPlugin)
             .add_plugins(JunctionPlugin)
-            .add_systems(PreStartup, init_zone_store)
+            .add_systems(PreStartup, ZoneStore::init)
             .add_observer(axle_crossed);
     }
 }
