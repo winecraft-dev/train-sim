@@ -10,17 +10,13 @@ use crate::{
 pub struct Scanner<'w, 's> {
     cursor: TrackCursor<'w, 's>,
     landmarks: Query<'w, 's, (Entity, &'static Loc, &'static Dir), With<Landmark>>,
+    store: Res<'w, LandmarkStore>,
 }
 
 type Passed = (Entity, bool);
 
 impl<'w, 's> Scanner<'w, 's> {
-    pub fn scan(
-        &self,
-        a: FLoc,
-        b: FLoc,
-        store: Res<LandmarkStore>,
-    ) -> Result<Vec<Passed>, SimError> {
+    pub fn scan(&self, a: FLoc, b: FLoc) -> Result<Vec<Passed>, SimError> {
         let mut scan_pos = a;
         let mut passed: Vec<Passed> = Vec::new();
 
@@ -29,7 +25,7 @@ impl<'w, 's> Scanner<'w, 's> {
             let same_track = scan_pos.0.track == b.0.track;
             let bound_a = scan_pos.0.distance;
 
-            let e_landmarks = store.landmarks_on(&scan_pos.0.track);
+            let e_landmarks = self.store.landmarks_on(&scan_pos.0.track);
             if e_landmarks.len() > 0 {
                 match scan_pos.1 {
                     Dir::A => {

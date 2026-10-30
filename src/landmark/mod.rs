@@ -31,19 +31,14 @@ pub struct LandmarkPassed {
     pub train: Entity,
 }
 
-fn check_landmarks_passed(
-    moved: On<AxleMoved>,
-    mut commands: Commands,
-    store: Res<LandmarkStore>,
-    scanner: Scanner,
-) {
+fn check_landmarks_passed(moved: On<AxleMoved>, mut commands: Commands, scanner: Scanner) {
     let AxleMoved {
         train: e_train,
         from,
         to,
     } = *moved;
 
-    let passed_landmarks = match scanner.scan(from, to, store) {
+    let passed_landmarks = match scanner.scan(from, to) {
         Ok(p) => {
             if p.len() > 0 {
                 p

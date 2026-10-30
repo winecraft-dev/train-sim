@@ -9,7 +9,7 @@ use crate::{
         builder::{TrackBuilder, TrackNodesBuilt},
         store::{NodeStore, SegmentStore},
     },
-    train::{builder::TrainBuilder, store::AxleStore},
+    train::{builder::TrainBuilder, store::TrainStore},
     zone::{
         builder::{ZoneBuilder, ZonesBuilt},
         store::{SwitchJunctionLookup, ZoneStore},
@@ -62,14 +62,14 @@ fn reset_railroad(
     landmark_store: ResMut<LandmarkStore>,
     zone_store: ResMut<ZoneStore>,
     junction_lookup: ResMut<SwitchJunctionLookup>,
-    axle_store: ResMut<AxleStore>,
+    train_store: ResMut<TrainStore>,
 ) {
     NodeStore::reset(&mut commands, node_store);
     SegmentStore::reset(&mut commands, segment_store);
     LandmarkStore::reset(landmark_store);
     ZoneStore::reset(&mut commands, zone_store);
     SwitchJunctionLookup::reset(junction_lookup);
-    AxleStore::reset(&mut commands, axle_store);
+    TrainStore::reset(&mut commands, train_store);
 
     commands.trigger(RailwayLoaded);
 }

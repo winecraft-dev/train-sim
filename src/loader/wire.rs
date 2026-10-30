@@ -63,5 +63,8 @@ pub enum TrackVariant {
 #[derive(Deserialize, Debug)]
 pub struct Train {
     pub floc: FLoc,
+    pub cars: Option<usize>,
+    pub car_distance: Option<f32>,
+    pub axle_distance: Option<f32>,
     pub speed: Option<f32>,
 }

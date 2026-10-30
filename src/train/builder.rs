@@ -1,63 +1,103 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    error::SimError::{self, InvalidTrainLoc},
+    error::SimError::{self, InvalidTrainAxleLoc, InvalidTrainLoc},
     loader::wire,
-    loc::{cursor::TrackCursor, locator::Locator},
-    train::{Train, axle::Axle, store::AxleStore},
+    loc::{FLoc, cursor::TrackCursor, locator::Locator},
+    train::{Car, Train, axle::Axle, store::TrainStore},
 };
 
 #[derive(SystemParam)]
 pub struct TrainBuilder<'w, 's> {
-    store: ResMut<'w, AxleStore>,
+    store: ResMut<'w, TrainStore>,
     commands: Commands<'w, 's>,
     locator: Locator<'w, 's>,
     cursor: TrackCursor<'w, 's>,
 }
 
 const DEFAULT_TRAIN_SPEED: f32 = 0.3;
-pub const DEFAULT_AXLE_DISTANCE: f32 = 50.0;
-// const DEFAULT_CAR_DISTANCE: f32 = 30.0;
+const DEFAULT_AXLE_DISTANCE: f32 = 50.0;
+const DEFAULT_CAR_DISTANCE: f32 = 30.0;
 
 impl<'w, 's> TrainBuilder<'w, 's> {
-    pub fn from_wire(&mut self, train: &wire::Train) -> Result<Entity, SimError> {
-        let speed = match train.speed {
-            Some(s) => s,
-            None => DEFAULT_TRAIN_SPEED,
-        };
+    pub fn from_wire(&mut self, params: &wire::Train) -> Result<Entity, SimError> {
+        let train = Self::create_train(params);
         let e_train = self
             .commands
-            .spawn((GlobalTransform::default(), Train { speed }))
+            .spawn((GlobalTransform::default(), train.clone()))
             .id();
+        self.store.insert(e_train);
 
-        let main_floc = match self.locator.convert(train.floc) {
+        let mut floc = match self.locator.convert(params.floc) {
             Ok(l) => l,
             Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
         };
 
-        let rear_offset = main_floc.1.vector(DEFAULT_AXLE_DISTANCE);
-        let rear_floc = match self.cursor.traverse(main_floc, rear_offset) {
-            Ok(l) => l,
-            Err(e) => return Err(e),
-        };
+        let mut e_cars: Vec<Entity> = Vec::new();
+        let mut e_primary_car = Some(e_train);
+        let cars = params.cars.unwrap_or(1);
+        for car in 0..cars {
+            let e_car = self.spawn_car(e_primary_car, &train, &mut floc)?;
+            if let Some(_) = e_primary_car {
+                e_primary_car = None;
+            } else {
+                e_cars.push(e_car);
+            }
+            if car < cars {
+                floc = match self
+                    .cursor
+                    .traverse(floc, floc.1.vector(train.car_distance))
+                {
+                    Ok(l) => l,
+                    Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
+                };
+            }
+        }
 
-        let e_rear = self
-            .commands
-            .spawn((
-                rear_floc,
-                Axle {
-                    offset: DEFAULT_AXLE_DISTANCE,
-                },
-            ))
-            .id();
-        self.commands
-            .entity(e_train)
-            .insert((main_floc, Axle { offset: 0.0 }))
-            .add_child(e_rear);
-
-        self.store.push(e_rear);
-        self.store.push(e_train);
+        self.commands.entity(e_train).add_children(&e_cars);
 
         Ok(e_train)
+    }
+
+    fn create_train(params: &wire::Train) -> Train {
+        let speed = params.speed.unwrap_or(DEFAULT_TRAIN_SPEED);
+        let car_distance = params.car_distance.unwrap_or(DEFAULT_CAR_DISTANCE);
+        let axle_distance = params.axle_distance.unwrap_or(DEFAULT_AXLE_DISTANCE);
+
+        Train {
+            speed,
+            car_distance,
+            axle_distance,
+        }
+    }
+
+    fn spawn_car(
+        &mut self,
+        e_train: Option<Entity>, // Some if this is the 1st car
+        train: &Train,
+        floc: &mut FLoc,
+    ) -> Result<Entity, SimError> {
+        let main_loc = *floc;
+        *floc = match self
+            .cursor
+            .traverse(main_loc, main_loc.1.vector(train.axle_distance))
+        {
+            Ok(l) => l,
+            Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
+        };
+
+        let e_car = match e_train {
+            Some(e_train) => self
+                .commands
+                .entity(e_train)
+                .insert((main_loc, Car, Axle))
+                .id(),
+            None => self.commands.spawn((main_loc, Car, Axle)).id(),
+        };
+        let e_rear = self.commands.spawn((*floc, Axle)).id();
+
+        self.commands.entity(e_car).add_child(e_rear);
+
+        Ok(e_car)
     }
 }

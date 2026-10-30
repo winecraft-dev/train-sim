@@ -5,7 +5,7 @@ use crate::{
     loc::{Dir, Loc},
     signal::{Aspect, ObservableBound, Signal},
     track::{TrackNode, TrackSegment, TrackVariant, switch::NodeVariant},
-    train::{Train, axle::Axle, builder::DEFAULT_AXLE_DISTANCE},
+    train::{Car, Train, axle::Axle},
     zone::{AxleCounter, Zone},
 };
 
@@ -74,29 +74,53 @@ fn render_tracks(
 
 fn render_trains(
     mut gizmos: Gizmos,
-    trains: Query<(Entity, &Transform), With<Train>>,
+    trains: Query<(Entity, &Transform, &Train)>,
+    cars: Query<(Entity, &Transform), (With<Car>, Without<Train>)>,
+    rear_axles: Query<&Transform, (With<Axle>, Without<Car>, Without<Train>)>,
     children: Query<&Children>,
-    rear_axles: Query<&Transform, (With<Axle>, Without<Train>)>,
 ) {
-    for (e_train, train_pos) in trains {
-        let main_pos = train_pos.translation.xy();
+    for (e_train, train_pos, train) in trains {
+        let Ok(c_train) = children.get(e_train) else {
+            continue;
+        };
 
-        let e_rear = children.get(e_train).unwrap()[0];
-        let rear_pos = rear_axles.get(e_rear).unwrap().translation.xy();
+        let cars: Vec<(Entity, Vec2)> = c_train
+            .iter()
+            .filter_map(|e| cars.get(e).ok())
+            .map(|(e, t)| (e, t.translation.xy()))
+            .collect();
 
-        let center = main_pos - (main_pos - rear_pos) / 2.0;
-        let angle = (main_pos - rear_pos).to_angle();
-        let arrow_pos = (main_pos - rear_pos).normalize() * 30.0 + main_pos;
-        gizmos.rect_2d(
-            Isometry2d::new(
-                center, // position
-                Rot2::radians(angle),
-            ),
-            Vec2::new(DEFAULT_AXLE_DISTANCE + 20.0, 20.0),
-            css::GRAY,
-        );
-        gizmos.arrow_2d(center, arrow_pos, css::ORANGE_RED);
+        for (e_car, car_pos) in cars {
+            let Ok(c_car) = children.get(e_car) else {
+                continue;
+            };
+
+            let rear_pos: Vec2 = c_car
+                .iter()
+                .filter_map(|e| rear_axles.get(e).ok())
+                .map(|t| t.translation.xy())
+                .collect::<Vec<Vec2>>()[0]; // CLEANUP
+            render_car(&mut gizmos, car_pos, rear_pos, train);
+        }
+
+        let car_pos = train_pos.translation.xy();
+        let rear_pos: Vec2 = c_train
+            .iter()
+            .filter_map(|e| rear_axles.get(e).ok())
+            .map(|t| t.translation.xy())
+            .collect::<Vec<Vec2>>()[0]; // CLEANUP
+        render_car(&mut gizmos, car_pos, rear_pos, train);
     }
+}
+
+fn render_car(gizmos: &mut Gizmos, car_pos: Vec2, rear_pos: Vec2, train: &Train) {
+    let center = car_pos - (car_pos - rear_pos) / 2.0;
+    let angle = (car_pos - rear_pos).to_angle();
+    gizmos.rect_2d(
+        Isometry2d::new(center, Rot2::radians(angle)),
+        Vec2::new(70.0, 20.0), // USE TRAIN VALUES
+        css::GRAY,
+    );
 }
 
 fn render_switches(
