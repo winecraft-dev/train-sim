@@ -4,12 +4,12 @@ use crate::{
     error::SimError::{self, InvalidTrainAxleLoc, InvalidTrainLoc},
     loader::wire,
     loc::{FLoc, cursor::TrackCursor, locator::Locator},
-    train::{Car, Train, axle::Axle, store::AxleStore},
+    train::{Car, Train, axle::Axle, store::TrainStore},
 };
 
 #[derive(SystemParam)]
 pub struct TrainBuilder<'w, 's> {
-    store: ResMut<'w, AxleStore>,
+    store: ResMut<'w, TrainStore>,
     commands: Commands<'w, 's>,
     locator: Locator<'w, 's>,
     cursor: TrackCursor<'w, 's>,
@@ -44,7 +44,10 @@ impl<'w, 's> TrainBuilder<'w, 's> {
                 e_cars.push(e_car);
             }
             if car < cars {
-                floc = match self.cursor.traverse(floc, train.car_distance) {
+                floc = match self
+                    .cursor
+                    .traverse(floc, floc.1.vector(train.car_distance))
+                {
                     Ok(l) => l,
                     Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
                 };
@@ -75,7 +78,10 @@ impl<'w, 's> TrainBuilder<'w, 's> {
         floc: &mut FLoc,
     ) -> Result<Entity, SimError> {
         let main_loc = *floc;
-        *floc = match self.cursor.traverse(main_loc, train.axle_distance) {
+        *floc = match self
+            .cursor
+            .traverse(main_loc, main_loc.1.vector(train.axle_distance))
+        {
             Ok(l) => l,
             Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
         };
@@ -86,14 +92,9 @@ impl<'w, 's> TrainBuilder<'w, 's> {
                 .entity(e_train)
                 .insert((main_loc, Car, Axle))
                 .id(),
-            None => {
-                let e_car = self.commands.spawn((main_loc, Car, Axle)).id();
-                self.store.insert(e_car);
-                e_car
-            }
+            None => self.commands.spawn((main_loc, Car, Axle)).id(),
         };
         let e_rear = self.commands.spawn((*floc, Axle)).id();
-        self.store.insert(e_rear);
 
         self.commands.entity(e_car).add_child(e_rear);
 

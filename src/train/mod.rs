@@ -8,7 +8,7 @@ use axle::AxlePlugin;
 
 use crate::{
     signal::control::{Effect, SignalCommand},
-    train::store::AxleStore,
+    train::store::TrainStore,
 };
 
 pub struct TrainPlugin;
@@ -16,7 +16,7 @@ pub struct TrainPlugin;
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(AxlePlugin)
-            .add_systems(PreStartup, AxleStore::init)
+            .add_systems(PreStartup, TrainStore::init)
             .add_observer(train_derailed)
             // .add_observer(train_clicked)
             .add_observer(train_signaled);

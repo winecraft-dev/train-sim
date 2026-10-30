@@ -135,9 +135,6 @@ zones:
     exits:
       - { track: 8, end: A, offset: 110, dir: A }
 trains:
-  - floc: { track: 0, progress: 0.5, dir: B }
+  - floc: { track: 0, progress: 0.6, dir: B }
     speed: 1.5
-    cars: 4
-  - floc: { track: 2, progress: 0.5, dir: B }
-    speed: 1.5
-    cars: 3
+    cars: 14
