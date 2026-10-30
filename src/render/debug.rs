@@ -122,26 +122,6 @@ fn render_car(gizmos: &mut Gizmos, car_pos: Vec2, rear_pos: Vec2, train: &Train)
         css::GRAY,
     );
 }
-//     for (e_train, train_pos) in trains {
-//         let main_pos = train_pos.translation.xy();
-
-//         let e_rear = children.get(e_train).unwrap()[0];
-//         let rear_pos = rear_axles.get(e_rear).unwrap().translation.xy();
-
-//         let center = main_pos - (main_pos - rear_pos) / 2.0;
-//         let angle = (main_pos - rear_pos).to_angle();
-//         let arrow_pos = (main_pos - rear_pos).normalize() * 30.0 + main_pos;
-//         gizmos.rect_2d(
-//             Isometry2d::new(
-//                 center, // position
-//                 Rot2::radians(angle),
-//             ),
-//             Vec2::new(DEFAULT_AXLE_DISTANCE + 20.0, 20.0),
-//             css::GRAY,
-//         );
-//         gizmos.arrow_2d(center, arrow_pos, css::ORANGE_RED);
-//     }
-// }
 
 fn render_switches(
     mut gizmos: Gizmos,
