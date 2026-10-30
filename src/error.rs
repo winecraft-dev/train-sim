@@ -33,6 +33,9 @@ pub enum SimError {
     #[error("invalid train location: {0:?}")]
     InvalidTrainLoc(Box<SimError>),
 
+    #[error("invalid train axle location: {0:?}")]
+    InvalidTrainAxleLoc(Box<SimError>),
+
     #[error("conversion from wire format failed: {0:?}")]
     WireConversionFailed(Box<SimError>),
 }

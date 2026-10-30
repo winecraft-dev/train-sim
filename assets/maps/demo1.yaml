@@ -137,5 +137,7 @@ zones:
 trains:
   - floc: { track: 0, progress: 0.5, dir: B }
     speed: 1.5
-  - floc: { track: 6, progress: 0.5, dir: B }
-    speed: 1
+    cars: 4
+  - floc: { track: 2, progress: 0.5, dir: B }
+    speed: 1.5
+    cars: 3

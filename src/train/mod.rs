@@ -23,10 +23,15 @@ impl Plugin for TrainPlugin {
     }
 }
 
-#[derive(Component, Default, Debug)]
+#[derive(Component, Clone, Default, Debug)]
 pub struct Train {
     speed: f32,
+    car_distance: f32,
+    axle_distance: f32,
 }
+
+#[derive(Component, Default, Debug)]
+pub struct Car;
 
 #[derive(Event)]
 pub struct TrainDerailed(Entity);
