@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     error::SimError::{self, InvalidTrainAxleLoc, InvalidTrainLoc},
     loader::wire,
-    loc::{FLoc, cursor::TrackCursor, locator::Locator},
+    loc::{FLoc, locator::Locator, traverser::Traverser},
     train::{Car, Train, axle::Axle, store::TrainStore},
 };
 
@@ -12,7 +12,7 @@ pub struct TrainBuilder<'w, 's> {
     store: ResMut<'w, TrainStore>,
     commands: Commands<'w, 's>,
     locator: Locator<'w, 's>,
-    cursor: TrackCursor<'w, 's>,
+    cursor: Traverser<'w, 's>,
 }
 
 const DEFAULT_TRAIN_SPEED: f32 = 0.3;

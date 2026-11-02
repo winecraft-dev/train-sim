@@ -7,12 +7,12 @@ use crate::{
 };
 
 #[derive(SystemParam)]
-pub struct TrackCursor<'w, 's> {
+pub struct Traverser<'w, 's> {
     segments: Query<'w, 's, &'static TrackSegment>,
     nodes: Query<'w, 's, &'static NodeVariant>,
 }
 
-impl<'w, 's> TrackCursor<'w, 's> {
+impl<'w, 's> Traverser<'w, 's> {
     pub fn traverse(&self, f_loc: FLoc, distance: f32) -> Result<FLoc, SimError> {
         let (mut loc, mut facing) = f_loc;
         loc.distance += distance;

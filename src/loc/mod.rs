@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use serde::Deserialize;
 
-pub mod cursor;
 pub mod locator;
 pub mod projector;
+pub mod traverser;
 
 use crate::loc::projector::Projector;
 

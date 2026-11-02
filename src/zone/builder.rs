@@ -5,7 +5,7 @@ use crate::{
     error::SimError::{self, InvalidObservableBoundLoc, InvalidSignalLoc},
     landmark::Landmark,
     loader::wire,
-    loc::{FLoc, cursor::TrackCursor, locator::Locator},
+    loc::{FLoc, locator::Locator, traverser::Traverser},
     signal::{ObservableBound, Signal},
     track::store::NodeStore,
     zone::{
@@ -21,7 +21,7 @@ pub struct ZoneBuilder<'w, 's> {
     store: ResMut<'w, ZoneStore>,
     junction_lookup: ResMut<'w, SwitchJunctionLookup>,
     commands: Commands<'w, 's>,
-    cursor: TrackCursor<'w, 's>,
+    cursor: Traverser<'w, 's>,
     locator: Locator<'w, 's>,
     node_store: Res<'w, NodeStore>,
 }

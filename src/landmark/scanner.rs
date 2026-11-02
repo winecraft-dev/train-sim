@@ -3,12 +3,12 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     error::SimError::{self, BrokenLandmarkReference},
     landmark::{Landmark, store::LandmarkStore},
-    loc::{Dir, FLoc, Loc, cursor::TrackCursor},
+    loc::{Dir, FLoc, Loc, traverser::Traverser},
 };
 
 #[derive(SystemParam)]
 pub struct Scanner<'w, 's> {
-    cursor: TrackCursor<'w, 's>,
+    cursor: Traverser<'w, 's>,
     landmarks: Query<'w, 's, (Entity, &'static Loc, &'static Dir), With<Landmark>>,
     store: Res<'w, LandmarkStore>,
 }

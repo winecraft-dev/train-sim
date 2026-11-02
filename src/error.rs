@@ -36,6 +36,12 @@ pub enum SimError {
     #[error("invalid train axle location: {0:?}")]
     InvalidTrainAxleLoc(Box<SimError>),
 
+    #[error("no rear axle found for car: {0:?}")]
+    NoRearAxle(Entity),
+
+    #[error("no children found for entity: {0:?}")]
+    NoChildren(Entity),
+
     #[error("conversion from wire format failed: {0:?}")]
     WireConversionFailed(Box<SimError>),
 }
