@@ -11,9 +11,7 @@ impl TrainStore {
     }
 
     pub fn reset(commands: &mut Commands, mut store: ResMut<Self>) {
-        println!("Store: {:?}", store);
         for e_train in store.iter() {
-            println!("e_train: {:?}", e_train);
             commands.entity(*e_train).despawn();
         }
         store.clear();
