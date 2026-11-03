@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     error::SimError::{self, InvalidTrainAxleLoc, NoChildren, NoRearAxle},
-    loc::{Dir, FLoc, Loc, projector::Projector, traverser::Traverser},
+    loc::{Dir, Loc, projector::Projector, traverser::Traverser},
     track::TrackNode,
     train::{Car, Derailed, Train, TrainDerailed},
 };
@@ -22,31 +22,31 @@ pub struct Axle;
 pub struct AxleMoved {
     pub train: Entity,
     // facing direction refers to the direction the Axle moved, not just which direction it is facing
-    pub from: FLoc,
-    pub to: FLoc,
+    pub from: Loc,
+    pub to: Loc,
 }
 
-fn speed_direction(old: &mut FLoc, new: &mut FLoc, speed: f32) {
-    let flipped = old.1 != new.1;
-    old.1 = if speed < 0.0 { Dir::A } else { Dir::B };
-    new.1 = if !flipped { old.1 } else { old.1.flip() }
+fn speed_direction(old: &mut Loc, new: &mut Loc, speed: f32) {
+    let flipped = old.dir != new.dir;
+    old.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+    new.dir = if !flipped { old.dir } else { old.dir.flip() }
 }
 
 fn apply_train_speeds(
     mut commands: Commands,
-    mut trains: Query<(Entity, &mut Loc, &mut Dir, &Train), Without<Derailed>>,
-    cars: Query<(&mut Loc, &mut Dir), (With<Car>, Without<Train>)>,
-    mut rear_axles: Query<(&mut Loc, &mut Dir), (With<Axle>, Without<Car>, Without<Train>)>,
+    mut trains: Query<(Entity, &mut Loc, &Train), Without<Derailed>>,
+    cars: Query<&mut Loc, (With<Car>, Without<Train>)>,
+    mut rear_axles: Query<&mut Loc, (With<Axle>, Without<Car>, Without<Train>)>,
     children: Query<&Children>,
     traverser: Traverser,
 ) {
-    for (e_train, mut train_loc, mut train_dir, train) in trains.iter_mut() {
+    for (e_train, mut train_loc, train) in trains.iter_mut() {
         let Ok(c_train) = children.get(e_train) else {
             continue;
         };
 
-        let mut cursor = (*train_loc, *train_dir);
-        let speed = -cursor.1.vector(train.speed);
+        let mut cursor = *train_loc;
+        let speed = -cursor.dir.vector(train.speed);
         cursor = match traverser.traverse(cursor, speed) {
             Ok(l) => l,
             Err(_) => {
@@ -65,7 +65,7 @@ fn apply_train_speeds(
 
         let e_cars: Vec<Entity> = c_train.iter().filter(|e| cars.get(*e).is_ok()).collect();
         for e_car in c_train {
-            let Some((mut car_loc, mut car_dir)) = cars.get(*e_car).ok() else {
+            let Some(mut car_loc) = cars.get(*e_car).ok() else {
                 continue;
             };
         }
@@ -74,10 +74,10 @@ fn apply_train_speeds(
 
 fn apply_rear_axle(
     traverser: &Traverser,
-    cursor: &mut FLoc,
+    cursor: &mut Loc,
     e_car: Entity,
     children: Query<&Children>,
-    rear_axles: &mut Query<(&mut Loc, &mut Dir), (With<Axle>, Without<Car>, Without<Train>)>,
+    rear_axles: &mut Query<&mut Loc, (With<Axle>, Without<Car>, Without<Train>)>,
     train: &Train,
 ) -> Result<(), SimError> {
     let Ok(c_car) = children.get(e_car) else {
@@ -87,15 +87,14 @@ fn apply_rear_axle(
     if e_rear.len() <= 1 {
         return Err(NoRearAxle(e_car));
     }
-    let (mut rear_loc, mut rear_dir) = rear_axles.get_mut(e_rear[0]).unwrap(); // already checked
+    let mut rear_loc = rear_axles.get_mut(e_rear[0]).unwrap(); // already checked
 
     *cursor = match traverser.traverse(*cursor, train.axle_distance) {
         Ok(l) => l,
         Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
     };
 
-    *rear_loc = cursor.0;
-    *rear_dir = cursor.1;
+    *rear_loc = *cursor;
 
     Ok(())
 }

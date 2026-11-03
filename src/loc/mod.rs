@@ -15,12 +15,11 @@ impl Plugin for LocationPlugin {
     }
 }
 
-pub type FLoc = (Loc, Dir);
-
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Loc {
     pub track: Entity,
     pub distance: f32,
+    pub dir: Dir,
 }
 
 fn add_transforms(

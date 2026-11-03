@@ -5,7 +5,7 @@ use crate::{
     error::SimError::{self, InvalidObservableBoundLoc, InvalidSignalLoc},
     landmark::Landmark,
     loader::wire,
-    loc::{FLoc, locator::Locator, traverser::Traverser},
+    loc::{Loc, locator::Locator, traverser::Traverser},
     signal::{ObservableBound, Signal},
     track::store::NodeStore,
     zone::{
@@ -108,7 +108,7 @@ impl<'w, 's> ZoneBuilder<'w, 's> {
         Ok(e_signals)
     }
 
-    pub fn spawn_signal(&mut self, zone: &wire::Zone, entry_loc: FLoc) -> Result<Entity, SimError> {
+    pub fn spawn_signal(&mut self, zone: &wire::Zone, entry_loc: Loc) -> Result<Entity, SimError> {
         let signal_distance = match zone.signal_distance {
             Some(d) => d,
             None => DEFAULT_SIGNAL_DISTANCE,

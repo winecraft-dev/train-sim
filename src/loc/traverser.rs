@@ -2,7 +2,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
     error::SimError::{self, BrokenNodeReference, BrokenSegmentReference, NoNeighborSegment},
-    loc::{Dir, FLoc, Loc},
+    loc::{Dir, Loc},
     track::{TrackSegment, switch::NodeVariant},
 };
 
@@ -13,8 +13,7 @@ pub struct Traverser<'w, 's> {
 }
 
 impl<'w, 's> Traverser<'w, 's> {
-    pub fn traverse(&self, f_loc: FLoc, distance: f32) -> Result<FLoc, SimError> {
-        let (mut loc, mut facing) = f_loc;
+    pub fn traverse(&self, mut loc: Loc, distance: f32) -> Result<Loc, SimError> {
         loc.distance += distance;
 
         loop {
@@ -24,7 +23,7 @@ impl<'w, 's> Traverser<'w, 's> {
             };
             let (e_switch, overflow_distance) = match self.exited(&loc, current_track) {
                 Some(exit) => exit,
-                None => return Ok((loc, facing)),
+                None => return Ok(loc),
             };
 
             let switch = match self.nodes.get(e_switch) {
@@ -42,7 +41,7 @@ impl<'w, 's> Traverser<'w, 's> {
             };
 
             loc.track = e_next;
-            facing = select_direction(facing, current_track, next_track);
+            loc.dir = select_direction(loc.dir, current_track, next_track);
             loc.distance = if next_track.nodes.0 == e_switch {
                 overflow_distance.abs()
             } else {
@@ -51,12 +50,12 @@ impl<'w, 's> Traverser<'w, 's> {
         }
     }
 
-    pub fn next_track(&self, floc: &mut (Loc, Dir)) -> Result<(), SimError> {
-        let current_track = match self.segments.get(floc.0.track) {
+    pub fn next_track(&self, loc: &mut Loc) -> Result<(), SimError> {
+        let current_track = match self.segments.get(loc.track) {
             Ok(s) => s,
-            Err(_) => return Err(BrokenSegmentReference(floc.0.track)),
+            Err(_) => return Err(BrokenSegmentReference(loc.track)),
         };
-        let e_switch = match floc.1 {
+        let e_switch = match loc.dir {
             Dir::A => current_track.nodes.0,
             Dir::B => current_track.nodes.1,
         };
@@ -64,7 +63,7 @@ impl<'w, 's> Traverser<'w, 's> {
             Ok(n) => n,
             Err(_) => return Err(BrokenNodeReference(e_switch)),
         };
-        let e_next = match switch.next_segment(floc.0.track) {
+        let e_next = match switch.next_segment(loc.track) {
             Some(s) => s,
             None => return Err(NoNeighborSegment),
         };
@@ -72,9 +71,9 @@ impl<'w, 's> Traverser<'w, 's> {
             Ok(s) => s,
             Err(_) => return Err(BrokenSegmentReference(e_next)),
         };
-        floc.0.track = e_next;
-        floc.1 = select_direction(floc.1, current_track, next_track);
-        floc.0.distance = if next_track.nodes.0 == e_switch {
+        loc.track = e_next;
+        loc.dir = select_direction(loc.dir, current_track, next_track);
+        loc.distance = if next_track.nodes.0 == e_switch {
             0.0
         } else {
             next_track.length

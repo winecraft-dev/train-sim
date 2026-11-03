@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     error::SimError::{self, InvalidTrainAxleLoc, InvalidTrainLoc},
     loader::wire,
-    loc::{FLoc, locator::Locator, traverser::Traverser},
+    loc::{Loc, locator::Locator, traverser::Traverser},
     train::{Car, Train, axle::Axle, store::TrainStore},
 };
 
@@ -28,7 +28,7 @@ impl<'w, 's> TrainBuilder<'w, 's> {
             .id();
         self.store.insert(e_train);
 
-        let mut floc = match self.locator.convert(params.floc) {
+        let mut loc = match self.locator.convert(params.loc) {
             Ok(l) => l,
             Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
         };
@@ -37,16 +37,16 @@ impl<'w, 's> TrainBuilder<'w, 's> {
         let mut e_primary_car = Some(e_train);
         let cars = params.cars.unwrap_or(1);
         for car in 0..cars {
-            let e_car = self.spawn_car(e_primary_car, &train, &mut floc)?;
+            let e_car = self.spawn_car(e_primary_car, &train, &mut loc)?;
             if let Some(_) = e_primary_car {
                 e_primary_car = None;
             } else {
                 e_cars.push(e_car);
             }
             if car < cars {
-                floc = match self
+                loc = match self
                     .cursor
-                    .traverse(floc, floc.1.vector(train.car_distance))
+                    .traverse(loc, loc.dir.vector(train.car_distance))
                 {
                     Ok(l) => l,
                     Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
@@ -75,12 +75,12 @@ impl<'w, 's> TrainBuilder<'w, 's> {
         &mut self,
         e_train: Option<Entity>, // Some if this is the 1st car
         train: &Train,
-        floc: &mut FLoc,
+        loc: &mut Loc,
     ) -> Result<Entity, SimError> {
-        let main_loc = *floc;
-        *floc = match self
+        let main_loc = *loc;
+        *loc = match self
             .cursor
-            .traverse(main_loc, main_loc.1.vector(train.axle_distance))
+            .traverse(main_loc, main_loc.dir.vector(train.axle_distance))
         {
             Ok(l) => l,
             Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
@@ -94,7 +94,7 @@ impl<'w, 's> TrainBuilder<'w, 's> {
                 .id(),
             None => self.commands.spawn((main_loc, Car, Axle)).id(),
         };
-        let e_rear = self.commands.spawn((*floc, Axle)).id();
+        let e_rear = self.commands.spawn((*loc, Axle)).id();
 
         self.commands.entity(e_car).add_child(e_rear);
 
