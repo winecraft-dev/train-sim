@@ -41,11 +41,19 @@ pub struct StoppedTrain(pub f32);
 #[derive(Component)]
 pub struct Derailed;
 
-fn move_trains(mut mover: TrainMover, mut trains: Query<(Entity, &mut Loc, &Train)>) {
+fn move_trains(
+    mut commands: Commands,
+    mut mover: TrainMover,
+    mut trains: Query<(Entity, &mut Loc, &Train), Without<Derailed>>,
+) {
     for (e_train, mut loc, train) in trains.iter_mut() {
         *loc = match mover.move_train((e_train, *loc, train)) {
             Ok(l) => l,
-            Err(_) => todo!(),
+            Err(e) => {
+                eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
+                commands.trigger(TrainDerailed(e_train));
+                continue;
+            }
         };
     }
 }

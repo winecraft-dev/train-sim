@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemParam, prelude::*};
 
 use crate::{
-    error::SimError::{self, InvalidTrainAxleLoc, InvalidTrainLoc},
+    error::SimError::{self, InvalidRearAxleLoc, InvalidTrainLoc},
     loader::wire,
     loc::{Loc, locator::Locator, traverser::Traverser},
     train::{Car, Train, axle::Axle, store::TrainStore},
@@ -49,7 +49,7 @@ impl<'w, 's> TrainBuilder<'w, 's> {
                     .traverse(loc, loc.dir.vector(train.car_distance))
                 {
                     Ok(l) => l,
-                    Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
+                    Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
                 };
             }
         }
@@ -83,7 +83,7 @@ impl<'w, 's> TrainBuilder<'w, 's> {
             .traverse(main_loc, main_loc.dir.vector(train.axle_distance))
         {
             Ok(l) => l,
-            Err(e) => return Err(InvalidTrainAxleLoc(Box::new(e))),
+            Err(e) => return Err(InvalidRearAxleLoc(Box::new(e))),
         };
 
         let e_car = match e_train {
