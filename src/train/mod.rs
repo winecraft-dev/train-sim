@@ -2,23 +2,22 @@ use bevy::prelude::*;
 
 pub mod axle;
 pub mod builder;
+pub mod mover;
 pub mod store;
 
-use axle::AxlePlugin;
-
 use crate::{
+    loc::Loc,
     signal::control::{Effect, SignalCommand},
-    train::store::TrainStore,
+    train::{axle::project_axle_positions, mover::TrainMover, store::TrainStore},
 };
 
 pub struct TrainPlugin;
 
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(AxlePlugin)
-            .add_systems(PreStartup, TrainStore::init)
+        app.add_systems(PreStartup, TrainStore::init)
+            .add_systems(Update, (move_trains, project_axle_positions).chain())
             .add_observer(train_derailed)
-            // .add_observer(train_clicked)
             .add_observer(train_signaled);
     }
 }
@@ -41,6 +40,15 @@ pub struct StoppedTrain(pub f32);
 
 #[derive(Component)]
 pub struct Derailed;
+
+fn move_trains(mut mover: TrainMover, mut trains: Query<(Entity, &mut Loc, &Train)>) {
+    for (e_train, mut loc, train) in trains.iter_mut() {
+        *loc = match mover.move_train((e_train, *loc, train)) {
+            Ok(l) => l,
+            Err(_) => todo!(),
+        };
+    }
+}
 
 fn train_derailed(
     derailed: On<TrainDerailed>,
