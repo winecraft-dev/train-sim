@@ -90,11 +90,11 @@ impl<'w, 's> TrainBuilder<'w, 's> {
             Some(e_train) => self
                 .commands
                 .entity(e_train)
-                .insert((main_loc, Car, Axle))
+                .insert((main_loc, Car, Axle::Front))
                 .id(),
-            None => self.commands.spawn((main_loc, Car, Axle)).id(),
+            None => self.commands.spawn((main_loc, Car, Axle::Front)).id(),
         };
-        let e_rear = self.commands.spawn((*loc, Axle)).id();
+        let e_rear = self.commands.spawn((*loc, Axle::Rear)).id();
 
         self.commands.entity(e_car).add_child(e_rear);
 

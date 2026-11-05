@@ -55,86 +55,86 @@ zones:
   - entrys:
       - { track: 0, offset: 10, dir: B }
     exits:
-      - { track: 0, offset: 200, dir: A }
+      - { track: 0, offset: 200, dir: B }
   - entrys:
       - { track: 0, offset: 210, dir: B }
     exits:
-      - { track: 0, offset: 400, dir: A }
+      - { track: 0, offset: 400, dir: B }
   - entrys:
       - { track: 0, offset: 410, dir: B }
     exits:
-      - { track: 0, end: A, offset: 10, dir: A }
+      - { track: 0, end: A, offset: 10, dir: B }
   - entrys:
       - { track: 1, offset: 0.0, dir: B }
     exits:
-      - { track: 1, end: A, offset: 0.0, dir: A }
+      - { track: 1, end: A, offset: 0.0, dir: B }
   - entrys:
       - { track: 2, offset: 0.0, dir: B }
     exits:
-      - { track: 2, offset: 200, dir: A }
+      - { track: 2, offset: 200, dir: B }
   - entrys:
       - { track: 2, end: A, offset: 20, dir: B }
     exits:
-      - { track: 11, offset: 0, dir: A }
-      - { track: 4, offset: 100, dir: A }
+      - { track: 11, offset: 0, dir: B }
+      - { track: 4, offset: 100, dir: B }
   - entrys:
       - { track: 11, offset: 10, dir: B }
     exits:
-      - { track: 11, offset: 200, dir: A }
+      - { track: 11, offset: 200, dir: B }
   - entrys:
       - { track: 11, offset: 210, dir: B }
     exits:
-      - { track: 11, offset: 400, dir: A }
+      - { track: 11, offset: 400, dir: B }
   - entrys:
       - { track: 11, offset: 410, dir: B }
     exits:
-      - { track: 11, end: A, offset: 10, dir: A }
+      - { track: 11, end: A, offset: 10, dir: B }
   - entrys:
       - { track: 8, end: A, offset: 100, dir: B }
       - { track: 11, end: A, offset: 0, dir: B }
     exits:
-      - { track: 9, end: A, offset: 40, dir: B }
+      - { track: 9, end: A, offset: 40, dir: A }
     switches: [15]
   - entrys:
       - { track: 9, end: A, offset: 60, dir: A }
     exits:
-      - { track: 9, offset: 0, dir: B }
+      - { track: 9, offset: 0, dir: A }
     signal_distance: 15
     observable_distance: 20
   - entrys:
       - { track: 12, offset: 0, dir: B }
     exits:
-      - { track: 12, end: A, offset: 0, dir: A }
+      - { track: 12, end: A, offset: 0, dir: B }
     observable_distance: 20
   - entrys:
       - { track: 4, offset: 100, dir: B }
     exits:
-      - { track: 4, end: A, offset: 0, dir: A }
+      - { track: 4, end: A, offset: 0, dir: B }
   - entrys:
       - { track: 5, offset: 0, dir: B }
     exits:
-      - { track: 5, end: A, offset: 0, dir: A }
+      - { track: 5, end: A, offset: 0, dir: B }
   - entrys:
       - { track: 6, offset: 10, dir: B }
     exits:
-      - { track: 6, offset: 200, dir: A }
+      - { track: 6, offset: 200, dir: B }
   - entrys:
       - { track: 6, offset: 210, dir: B }
     exits:
-      - { track: 6, offset: 400, dir: A }
+      - { track: 6, offset: 400, dir: B }
   - entrys:
       - { track: 6, offset: 410, dir: B }
     exits:
-      - { track: 6, end: A, offset: 10, dir: A }
+      - { track: 6, end: A, offset: 10, dir: B }
   - entrys:
       - { track: 7, offset: 0, dir: B }
     exits:
-      - { track: 7, end: A, offset: 0, dir: A }
+      - { track: 7, end: A, offset: 0, dir: B }
   - entrys:
       - { track: 8, offset: 0, dir: B }
     exits:
-      - { track: 8, end: A, offset: 110, dir: A }
+      - { track: 8, end: A, offset: 110, dir: B }
 trains:
   - loc: { track: 0, progress: 0.6, dir: B }
-    speed: 1.1
-    cars: 6
+    speed: 3.4
+    cars: 3

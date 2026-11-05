@@ -6,10 +6,12 @@ pub mod mover;
 pub mod store;
 
 use crate::{
-    loc::Loc,
+    error::SimError::{self, LandmarkScanFailed},
+    landmark::{Landmark, LandmarkPassed, scanner::Scanner},
+    loc::{Dir, Loc},
     signal::control::{Effect, SignalCommand},
     train::{
-        axle::{AxleMoved, project_axle_positions, speed_direction},
+        axle::{Axle, project_axle_positions},
         mover::TrainMover,
         store::TrainStore,
     },
@@ -45,13 +47,20 @@ pub struct StoppedTrain(pub f32);
 #[derive(Component)]
 pub struct Derailed;
 
+#[derive(Event)]
+pub struct TrainMoved {
+    front: (Loc, Loc),
+    rear: (Loc, Loc),
+}
+
 fn move_trains(
     mut commands: Commands,
+    scanner: Scanner,
     mut mover: TrainMover,
-    mut trains: Query<(Entity, &mut Loc, &Train), Without<Derailed>>,
+    mut trains: Query<(Entity, &mut Loc, &Train), (Without<Derailed>, Without<Landmark>)>,
 ) {
     for (e_train, mut loc, train) in trains.iter_mut() {
-        let mut moved = match mover.move_train((e_train, *loc, train)) {
+        let moved = match mover.move_train((e_train, *loc, train)) {
             Ok(l) => l,
             Err(e) => {
                 eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
@@ -59,22 +68,40 @@ fn move_trains(
                 continue;
             }
         };
-        *loc = moved.new.0;
+        *loc = moved.front.1;
 
-        speed_direction(&mut moved.old.0, &mut moved.new.0, train.speed);
-        speed_direction(&mut moved.old.1, &mut moved.new.1, train.speed);
+        // axle_passed(&scanner, &mut commands, (e_train, Axle::Front), moved.front);
+        // axle_passed(&scanner, &mut commands, (e_train, Axle::Rear), moved.rear);
+    }
+}
 
-        commands.trigger(AxleMoved {
-            train: e_train,
-            from: moved.old.0,
-            to: moved.new.0,
-        });
-        commands.trigger(AxleMoved {
-            train: e_train,
-            from: moved.old.1,
-            to: moved.new.1,
+fn axle_passed(
+    scanner: &Scanner,
+    commands: &mut Commands,
+    axle: (Entity, Axle),
+    movement: (Loc, Loc),
+) -> Result<(), SimError> {
+    let passed_landmarks = match scanner.scan(movement.0, movement.1) {
+        Ok(p) => {
+            if p.len() > 0 {
+                p
+            } else {
+                return Ok(());
+            }
+        }
+        Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
+    };
+
+    for (e_landmark, forwards) in passed_landmarks {
+        commands.trigger(LandmarkPassed {
+            forwards,
+            landmark: e_landmark,
+            train: axle.0,
+            axle: axle.1,
         });
     }
+
+    Ok(())
 }
 
 fn train_derailed(

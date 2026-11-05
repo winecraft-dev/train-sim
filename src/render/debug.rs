@@ -113,6 +113,7 @@ fn render_trains(
     }
 }
 
+#[allow(unused)]
 fn render_car(gizmos: &mut Gizmos, car_pos: Vec2, rear_pos: Vec2, train: &Train) {
     let center = car_pos - (car_pos - rear_pos) / 2.0;
     let angle = (car_pos - rear_pos).to_angle();

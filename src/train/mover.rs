@@ -5,26 +5,27 @@ use crate::{
         self, BrokenRearAxleReference, BrokenTrainCarReference, InvalidRearAxleLoc,
         InvalidTrainLoc, NoCars, NoRearAxle,
     },
-    loc::{Loc, traverser::Traverser},
-    train::{Car, Train, axle::Axle},
+    landmark::Landmark,
+    loc::{Dir, Loc, traverser::Traverser},
+    train::{Car, Train, TrainMoved, axle::Axle},
 };
-
-pub struct TrainMoved {
-    pub old: (Loc, Loc),
-    pub new: (Loc, Loc),
-}
 
 #[derive(SystemParam)]
 pub struct TrainMover<'w, 's> {
     traverser: Traverser<'w, 's>,
     children: Query<'w, 's, &'static Children>,
-    cars: Query<'w, 's, &'static mut Loc, (With<Car>, Without<Train>)>,
-    rear_axles: Query<'w, 's, &'static mut Loc, (With<Axle>, Without<Car>, Without<Train>)>,
+    cars: Query<'w, 's, &'static mut Loc, (With<Car>, Without<Train>, Without<Landmark>)>,
+    rear_axles: Query<
+        'w,
+        's,
+        &'static mut Loc,
+        (With<Axle>, Without<Car>, Without<Train>, Without<Landmark>),
+    >,
 }
 
 impl<'w, 's> TrainMover<'w, 's> {
     pub fn move_train(&mut self, train: (Entity, Loc, &Train)) -> Result<TrainMoved, SimError> {
-        let (e_train, old_train_loc, train) = train;
+        let (e_train, mut old_train_loc, train) = train;
 
         let mut cursor = old_train_loc;
         let speed = -cursor.dir.vector(train.speed);
@@ -33,7 +34,7 @@ impl<'w, 's> TrainMover<'w, 's> {
             Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
         };
 
-        let new_train_loc = cursor;
+        let mut new_train_loc = cursor;
         let (mut old_rear_loc, mut new_rear_loc) = self.move_rear_axle(cursor, e_train, train)?;
         cursor = new_rear_loc;
 
@@ -60,10 +61,14 @@ impl<'w, 's> TrainMover<'w, 's> {
             cursor = new_rear_loc;
         }
 
+        Self::speed_direction(&mut old_train_loc, &mut new_train_loc, train.speed);
+        Self::speed_direction(&mut old_rear_loc, &mut new_rear_loc, train.speed);
+
+        // cursor is now the position of the last rear_axle
         Ok(TrainMoved {
-            old: (old_train_loc, old_rear_loc),
-            new: (new_train_loc, new_rear_loc),
-        }) // cursor is now the position of the last rear_axle
+            front: (old_train_loc, new_train_loc),
+            rear: (old_rear_loc, new_rear_loc),
+        })
     }
 
     fn move_rear_axle(
@@ -102,5 +107,11 @@ impl<'w, 's> TrainMover<'w, 's> {
         *rear_loc = cursor;
 
         Ok((old_loc, cursor))
+    }
+
+    fn speed_direction(old: &mut Loc, new: &mut Loc, speed: f32) {
+        let flipped = old.dir != new.dir;
+        old.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        new.dir = if !flipped { old.dir } else { old.dir.flip() }
     }
 }

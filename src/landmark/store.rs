@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     landmark::{IndexedLandmark, Landmark},
-    loc::{Dir, Loc},
+    loc::Loc,
 };
 
 #[derive(Resource, Default, DerefMut, Deref, Debug)]
