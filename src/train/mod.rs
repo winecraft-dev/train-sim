@@ -8,7 +8,11 @@ pub mod store;
 use crate::{
     loc::Loc,
     signal::control::{Effect, SignalCommand},
-    train::{axle::project_axle_positions, mover::TrainMover, store::TrainStore},
+    train::{
+        axle::{AxleMoved, project_axle_positions, speed_direction},
+        mover::TrainMover,
+        store::TrainStore,
+    },
 };
 
 pub struct TrainPlugin;
@@ -47,7 +51,7 @@ fn move_trains(
     mut trains: Query<(Entity, &mut Loc, &Train), Without<Derailed>>,
 ) {
     for (e_train, mut loc, train) in trains.iter_mut() {
-        *loc = match mover.move_train((e_train, *loc, train)) {
+        let mut moved = match mover.move_train((e_train, *loc, train)) {
             Ok(l) => l,
             Err(e) => {
                 eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
@@ -55,6 +59,21 @@ fn move_trains(
                 continue;
             }
         };
+        *loc = moved.new.0;
+
+        speed_direction(&mut moved.old.0, &mut moved.new.0, train.speed);
+        speed_direction(&mut moved.old.1, &mut moved.new.1, train.speed);
+
+        commands.trigger(AxleMoved {
+            train: e_train,
+            from: moved.old.0,
+            to: moved.new.0,
+        });
+        commands.trigger(AxleMoved {
+            train: e_train,
+            from: moved.old.1,
+            to: moved.new.1,
+        });
     }
 }
 

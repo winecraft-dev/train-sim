@@ -154,14 +154,14 @@ fn render_switches(
 
 fn render_facing(
     mut gizmos: Gizmos,
-    facing: Query<(&Loc, &Dir, &Transform)>,
+    facing: Query<(&Loc, &Transform), Without<Axle>>,
     segments: Query<&TrackSegment>,
     switches: Query<&Transform>,
 ) {
-    for (loc, facing, facing_pos) in facing {
+    for (loc, facing_pos) in facing {
         let facing_pos = facing_pos.translation.xy();
         let segment = segments.get(loc.track).unwrap();
-        let facing_switch = match facing {
+        let facing_switch = match loc.dir {
             Dir::A => segment.nodes.0,
             Dir::B => segment.nodes.1,
         };

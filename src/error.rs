@@ -50,4 +50,7 @@ pub enum SimError {
 
     #[error("conversion from wire format failed: {0:?}")]
     WireConversionFailed(Box<SimError>),
+
+    #[error("scanning landmarks failed: {0:?}")]
+    LandmarkScanFailed(Box<SimError>),
 }

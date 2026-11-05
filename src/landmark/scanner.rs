@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(SystemParam)]
 pub struct Scanner<'w, 's> {
-    cursor: Traverser<'w, 's>,
+    traverser: Traverser<'w, 's>,
     landmarks: Query<'w, 's, (Entity, &'static Loc), With<Landmark>>,
     store: Res<'w, LandmarkStore>,
 }
@@ -17,17 +17,17 @@ type Passed = (Entity, bool);
 
 impl<'w, 's> Scanner<'w, 's> {
     pub fn scan(&self, a: Loc, b: Loc) -> Result<Vec<Passed>, SimError> {
-        let mut scan_pos = a;
+        let mut cursor = a;
         let mut passed: Vec<Passed> = Vec::new();
 
         loop {
             // check all landmarks on the current track
-            let same_track = scan_pos.track == b.track;
-            let bound_a = scan_pos.distance;
+            let same_track = cursor.track == b.track;
+            let bound_a = cursor.distance;
 
-            let e_landmarks = self.store.landmarks_on(&scan_pos.track);
+            let e_landmarks = self.store.landmarks_on(&cursor.track);
             if e_landmarks.len() > 0 {
-                match scan_pos.dir {
+                match cursor.dir {
                     Dir::A => {
                         let bound_b = if same_track { b.distance } else { 0.0 };
                         for e_landmark in e_landmarks.iter().rev() {
@@ -62,7 +62,7 @@ impl<'w, 's> Scanner<'w, 's> {
             if same_track {
                 break;
             }
-            self.cursor.next_track(&mut scan_pos)?;
+            self.traverser.next_track(&mut cursor)?;
         }
         Ok(passed)
     }
