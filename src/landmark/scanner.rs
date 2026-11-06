@@ -20,7 +20,7 @@ impl<'w, 's> Scanner<'w, 's> {
         let mut cursor = a;
         let mut passed: Vec<Passed> = Vec::new();
 
-        loop {
+        for _ in 0..2 {
             // check all landmarks on the current track
             let same_track = cursor.track == b.track;
             let bound_a = cursor.distance;

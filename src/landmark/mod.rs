@@ -27,33 +27,3 @@ pub struct LandmarkPassed {
     pub train: Entity,
     pub axle: Axle,
 }
-
-// fn check_landmarks_passed(moved: On<AxleMoved>, mut commands: Commands, scanner: Scanner) {
-//     let AxleMoved {
-//         train: e_train,
-//         from,
-//         to,
-//     } = *moved;
-
-//     let passed_landmarks = match scanner.scan(from, to) {
-//         Ok(p) => {
-//             if p.len() > 0 {
-//                 p
-//             } else {
-//                 return;
-//             }
-//         }
-//         Err(e) => {
-//             eprintln!("{e}");
-//             return;
-//         }
-//     };
-
-//     for (e_landmark, forwards) in passed_landmarks {
-//         commands.trigger(LandmarkPassed {
-//             forwards: forwards,
-//             landmark: e_landmark,
-//             train: e_train,
-//         });
-//     }
-// }

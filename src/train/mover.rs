@@ -61,9 +61,6 @@ impl<'w, 's> TrainMover<'w, 's> {
             cursor = new_rear_loc;
         }
 
-        Self::speed_direction(&mut old_train_loc, &mut new_train_loc, train.speed);
-        Self::speed_direction(&mut old_rear_loc, &mut new_rear_loc, train.speed);
-
         // cursor is now the position of the last rear_axle
         Ok(TrainMoved {
             front: (old_train_loc, new_train_loc),
@@ -107,11 +104,5 @@ impl<'w, 's> TrainMover<'w, 's> {
         *rear_loc = cursor;
 
         Ok((old_loc, cursor))
-    }
-
-    fn speed_direction(old: &mut Loc, new: &mut Loc, speed: f32) {
-        let flipped = old.dir != new.dir;
-        old.dir = if speed < 0.0 { Dir::A } else { Dir::B };
-        new.dir = if !flipped { old.dir } else { old.dir.flip() }
     }
 }

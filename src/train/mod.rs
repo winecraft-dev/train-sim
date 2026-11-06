@@ -53,6 +53,26 @@ pub struct TrainMoved {
     rear: (Loc, Loc),
 }
 
+impl TrainMoved {
+    fn speed_direction(mut self, speed: f32) -> Self {
+        let flipped = self.front.0.dir != self.front.1.dir;
+        self.front.0.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        self.front.1.dir = if !flipped {
+            self.front.0.dir
+        } else {
+            self.front.0.dir.flip()
+        };
+        let flipped = self.rear.0.dir != self.rear.1.dir;
+        self.rear.0.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        self.rear.1.dir = if !flipped {
+            self.rear.0.dir
+        } else {
+            self.rear.0.dir.flip()
+        };
+        self
+    }
+}
+
 fn move_trains(
     mut commands: Commands,
     scanner: Scanner,
@@ -60,7 +80,7 @@ fn move_trains(
     mut trains: Query<(Entity, &mut Loc, &Train), (Without<Derailed>, Without<Landmark>)>,
 ) {
     for (e_train, mut loc, train) in trains.iter_mut() {
-        let moved = match mover.move_train((e_train, *loc, train)) {
+        let mut movement = match mover.move_train((e_train, *loc, train)) {
             Ok(l) => l,
             Err(e) => {
                 eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
@@ -68,38 +88,52 @@ fn move_trains(
                 continue;
             }
         };
-        *loc = moved.front.1;
+        *loc = movement.front.1;
 
-        // axle_passed(&scanner, &mut commands, (e_train, Axle::Front), moved.front);
-        // axle_passed(&scanner, &mut commands, (e_train, Axle::Rear), moved.rear);
+        movement = movement.speed_direction(train.speed);
+
+        if let Err(e) = train_passed(&scanner, &mut commands, e_train, movement) {
+            eprintln!(
+                "Problem checking if train[{}] passed landmarks: {:?}",
+                e_train, e
+            );
+            continue;
+        }
     }
 }
 
-fn axle_passed(
+fn train_passed(
     scanner: &Scanner,
     commands: &mut Commands,
-    axle: (Entity, Axle),
-    movement: (Loc, Loc),
+    e_train: Entity,
+    movement: TrainMoved,
 ) -> Result<(), SimError> {
-    let passed_landmarks = match scanner.scan(movement.0, movement.1) {
+    match scanner.scan(movement.front.0, movement.front.1) {
         Ok(p) => {
-            if p.len() > 0 {
-                p
-            } else {
-                return Ok(());
+            for (e_landmark, forwards) in p {
+                commands.trigger(LandmarkPassed {
+                    forwards,
+                    landmark: e_landmark,
+                    train: e_train,
+                    axle: Axle::Front,
+                });
             }
         }
         Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
     };
-
-    for (e_landmark, forwards) in passed_landmarks {
-        commands.trigger(LandmarkPassed {
-            forwards,
-            landmark: e_landmark,
-            train: axle.0,
-            axle: axle.1,
-        });
-    }
+    match scanner.scan(movement.rear.0, movement.rear.1) {
+        Ok(p) => {
+            for (e_landmark, forwards) in p {
+                commands.trigger(LandmarkPassed {
+                    forwards,
+                    landmark: e_landmark,
+                    train: e_train,
+                    axle: Axle::Rear,
+                });
+            }
+        }
+        Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
+    };
 
     Ok(())
 }

@@ -136,5 +136,5 @@ zones:
       - { track: 8, end: A, offset: 110, dir: B }
 trains:
   - loc: { track: 0, progress: 0.6, dir: B }
-    speed: 3.4
+    speed: 4.4
     cars: 3
