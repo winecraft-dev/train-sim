@@ -7,7 +7,7 @@ pub mod store;
 
 use crate::{
     error::SimError::{self, LandmarkScanFailed},
-    landmark::{Landmark, LandmarkPassed, scanner::Scanner},
+    landmark::{AxleIntrusion, Landmark, LandmarkPassed, scanner::Scanner},
     loc::{Dir, Loc},
     signal::control::{Effect, SignalCommand},
     train::{
@@ -35,6 +35,12 @@ pub struct Train {
     axle_distance: f32,
 }
 
+impl Train {
+    fn forwards(&self) -> bool {
+        if self.speed < 0.0 { false } else { true }
+    }
+}
+
 #[derive(Component, Default, Debug)]
 pub struct Car;
 
@@ -47,7 +53,6 @@ pub struct StoppedTrain(pub f32);
 #[derive(Component)]
 pub struct Derailed;
 
-#[derive(Event)]
 pub struct TrainMoved {
     front: (Loc, Loc),
     rear: (Loc, Loc),
@@ -92,7 +97,7 @@ fn move_trains(
 
         movement = movement.speed_direction(train.speed);
 
-        if let Err(e) = train_passed(&scanner, &mut commands, e_train, movement) {
+        if let Err(e) = train_passed(&scanner, &mut commands, e_train, train.forwards(), movement) {
             eprintln!(
                 "Problem checking if train[{}] passed landmarks: {:?}",
                 e_train, e
@@ -106,16 +111,20 @@ fn train_passed(
     scanner: &Scanner,
     commands: &mut Commands,
     e_train: Entity,
+    forwards: bool,
     movement: TrainMoved,
 ) -> Result<(), SimError> {
     match scanner.scan(movement.front.0, movement.front.1) {
         Ok(p) => {
-            for (e_landmark, forwards) in p {
+            for (e_landmark, aligned) in p {
                 commands.trigger(LandmarkPassed {
-                    forwards,
                     landmark: e_landmark,
                     train: e_train,
-                    axle: Axle::Front,
+                    intrusion: AxleIntrusion {
+                        forwards,
+                        aligned,
+                        axle: Axle::Front,
+                    },
                 });
             }
         }
@@ -123,12 +132,15 @@ fn train_passed(
     };
     match scanner.scan(movement.rear.0, movement.rear.1) {
         Ok(p) => {
-            for (e_landmark, forwards) in p {
+            for (e_landmark, aligned) in p {
                 commands.trigger(LandmarkPassed {
-                    forwards,
                     landmark: e_landmark,
                     train: e_train,
-                    axle: Axle::Rear,
+                    intrusion: AxleIntrusion {
+                        forwards,
+                        aligned,
+                        axle: Axle::Rear,
+                    },
                 });
             }
         }

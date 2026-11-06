@@ -22,8 +22,23 @@ pub struct IndexedLandmark;
 
 #[derive(Event)]
 pub struct LandmarkPassed {
-    pub forwards: bool,
     pub landmark: Entity,
     pub train: Entity,
+    pub intrusion: AxleIntrusion,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct AxleIntrusion {
     pub axle: Axle,
+    pub aligned: bool,
+    pub forwards: bool,
+}
+
+impl AxleIntrusion {
+    pub fn train_entry(&self) -> bool {
+        match self.axle {
+            Axle::Front => self.forwards == true,
+            Axle::Rear => self.forwards == false,
+        }
+    }
 }

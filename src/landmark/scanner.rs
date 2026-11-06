@@ -37,8 +37,8 @@ impl<'w, 's> Scanner<'w, 's> {
                             };
                             let ld = landmark.1.distance;
                             if bound_b <= ld && ld <= bound_a {
-                                let forward = landmark.1.dir == Dir::A;
-                                passed.push((*e_landmark, forward));
+                                let aligned = landmark.1.dir == Dir::A;
+                                passed.push((*e_landmark, aligned));
                             }
                         }
                     }
@@ -51,8 +51,8 @@ impl<'w, 's> Scanner<'w, 's> {
                             };
                             let ld = landmark.1.distance;
                             if bound_b >= ld && ld >= bound_a {
-                                let forward = landmark.1.dir == Dir::B;
-                                passed.push((*e_landmark, forward));
+                                let aligned = landmark.1.dir == Dir::B;
+                                passed.push((*e_landmark, aligned));
                             }
                         }
                     }

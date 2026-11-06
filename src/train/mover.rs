@@ -6,7 +6,7 @@ use crate::{
         InvalidTrainLoc, NoCars, NoRearAxle,
     },
     landmark::Landmark,
-    loc::{Dir, Loc, traverser::Traverser},
+    loc::{Loc, traverser::Traverser},
     train::{Car, Train, TrainMoved, axle::Axle},
 };
 
@@ -25,7 +25,7 @@ pub struct TrainMover<'w, 's> {
 
 impl<'w, 's> TrainMover<'w, 's> {
     pub fn move_train(&mut self, train: (Entity, Loc, &Train)) -> Result<TrainMoved, SimError> {
-        let (e_train, mut old_train_loc, train) = train;
+        let (e_train, old_train_loc, train) = train;
 
         let mut cursor = old_train_loc;
         let speed = -cursor.dir.vector(train.speed);
@@ -34,7 +34,7 @@ impl<'w, 's> TrainMover<'w, 's> {
             Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
         };
 
-        let mut new_train_loc = cursor;
+        let new_train_loc = cursor;
         let (mut old_rear_loc, mut new_rear_loc) = self.move_rear_axle(cursor, e_train, train)?;
         cursor = new_rear_loc;
 

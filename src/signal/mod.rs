@@ -49,17 +49,16 @@ fn train_passed(
     signals: Query<&Signal>,
 ) {
     let LandmarkPassed {
-        forwards,
         landmark: e_landmark,
         train: e_train,
-        axle,
+        intrusion,
     } = *passed.event();
 
-    if !forwards {
+    if !intrusion.aligned {
         return;
     }
 
-    if let Axle::Rear = axle {
+    if let Axle::Rear = intrusion.axle {
         return;
     }
 
