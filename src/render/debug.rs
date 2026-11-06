@@ -6,7 +6,7 @@ use crate::{
     signal::{Aspect, ObservableBound, Signal},
     track::{TrackNode, TrackSegment, TrackVariant, switch::NodeVariant},
     train::{Car, Train, axle::Axle},
-    zone::{AxleCounter, Zone},
+    zone::{AxleCounter, Zone, ZoneStatus},
 };
 
 pub struct DebugRenderPlugin;
@@ -222,16 +222,21 @@ fn render_zones(
             .map(|t| t.translation.xy())
             .collect();
 
+        let color = match zone.status() {
+            ZoneStatus::Clear => css::MAGENTA,
+            ZoneStatus::Occupied => css::DARK_MAGENTA,
+        };
+
         let center: Vec2 = counter_positions.iter().sum::<Vec2>() / counter_positions.len() as f32;
         for cpos in counter_positions {
             gizmos.line_2d(cpos, center, css::MEDIUM_PURPLE);
         }
         gizmos.text_2d(
             center,
-            &format!("<{}>", zone.count),
+            &format!("<{:#?}>", zone.status()),
             12.0,
             Vec2::ZERO,
-            css::BLUE_VIOLET,
+            color,
         );
     }
 }

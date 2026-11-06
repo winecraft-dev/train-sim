@@ -5,7 +5,7 @@ use crate::{
     track::TrackNode,
 };
 
-#[derive(Component, Default, Clone, Copy)]
+#[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
 pub enum Axle {
     #[default]
     Front,

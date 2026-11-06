@@ -1,7 +1,8 @@
-use bevy::prelude::*;
+use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     landmark::LandmarkPassed,
+    train::axle::Axle,
     zone::{block::BlockPlugin, junction::JunctionPlugin, store::ZoneStore},
 };
 
@@ -28,7 +29,7 @@ pub struct AxleCounter {
 
 #[derive(Component, Default)]
 pub struct Zone {
-    pub count: usize,
+    pub occupation: HashMap<Entity, Axle>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,25 +39,26 @@ pub enum ZoneStatus {
 }
 
 impl Zone {
-    fn crossed(&mut self, forwards: bool) -> Option<ZoneStatus> {
-        if forwards {
-            self.count += 1;
-            if self.count == 1 {
-                return Some(ZoneStatus::Occupied);
-            }
-        } else if self.count > 0 {
-            self.count -= 1;
-            if self.count == 0 {
-                return Some(ZoneStatus::Clear);
-            }
-        }
-        None
-    }
-
     pub fn status(&self) -> ZoneStatus {
-        match self.count {
+        match self.occupation.len() {
             0 => ZoneStatus::Clear,
             _ => ZoneStatus::Occupied,
+        }
+    }
+
+    pub fn crossed(&mut self, train: Entity, axle: Axle, entered: bool) -> Option<ZoneStatus> {
+        if let Some(first_axle) = self.occupation.get(&train) {
+            if entered || axle == *first_axle {
+                return None;
+            }
+            self.occupation.remove(&train);
+            Some(ZoneStatus::Clear)
+        } else {
+            if !entered {
+                return None;
+            }
+            self.occupation.insert(train, axle);
+            Some(ZoneStatus::Occupied)
         }
     }
 }
@@ -74,28 +76,23 @@ fn axle_crossed(
     mut zones: Query<&mut Zone>,
 ) {
     let LandmarkPassed {
-        forwards,
+        forwards: entered,
         landmark: e_counter,
-        train: _,
-        axle: _,
+        train: e_train,
+        axle,
     } = *crossed;
 
-    let counter = match counters.get(e_counter) {
-        Ok(c) => c,
+    let (e_zone, mut zone) = match counters.get(e_counter) {
+        Ok(c) => match zones.get_mut(c.zone) {
+            Ok(z) => (c.zone, z),
+            Err(_) => return,
+        },
         Err(_) => return,
     };
 
-    let e_zone = counter.zone;
-    let mut zone = match zones.get_mut(e_zone) {
-        Ok(z) => z,
-        Err(_) => return,
-    };
-
-    match zone.crossed(forwards) {
-        Some(s) => commands.trigger(ZoneUpdate {
-            zone: e_zone,
-            status: s,
-        }),
-        None => return,
-    }
+    let res = zone.crossed(e_train, axle, entered);
+    println!(
+        "Zone[{}] crossed: {:?}, {}, {:?}",
+        e_zone, axle, entered, res
+    );
 }
