@@ -2,31 +2,41 @@ use bevy::prelude::*;
 
 pub mod axle;
 pub mod builder;
+pub mod mover;
 pub mod store;
 
-use axle::AxlePlugin;
-
 use crate::{
+    error::SimError::{self, LandmarkScanFailed},
+    landmark::{Landmark, LandmarkPassed, scanner::Scanner},
+    loc::{Dir, Loc},
     signal::control::{Effect, SignalCommand},
-    train::store::AxleStore,
+    train::{
+        axle::{Axle, project_axle_positions},
+        mover::TrainMover,
+        store::TrainStore,
+    },
 };
 
 pub struct TrainPlugin;
 
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(AxlePlugin)
-            .add_systems(PreStartup, AxleStore::init)
+        app.add_systems(PreStartup, TrainStore::init)
+            .add_systems(Update, (move_trains, project_axle_positions).chain())
             .add_observer(train_derailed)
-            // .add_observer(train_clicked)
             .add_observer(train_signaled);
     }
 }
 
-#[derive(Component, Default, Debug)]
+#[derive(Component, Clone, Default, Debug)]
 pub struct Train {
     speed: f32,
+    car_distance: f32,
+    axle_distance: f32,
 }
+
+#[derive(Component, Default, Debug)]
+pub struct Car;
 
 #[derive(Event)]
 pub struct TrainDerailed(Entity);
@@ -36,6 +46,63 @@ pub struct StoppedTrain(pub f32);
 
 #[derive(Component)]
 pub struct Derailed;
+
+#[derive(Event)]
+pub struct TrainMoved {
+    front: (Loc, Loc),
+    rear: (Loc, Loc),
+}
+
+fn move_trains(
+    mut commands: Commands,
+    scanner: Scanner,
+    mut mover: TrainMover,
+    mut trains: Query<(Entity, &mut Loc, &Train), (Without<Derailed>, Without<Landmark>)>,
+) {
+    for (e_train, mut loc, train) in trains.iter_mut() {
+        let moved = match mover.move_train((e_train, *loc, train)) {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
+                commands.trigger(TrainDerailed(e_train));
+                continue;
+            }
+        };
+        *loc = moved.front.1;
+
+        // axle_passed(&scanner, &mut commands, (e_train, Axle::Front), moved.front);
+        // axle_passed(&scanner, &mut commands, (e_train, Axle::Rear), moved.rear);
+    }
+}
+
+fn axle_passed(
+    scanner: &Scanner,
+    commands: &mut Commands,
+    axle: (Entity, Axle),
+    movement: (Loc, Loc),
+) -> Result<(), SimError> {
+    let passed_landmarks = match scanner.scan(movement.0, movement.1) {
+        Ok(p) => {
+            if p.len() > 0 {
+                p
+            } else {
+                return Ok(());
+            }
+        }
+        Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
+    };
+
+    for (e_landmark, forwards) in passed_landmarks {
+        commands.trigger(LandmarkPassed {
+            forwards,
+            landmark: e_landmark,
+            train: axle.0,
+            axle: axle.1,
+        });
+    }
+
+    Ok(())
+}
 
 fn train_derailed(
     derailed: On<TrainDerailed>,

@@ -12,6 +12,12 @@ pub enum SimError {
     #[error("reference to node broken: {0}")]
     BrokenNodeReference(Entity),
 
+    #[error("reference to train car broken: {0}")]
+    BrokenTrainCarReference(Entity),
+
+    #[error("reference to train rear axle broken: {0}")]
+    BrokenRearAxleReference(Entity),
+
     #[error("segments[{0}] not in store")]
     SegmentNotInStore(usize),
 
@@ -33,6 +39,18 @@ pub enum SimError {
     #[error("invalid train location: {0:?}")]
     InvalidTrainLoc(Box<SimError>),
 
+    #[error("invalid train axle location: {0:?}")]
+    InvalidRearAxleLoc(Box<SimError>),
+
+    #[error("no rear axle found for car: {0:?}")]
+    NoRearAxle(Entity),
+
+    #[error("no cars found for train: {0:?}")]
+    NoCars(Entity),
+
     #[error("conversion from wire format failed: {0:?}")]
     WireConversionFailed(Box<SimError>),
+
+    #[error("scanning landmarks failed: {0:?}")]
+    LandmarkScanFailed(Box<SimError>),
 }

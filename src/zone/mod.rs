@@ -77,6 +77,7 @@ fn axle_crossed(
         forwards,
         landmark: e_counter,
         train: _,
+        axle: _,
     } = *crossed;
 
     let counter = match counters.get(e_counter) {

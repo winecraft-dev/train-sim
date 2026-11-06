@@ -4,6 +4,7 @@ use crate::{
     control::TargetClicked,
     landmark::LandmarkPassed,
     signal::control::{Effect, SignalCommand, signal_controlled},
+    train::axle::Axle,
 };
 
 pub mod control;
@@ -51,9 +52,14 @@ fn train_passed(
         forwards,
         landmark: e_landmark,
         train: e_train,
+        axle,
     } = *passed.event();
 
     if !forwards {
+        return;
+    }
+
+    if let Axle::Rear = axle {
         return;
     }
 
