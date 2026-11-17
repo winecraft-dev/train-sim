@@ -4,7 +4,6 @@ use crate::{
     control::TargetClicked,
     landmark::LandmarkPassed,
     signal::control::{Effect, SignalCommand, signal_controlled},
-    train::axle::Axle,
 };
 
 pub mod control;
@@ -48,21 +47,13 @@ fn train_passed(
     obv_bounds: Query<&ObservableBound>,
     signals: Query<&Signal>,
 ) {
-    let LandmarkPassed {
-        landmark: e_landmark,
-        train: e_train,
-        intrusion,
-    } = *passed.event();
+    let passed = passed.event();
 
-    if !intrusion.aligned {
+    if !passed.forwards || !passed.front() {
         return;
     }
 
-    if let Axle::Rear = intrusion.axle {
-        return;
-    }
-
-    let e_signal = match obv_bounds.get(e_landmark) {
+    let e_signal = match obv_bounds.get(passed.landmark) {
         Ok(s) => s.signal,
         Err(_) => return,
     };
@@ -73,13 +64,13 @@ fn train_passed(
     };
 
     if let Aspect::Red = signal.aspect {
-        commands
-            .entity(e_signal)
-            .insert(HoldingSignal { train: e_train });
+        commands.entity(e_signal).insert(HoldingSignal {
+            train: passed.train,
+        });
         commands.trigger(SignalCommand {
             effect: Effect::Stop,
             signal: e_signal,
-            train: e_train,
+            train: passed.train,
         });
     }
 }

@@ -7,7 +7,7 @@ pub mod store;
 
 use crate::{
     error::SimError::{self, LandmarkScanFailed},
-    landmark::{AxleIntrusion, Landmark, LandmarkPassed, scanner::Scanner},
+    landmark::{Landmark, LandmarkPassed, scanner::Scanner},
     loc::{Dir, Loc},
     signal::control::{Effect, SignalCommand},
     train::{
@@ -54,25 +54,24 @@ pub struct StoppedTrain(pub f32);
 pub struct Derailed;
 
 pub struct TrainMoved {
-    front: (Loc, Loc),
-    rear: (Loc, Loc),
+    train: Entity,
+    movement: Vec<AxleMoved>,
 }
 
-impl TrainMoved {
+pub struct AxleMoved {
+    axle: Entity,
+    from: Loc,
+    to: Loc,
+}
+
+impl AxleMoved {
     fn speed_direction(mut self, speed: f32) -> Self {
-        let flipped = self.front.0.dir != self.front.1.dir;
-        self.front.0.dir = if speed < 0.0 { Dir::A } else { Dir::B };
-        self.front.1.dir = if !flipped {
-            self.front.0.dir
+        let flipped = self.from.dir != self.from.dir;
+        self.from.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        self.from.dir = if !flipped {
+            self.from.dir
         } else {
-            self.front.0.dir.flip()
-        };
-        let flipped = self.rear.0.dir != self.rear.1.dir;
-        self.rear.0.dir = if speed < 0.0 { Dir::A } else { Dir::B };
-        self.rear.1.dir = if !flipped {
-            self.rear.0.dir
-        } else {
-            self.rear.0.dir.flip()
+            self.from.dir.flip()
         };
         self
     }
@@ -120,11 +119,7 @@ fn train_passed(
                 commands.trigger(LandmarkPassed {
                     landmark: e_landmark,
                     train: e_train,
-                    intrusion: AxleIntrusion {
-                        forwards,
-                        aligned,
-                        axle: Axle::Front,
-                    },
+                    forwards,
                 });
             }
         }
