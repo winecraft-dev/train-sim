@@ -2,31 +2,47 @@ use bevy::prelude::*;
 
 pub mod axle;
 pub mod builder;
+pub mod mover;
 pub mod store;
 
-use axle::AxlePlugin;
-
 use crate::{
+    error::SimError::{self, LandmarkScanFailed},
+    landmark::{Landmark, LandmarkPassed, scanner::Scanner},
+    loc::{Dir, Loc},
     signal::control::{Effect, SignalCommand},
-    train::store::AxleStore,
+    train::{
+        axle::{Axle, project_axle_positions},
+        mover::TrainMover,
+        store::TrainStore,
+    },
 };
 
 pub struct TrainPlugin;
 
 impl Plugin for TrainPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(AxlePlugin)
-            .add_systems(PreStartup, AxleStore::init)
+        app.add_systems(PreStartup, TrainStore::init)
+            .add_systems(Update, (move_trains, project_axle_positions).chain())
             .add_observer(train_derailed)
-            // .add_observer(train_clicked)
             .add_observer(train_signaled);
     }
 }
 
-#[derive(Component, Default, Debug)]
+#[derive(Component, Clone, Default, Debug)]
 pub struct Train {
     speed: f32,
+    car_distance: f32,
+    axle_distance: f32,
 }
+
+impl Train {
+    fn forwards(&self) -> bool {
+        if self.speed < 0.0 { false } else { true }
+    }
+}
+
+#[derive(Component, Default, Debug)]
+pub struct Car;
 
 #[derive(Event)]
 pub struct TrainDerailed(Entity);
@@ -36,6 +52,98 @@ pub struct StoppedTrain(pub f32);
 
 #[derive(Component)]
 pub struct Derailed;
+
+pub struct TrainMoved {
+    train: Entity,
+    movement: Vec<AxleMoved>,
+}
+
+pub struct AxleMoved {
+    axle: Entity,
+    from: Loc,
+    to: Loc,
+}
+
+impl AxleMoved {
+    fn speed_direction(mut self, speed: f32) -> Self {
+        let flipped = self.from.dir != self.from.dir;
+        self.from.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        self.from.dir = if !flipped {
+            self.from.dir
+        } else {
+            self.from.dir.flip()
+        };
+        self
+    }
+}
+
+fn move_trains(
+    mut commands: Commands,
+    scanner: Scanner,
+    mut mover: TrainMover,
+    mut trains: Query<(Entity, &mut Loc, &Train), (Without<Derailed>, Without<Landmark>)>,
+) {
+    for (e_train, mut loc, train) in trains.iter_mut() {
+        let mut movement = match mover.move_train((e_train, *loc, train)) {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("Problem moving train[{}], derailing: {:?}", e_train, e);
+                commands.trigger(TrainDerailed(e_train));
+                continue;
+            }
+        };
+        *loc = movement.front.1;
+
+        movement = movement.speed_direction(train.speed);
+
+        if let Err(e) = train_passed(&scanner, &mut commands, e_train, train.forwards(), movement) {
+            eprintln!(
+                "Problem checking if train[{}] passed landmarks: {:?}",
+                e_train, e
+            );
+            continue;
+        }
+    }
+}
+
+fn train_passed(
+    scanner: &Scanner,
+    commands: &mut Commands,
+    e_train: Entity,
+    forwards: bool,
+    movement: TrainMoved,
+) -> Result<(), SimError> {
+    match scanner.scan(movement.front.0, movement.front.1) {
+        Ok(p) => {
+            for (e_landmark, aligned) in p {
+                commands.trigger(LandmarkPassed {
+                    landmark: e_landmark,
+                    train: e_train,
+                    forwards,
+                });
+            }
+        }
+        Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
+    };
+    match scanner.scan(movement.rear.0, movement.rear.1) {
+        Ok(p) => {
+            for (e_landmark, aligned) in p {
+                commands.trigger(LandmarkPassed {
+                    landmark: e_landmark,
+                    train: e_train,
+                    intrusion: AxleIntrusion {
+                        forwards,
+                        aligned,
+                        axle: Axle::Rear,
+                    },
+                });
+            }
+        }
+        Err(e) => return Err(LandmarkScanFailed(Box::new(e))),
+    };
+
+    Ok(())
+}
 
 fn train_derailed(
     derailed: On<TrainDerailed>,

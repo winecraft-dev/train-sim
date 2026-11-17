@@ -3,17 +3,13 @@ use bevy::prelude::*;
 pub mod scanner;
 pub mod store;
 
-use crate::{
-    landmark::{scanner::Scanner, store::LandmarkStore},
-    train::axle::AxleMoved,
-};
+use crate::landmark::store::LandmarkStore;
 
 pub struct LandmarkPlugin;
 
 impl Plugin for LandmarkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(check_landmarks_passed)
-            .add_systems(PreStartup, LandmarkStore::init)
+        app.add_systems(PreStartup, LandmarkStore::init)
             .add_systems(Update, LandmarkStore::update);
     }
 }
@@ -26,42 +22,14 @@ pub struct IndexedLandmark;
 
 #[derive(Event)]
 pub struct LandmarkPassed {
-    pub forwards: bool,
     pub landmark: Entity,
     pub train: Entity,
+    pub axle: Entity,
+    pub forwards: bool,
 }
 
-fn check_landmarks_passed(
-    moved: On<AxleMoved>,
-    mut commands: Commands,
-    store: Res<LandmarkStore>,
-    scanner: Scanner,
-) {
-    let AxleMoved {
-        train: e_train,
-        from,
-        to,
-    } = *moved;
-
-    let passed_landmarks = match scanner.scan(from, to, store) {
-        Ok(p) => {
-            if p.len() > 0 {
-                p
-            } else {
-                return;
-            }
-        }
-        Err(e) => {
-            eprintln!("{e}");
-            return;
-        }
-    };
-
-    for (e_landmark, forwards) in passed_landmarks {
-        commands.trigger(LandmarkPassed {
-            forwards: forwards,
-            landmark: e_landmark,
-            train: e_train,
-        });
+impl LandmarkPassed {
+    pub fn front(&self) -> bool {
+        self.train == self.axle
     }
 }

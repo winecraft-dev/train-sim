@@ -2,7 +2,7 @@ use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     landmark::{IndexedLandmark, Landmark},
-    loc::{Dir, Loc},
+    loc::Loc,
 };
 
 #[derive(Resource, Default, DerefMut, Deref, Debug)]
@@ -20,9 +20,9 @@ impl LandmarkStore {
     pub fn update(
         mut commands: Commands,
         mut store: ResMut<Self>,
-        landmarks: Query<(Entity, &Loc, &Dir), (With<Landmark>, Without<IndexedLandmark>)>,
+        landmarks: Query<(Entity, &Loc), (With<Landmark>, Without<IndexedLandmark>)>,
     ) {
-        for (e_landmark, loc, _) in landmarks {
+        for (e_landmark, loc) in landmarks {
             let e_track = loc.track;
             match store.get_mut(&e_track) {
                 Some(l) => {

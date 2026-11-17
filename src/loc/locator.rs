@@ -3,7 +3,7 @@ use bevy::{ecs::system::SystemParam, prelude::*};
 use crate::{
     error::SimError::{self, BrokenSegmentReference, WireConversionFailed},
     loader::wire,
-    loc::{Dir, FLoc, Loc},
+    loc::{Dir, Loc},
     track::{TrackSegment, store::SegmentStore},
 };
 
@@ -14,8 +14,8 @@ pub struct Locator<'w, 's> {
 }
 
 impl<'w, 's> Locator<'w, 's> {
-    pub fn convert(&self, input: wire::FLoc) -> Result<FLoc, SimError> {
-        let e_segment = match self.segment_store.segment(input.loc.track) {
+    pub fn convert(&self, input: wire::Loc) -> Result<Loc, SimError> {
+        let e_segment = match self.segment_store.segment(input.track) {
             Ok(s) => s,
             Err(e) => return Err(WireConversionFailed(Box::new(e))),
         };
@@ -24,10 +24,10 @@ impl<'w, 's> Locator<'w, 's> {
         };
 
         let mut distance = 0.0;
-        if let Some(progress) = input.loc.progress {
+        if let Some(progress) = input.progress {
             distance = progress * segment.length;
-        } else if let Some(offset) = input.loc.offset {
-            let end = match input.loc.end {
+        } else if let Some(offset) = input.offset {
+            let end = match input.end {
                 Some(e) => e,
                 None => Dir::default(),
             };
@@ -37,12 +37,10 @@ impl<'w, 's> Locator<'w, 's> {
             };
         }
 
-        Ok((
-            Loc {
-                track: e_segment,
-                distance: distance,
-            },
-            input.dir,
-        ))
+        Ok(Loc {
+            track: e_segment,
+            distance: distance,
+            dir: input.dir,
+        })
     }
 }

@@ -47,17 +47,13 @@ fn train_passed(
     obv_bounds: Query<&ObservableBound>,
     signals: Query<&Signal>,
 ) {
-    let LandmarkPassed {
-        forwards,
-        landmark: e_landmark,
-        train: e_train,
-    } = *passed.event();
+    let passed = passed.event();
 
-    if !forwards {
+    if !passed.forwards || !passed.front() {
         return;
     }
 
-    let e_signal = match obv_bounds.get(e_landmark) {
+    let e_signal = match obv_bounds.get(passed.landmark) {
         Ok(s) => s.signal,
         Err(_) => return,
     };
@@ -68,13 +64,13 @@ fn train_passed(
     };
 
     if let Aspect::Red = signal.aspect {
-        commands
-            .entity(e_signal)
-            .insert(HoldingSignal { train: e_train });
+        commands.entity(e_signal).insert(HoldingSignal {
+            train: passed.train,
+        });
         commands.trigger(SignalCommand {
             effect: Effect::Stop,
             signal: e_signal,
-            train: e_train,
+            train: passed.train,
         });
     }
 }

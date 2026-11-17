@@ -14,16 +14,9 @@ pub struct Railway {
 pub struct Zone {
     pub signal_distance: Option<f32>,
     pub observable_distance: Option<f32>,
-    pub entrys: Vec<FLoc>,
-    pub exits: Vec<FLoc>,
+    pub entrys: Vec<Loc>,
+    pub exits: Vec<Loc>,
     pub switches: Option<Vec<usize>>,
-}
-
-#[derive(Deserialize, Debug, Clone, Copy)]
-pub struct FLoc {
-    #[serde(flatten)]
-    pub loc: Loc,
-    pub dir: Dir,
 }
 
 #[derive(Deserialize, Debug, Clone, Copy)]
@@ -32,6 +25,7 @@ pub struct Loc {
     pub offset: Option<f32>,
     pub progress: Option<f32>,
     pub end: Option<Dir>,
+    pub dir: Dir,
 }
 
 #[derive(Deserialize, Debug)]
@@ -62,6 +56,9 @@ pub enum TrackVariant {
 
 #[derive(Deserialize, Debug)]
 pub struct Train {
-    pub floc: FLoc,
+    pub loc: Loc,
+    pub cars: Option<usize>,
+    pub car_distance: Option<f32>,
+    pub axle_distance: Option<f32>,
     pub speed: Option<f32>,
 }
