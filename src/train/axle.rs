@@ -5,12 +5,8 @@ use crate::{
     track::TrackNode,
 };
 
-#[derive(Component, Default, Debug, Clone, Copy, PartialEq)]
-pub enum Axle {
-    #[default]
-    Front,
-    Rear,
-}
+#[derive(Component, Debug)]
+pub struct Axle;
 
 pub fn project_axle_positions(
     axles: Query<(Entity, &mut Transform, &Loc), (With<Axle>, Without<TrackNode>)>,

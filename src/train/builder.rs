@@ -35,15 +35,14 @@ impl<'w, 's> TrainBuilder<'w, 's> {
 
         let mut e_cars: Vec<Entity> = Vec::new();
         let mut e_primary_car = Some(e_train);
-        let cars = params.cars.unwrap_or(1);
-        for car in 0..cars {
+        for car in 0..train.cars {
             let e_car = self.spawn_car(e_primary_car, &train, &mut loc)?;
             if let Some(_) = e_primary_car {
                 e_primary_car = None;
             } else {
                 e_cars.push(e_car);
             }
-            if car < cars {
+            if car < train.cars {
                 loc = match self
                     .cursor
                     .traverse(loc, loc.dir.vector(train.car_distance))
@@ -60,11 +59,13 @@ impl<'w, 's> TrainBuilder<'w, 's> {
     }
 
     fn create_train(params: &wire::Train) -> Train {
+        let cars = params.cars.unwrap_or(1).max(1);
         let speed = params.speed.unwrap_or(DEFAULT_TRAIN_SPEED);
         let car_distance = params.car_distance.unwrap_or(DEFAULT_CAR_DISTANCE);
         let axle_distance = params.axle_distance.unwrap_or(DEFAULT_AXLE_DISTANCE);
 
         Train {
+            cars,
             speed,
             car_distance,
             axle_distance,
@@ -90,11 +91,11 @@ impl<'w, 's> TrainBuilder<'w, 's> {
             Some(e_train) => self
                 .commands
                 .entity(e_train)
-                .insert((main_loc, Car, Axle::Front))
+                .insert((main_loc, Car, Axle))
                 .id(),
-            None => self.commands.spawn((main_loc, Car, Axle::Front)).id(),
+            None => self.commands.spawn((main_loc, Car, Axle)).id(),
         };
-        let e_rear = self.commands.spawn((*loc, Axle::Rear)).id();
+        let e_rear = self.commands.spawn((*loc, Axle)).id();
 
         self.commands.entity(e_car).add_child(e_rear);
 

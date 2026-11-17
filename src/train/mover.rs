@@ -6,8 +6,8 @@ use crate::{
         InvalidTrainLoc, NoCars, NoRearAxle,
     },
     landmark::Landmark,
-    loc::{Loc, traverser::Traverser},
-    train::{Car, Train, TrainMoved, axle::Axle},
+    loc::{Dir, Loc, traverser::Traverser},
+    train::{Car, Train, axle::Axle},
 };
 
 #[derive(SystemParam)]
@@ -24,19 +24,59 @@ pub struct TrainMover<'w, 's> {
 }
 
 impl<'w, 's> TrainMover<'w, 's> {
-    pub fn move_train(&mut self, train: (Entity, Loc, &Train)) -> Result<TrainMoved, SimError> {
-        let (e_train, old_train_loc, train) = train;
+    pub fn calculate_movement(&self, train: (Loc, &Train)) -> Result<CalculatedMove, SimError> {
+        let (train_loc, train) = train;
 
-        let mut cursor = old_train_loc;
+        let mut cursor = train_loc;
+        let mut movement: CalculatedMove = Vec::new();
+
         let speed = -cursor.dir.vector(train.speed);
         cursor = match self.traverser.traverse(cursor, speed) {
             Ok(l) => l,
             Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
         };
 
-        let new_train_loc = cursor;
-        let (mut old_rear_loc, mut new_rear_loc) = self.move_rear_axle(cursor, e_train, train)?;
-        cursor = new_rear_loc;
+        for car in 0..train.cars {
+            let front_axle = cursor;
+            cursor = match self
+                .traverser
+                .traverse(cursor, cursor.dir.vector(train.axle_distance))
+            {
+                Ok(l) => l,
+                Err(e) => return Err(InvalidRearAxleLoc(Box::new(e))),
+            };
+            let rear_axle = cursor;
+            movement.push((front_axle, rear_axle));
+            if car < train.cars {
+                cursor = match self
+                    .traverser
+                    .traverse(cursor, cursor.dir.vector(train.car_distance))
+                {
+                    Ok(l) => l,
+                    Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
+                }
+            }
+        }
+
+        Ok(movement)
+    }
+
+    pub fn move_train(
+        &mut self,
+        train: (Entity, &mut Loc, &Train),
+        calculated: CalculatedMove,
+    ) -> Result<TrainMoved, SimError> {
+        let (e_train, train_loc, train) = train;
+
+        if calculated.len() != train.cars {
+            todo!();
+        }
+        let mut calculated = calculated.iter();
+        let mut movement = TrainMoved::new(e_train);
+
+        let (front, rear) = calculated.next().unwrap();
+        movement.move_axle(e_train, train_loc, *front);
+        movement.add(self.move_rear_axle(e_train, *rear)?);
 
         let e_cars: Vec<Entity> = match self.children.get(e_train) {
             Ok(c) => c.iter().filter(|e| self.cars.contains(*e)).collect(),
@@ -44,36 +84,18 @@ impl<'w, 's> TrainMover<'w, 's> {
         };
 
         for e_car in e_cars {
+            let (front, rear) = calculated.next().unwrap();
             let Ok(mut loc) = self.cars.get_mut(e_car) else {
                 return Err(BrokenTrainCarReference(e_car));
             };
-
-            cursor = match self
-                .traverser
-                .traverse(cursor, cursor.dir.vector(train.car_distance))
-            {
-                Ok(l) => l,
-                Err(e) => return Err(InvalidTrainLoc(Box::new(e))),
-            };
-            *loc = cursor;
-
-            (old_rear_loc, new_rear_loc) = self.move_rear_axle(cursor, e_car, train)?;
-            cursor = new_rear_loc;
+            movement.move_axle(e_car, &mut loc, *front);
+            movement.add(self.move_rear_axle(e_car, *rear)?);
         }
 
-        // cursor is now the position of the last rear_axle
-        Ok(TrainMoved {
-            front: (old_train_loc, new_train_loc),
-            rear: (old_rear_loc, new_rear_loc),
-        })
+        Ok(movement)
     }
 
-    fn move_rear_axle(
-        &mut self,
-        mut cursor: Loc,
-        e_car: Entity,
-        train: &Train,
-    ) -> Result<(Loc, Loc), SimError> {
+    fn move_rear_axle(&mut self, e_car: Entity, loc: Loc) -> Result<AxleMoved, SimError> {
         let e_rear = match self.children.get(e_car) {
             Ok(c) => match c
                 .iter()
@@ -92,17 +114,68 @@ impl<'w, 's> TrainMover<'w, 's> {
             Err(_) => return Err(BrokenRearAxleReference(e_rear)),
         };
         let old_loc = *rear_loc;
+        *rear_loc = loc;
 
-        cursor = match self
-            .traverser
-            .traverse(cursor, cursor.dir.vector(train.axle_distance))
-        {
-            Ok(l) => l,
-            Err(e) => return Err(InvalidRearAxleLoc(Box::new(e))),
+        Ok(AxleMoved {
+            axle: e_rear,
+            from: old_loc,
+            to: loc,
+        })
+    }
+}
+
+pub type CalculatedMove = Vec<(Loc, Loc)>;
+
+#[derive(Debug)]
+pub struct TrainMoved {
+    train: Entity,
+    movement: Vec<AxleMoved>,
+}
+
+impl TrainMoved {
+    pub fn new(train: Entity) -> Self {
+        Self {
+            train,
+            movement: Vec::new(),
+        }
+    }
+
+    pub fn move_axle(&mut self, axle: Entity, original: &mut Loc, new: Loc) {
+        let old = *original;
+        *original = new;
+        self.movement.push(AxleMoved {
+            axle,
+            from: old,
+            to: new,
+        });
+    }
+
+    pub fn add(&mut self, moved: AxleMoved) {
+        self.movement.push(moved);
+    }
+
+    pub fn speed_direction(&mut self, speed: f32) {
+        for axle in self.movement.iter_mut() {
+            axle.speed_direction(speed);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct AxleMoved {
+    axle: Entity,
+    from: Loc,
+    to: Loc,
+}
+
+impl AxleMoved {
+    fn speed_direction(&mut self, speed: f32) {
+        let flipped = self.from.dir != self.to.dir;
+        self.from.dir = if speed < 0.0 { Dir::A } else { Dir::B };
+        self.to.dir = if !flipped {
+            self.from.dir
+        } else {
+            self.from.dir.flip()
         };
-
-        *rear_loc = cursor;
-
-        Ok((old_loc, cursor))
     }
 }
