@@ -49,7 +49,7 @@ fn train_passed(
 ) {
     let passed = passed.event();
 
-    if !passed.forwards || !passed.front() {
+    if !passed.aligned || !passed.primary() {
         return;
     }
 

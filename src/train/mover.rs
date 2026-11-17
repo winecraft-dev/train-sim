@@ -128,8 +128,8 @@ pub type CalculatedMove = Vec<(Loc, Loc)>;
 
 #[derive(Debug)]
 pub struct TrainMoved {
-    train: Entity,
-    movement: Vec<AxleMoved>,
+    pub train: Entity,
+    pub movement: Vec<AxleMoved>,
 }
 
 impl TrainMoved {
@@ -163,9 +163,9 @@ impl TrainMoved {
 
 #[derive(Debug)]
 pub struct AxleMoved {
-    axle: Entity,
-    from: Loc,
-    to: Loc,
+    pub axle: Entity,
+    pub from: Loc,
+    pub to: Loc,
 }
 
 impl AxleMoved {

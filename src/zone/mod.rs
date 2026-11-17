@@ -85,6 +85,6 @@ fn axle_crossed(
         Err(_) => return,
     };
 
-    let res = zone.crossed(passed.train, passed.forwards);
+    let res = zone.crossed(passed.train, passed.aligned);
     println!("Zone[{}] crossed: {:?}, {:?}", e_zone, passed.axle, res);
 }

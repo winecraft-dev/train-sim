@@ -25,11 +25,11 @@ pub struct LandmarkPassed {
     pub landmark: Entity,
     pub train: Entity,
     pub axle: Entity,
-    pub forwards: bool,
+    pub aligned: bool,
 }
 
 impl LandmarkPassed {
-    pub fn front(&self) -> bool {
+    pub fn primary(&self) -> bool {
         self.train == self.axle
     }
 }
