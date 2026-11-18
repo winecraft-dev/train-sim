@@ -29,6 +29,7 @@ impl<'w, 's> Scanner<'w, 's> {
             if e_landmarks.len() > 0 {
                 match cursor.dir {
                     Dir::A => {
+                        println!("A--");
                         let bound_b = if same_track { b.distance } else { 0.0 };
                         for e_landmark in e_landmarks.iter().rev() {
                             let landmark = match self.landmarks.get(*e_landmark) {

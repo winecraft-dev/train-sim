@@ -155,7 +155,7 @@ fn render_switches(
 
 fn render_facing(
     mut gizmos: Gizmos,
-    facing: Query<(&Loc, &Transform), Without<Axle>>,
+    facing: Query<(&Loc, &Transform)>,
     segments: Query<&TrackSegment>,
     switches: Query<&Transform>,
 ) {
@@ -222,9 +222,10 @@ fn render_zones(
             .map(|t| t.translation.xy())
             .collect();
 
-        let color = match zone.status() {
+        let zone_status = zone.status();
+        let color = match zone_status {
             ZoneStatus::Clear => css::MAGENTA,
-            ZoneStatus::Occupied => css::DARK_MAGENTA,
+            ZoneStatus::Occupied(_) => css::DARK_MAGENTA,
         };
 
         let center: Vec2 = counter_positions.iter().sum::<Vec2>() / counter_positions.len() as f32;
@@ -233,7 +234,7 @@ fn render_zones(
         }
         gizmos.text_2d(
             center,
-            &format!("<{:#?}>", zone.status()),
+            &format!("<{:#?}>", zone_status),
             12.0,
             Vec2::ZERO,
             color,

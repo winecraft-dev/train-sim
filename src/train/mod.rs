@@ -73,6 +73,11 @@ fn move_trains(
         };
         moved.speed_direction(train.speed);
 
+        for axle in moved.movement.iter() {
+            print!("{:?},", axle.from.dir);
+        }
+        println!("");
+
         if let Err(e) = train_passed(&scanner, &mut commands, moved) {
             eprintln!(
                 "Problem checking if train[{}] passed landmarks: {:?}",

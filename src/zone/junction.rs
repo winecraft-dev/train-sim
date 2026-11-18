@@ -45,7 +45,7 @@ fn zone_updated(update: On<ZoneUpdate>, mut commands: Commands, junctions: Query
         Junction::Split1_2 { signal } => {
             let aspect = match status {
                 ZoneStatus::Clear => Aspect::Green,
-                ZoneStatus::Occupied => Aspect::Red,
+                ZoneStatus::Occupied(_) => Aspect::Red,
             };
             commands.trigger(SignalControl {
                 signal: *signal,
@@ -85,7 +85,7 @@ fn switch_updated(
 
 fn signal_aspects(commands: &mut Commands, status: ZoneStatus, control: usize, signals: &[Entity]) {
     match status {
-        ZoneStatus::Occupied => {
+        ZoneStatus::Occupied(_) => {
             commands.trigger(SignalControl {
                 signal: signals[0],
                 aspect: Aspect::Red,

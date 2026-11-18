@@ -34,14 +34,14 @@ pub struct Zone {
 #[derive(Debug, Clone, Copy)]
 pub enum ZoneStatus {
     Clear,
-    Occupied,
+    Occupied(usize),
 }
 
 impl Zone {
     pub fn status(&self) -> ZoneStatus {
         match self.axles.len() {
             0 => ZoneStatus::Clear,
-            _ => ZoneStatus::Occupied,
+            _ => ZoneStatus::Occupied(self.axles.len()),
         }
     }
 
@@ -51,7 +51,7 @@ impl Zone {
                 None
             } else {
                 self.axles.insert(axle);
-                Some(ZoneStatus::Occupied)
+                Some(ZoneStatus::Occupied(self.axles.len()))
             }
         } else {
             if self.axles.remove(&axle) {

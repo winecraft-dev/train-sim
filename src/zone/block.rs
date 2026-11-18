@@ -37,7 +37,7 @@ pub fn zone_updated(update: On<ZoneUpdate>, mut commands: Commands, blocks: Quer
             signal: e_signal,
             aspect: Aspect::Green,
         }),
-        ZoneStatus::Occupied => commands.trigger(SignalControl {
+        ZoneStatus::Occupied(_) => commands.trigger(SignalControl {
             signal: e_signal,
             aspect: Aspect::Red,
         }),
