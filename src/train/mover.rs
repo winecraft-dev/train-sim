@@ -155,19 +155,23 @@ impl TrainMoved {
     }
 
     pub fn speed_direction(&mut self, speed: f32) {
-        let speed_dir = if speed < 0.0 { Dir::A } else { Dir::B };
-
-        let mut primary_dir: Option<Dir> = None;
+        let mut primary: Option<(Dir, Dir)> = None;
         for axle in self.movement.iter_mut() {
-            if let Some(pd) = primary_dir {
-                axle.from.dir = if pd != axle.from.dir {
+            let axle_dir = &mut axle.from.dir;
+            if let Some((original_dir, speed_dir)) = primary {
+                *axle_dir = if original_dir != *axle_dir {
                     speed_dir.flip()
                 } else {
                     speed_dir
                 };
             } else {
-                primary_dir = Some(axle.from.dir);
-                axle.from.dir = speed_dir;
+                let speed_dir = if speed < 0.0 { Dir::A } else { Dir::B };
+                let speed_dir = match *axle_dir {
+                    Dir::A => speed_dir.flip(),
+                    Dir::B => speed_dir,
+                };
+                primary = Some((*axle_dir, speed_dir));
+                *axle_dir = speed_dir;
             }
         }
     }

@@ -53,9 +53,9 @@ tracks:
       center: 16
 zones:
   - entrys:
-      - { track: 0, progress: 0, dir: B }
+      - { track: 0, progress: 0.1, dir: B }
     exits:
-      - { track: 0, progress: 0.49, dir: A }
+      - { track: 0, progress: 0.89, dir: A }
   # - entrys:
   #     - { track: 0, progress: 0.5, dir: B }
   #   exits:
@@ -74,7 +74,7 @@ zones:
     exits:
       - { track: 12, progress: 0.55, dir: A }
     signal_distance: 15
-    observable_distance: 20
+    observable_distance: 50
   # - entrys:
   #     - { track: 0, offset: 210, dir: B }
   #   exits:
@@ -154,6 +154,6 @@ zones:
   #   exits:
   #     - { track: 8, end: A, offset: 110, dir: A }
 trains:
-  - loc: { track: 0, progress: 0.6, dir: B }
-    speed: 3
+  - loc: { track: 11, progress: 0.6, dir: B }
+    speed: 1
     cars: 1
